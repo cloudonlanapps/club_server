@@ -69,3 +69,6 @@ htmlcov/
 # Project-scoped Claude agents are shared and checked in.
 !.claude/agents/
 !.claude/agents/**
+# So are the project's memory notes.
+!.claude/memory/
+!.claude/memory/**
