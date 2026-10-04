@@ -1,0 +1,7 @@
+# Revisions listed here are skipped by `git blame` (mechanical, no-logic changes).
+# Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub honours this file automatically in its blame view.)
+
+# Adopt ruff format across the codebase — one-time repo-wide reformat (#238)
+396d2ebd632844adef984ee1b77433c28423669b

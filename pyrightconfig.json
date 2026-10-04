@@ -1,0 +1,17 @@
+{
+  "include": [
+    "club_server",
+    "tests"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".venv"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "strict",
+  "reportCallInDefaultInitializer": true,
+  "reportUnusedCallResult": true,
+  "reportUnannotatedClassAttribute": true
+}

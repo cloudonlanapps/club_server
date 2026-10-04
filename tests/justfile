@@ -1,0 +1,59 @@
+# Test recipes. Invoked from the repo root as `just tests::<recipe>`.
+# Procedure and rationale: tests/README.md.
+set positional-arguments
+set working-directory := ".."
+
+# One cluster per run, keyed by port, under /tmp so leftovers expire on their
+# own. The lock serialises port allocation; once postgres is bound the port is
+# its own reservation.
+run_dir  := "/tmp/club_server_test_run_"
+port_lock := "/tmp/club_server_test_port.lock"
+
+# Allocate a free port, start an isolated test DB on it and run pytest. Args go to pytest.
+auto *ARGS:
+    #!/usr/bin/env bash
+    set -e
+    exec 9>"{{ port_lock }}"
+    flock 9
+    PORT=""
+    for p in $(seq 5440 5499); do
+        if ! lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null 2>&1; then
+            PORT="$p"; break
+        fi
+    done
+    if [ -z "$PORT" ]; then
+        echo "ERROR: no free port found in 5440-5499" >&2
+        exit 1
+    fi
+    DATA_DIR="{{ run_dir }}$PORT"
+    echo "==> port=$PORT  data-dir=$DATA_DIR"
+    ./start_db.sh --db-port "$PORT" --data-dir "$DATA_DIR"
+    flock -u 9
+    TEST_DB_PORT="$PORT" uv run --frozen pytest "$@"
+
+# Stop the isolated DB on PORT and remove its data-dir.
+stop PORT:
+    #!/usr/bin/env bash
+    set -e
+    DATA_DIR="{{ run_dir }}{{ PORT }}"
+    if [ -d "$DATA_DIR" ]; then
+        ./start_db.sh --stop --data-dir "$DATA_DIR" || true
+        rm -rf "$DATA_DIR"
+        echo "Removed $DATA_DIR"
+    else
+        echo "No data-dir at $DATA_DIR (nothing to do)"
+    fi
+
+# Stop and remove every leftover isolated-test cluster. Only when no run is in flight.
+cleanup:
+    #!/usr/bin/env bash
+    set -e
+    shopt -s nullglob
+    found=0
+    for d in "{{ run_dir }}"* "$HOME/.local/share/"server_club_test_run_*; do
+        found=1
+        echo "==> $d"
+        ./start_db.sh --stop --data-dir "$d" || true
+        rm -rf "$d"
+    done
+    [ "$found" = "0" ] && echo "No stale isolated-test data-dirs found." || echo "Done."

@@ -1,0 +1,43 @@
+name: Task / chore
+description: Refactor, tooling, docs, dependency bump, or other maintenance work.
+title: "[Task]: "
+labels: ["type:task", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for work that is neither a user-facing bug nor a new feature: refactors, dependency upgrades, documentation, tooling, CI, etc.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be done and why.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Which files, modules, or systems are affected. What is explicitly out of scope.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Links, references, related issues.
+    validations:
+      required: false

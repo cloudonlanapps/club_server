@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite3
+data/
+
+# Logs
+*.log
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Tooling caches
+.ruff_cache/
+.mypy_cache/
+
+# Editor / merge leftovers
+*.bak
+*.orig
+*.rej
+
+# Process files
+*.pid
+
+# uv
+.uv/
+
+.DS_Store
+.claude/**
+# Project-scoped Claude agents are shared and checked in.
+!.claude/agents/
+!.claude/agents/**

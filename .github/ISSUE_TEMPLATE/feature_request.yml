@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a new capability or enhancement.
+title: "[Feature]: "
+labels: ["type:feature", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to propose a new feature or enhancement. Be specific about the problem being solved — not just the solution.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem does this solve? Who is affected? Why now?
+      placeholder: Today, users cannot ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the proposed change. API shape, UX, data model, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist describing when this feature is "done". Each item should be independently verifiable.
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you considered and why you rejected them.
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Mockups, references, related issues, dependencies.
+    validations:
+      required: false
