@@ -1,6 +1,6 @@
 from typing import ClassVar, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 def to_camel(string: str) -> str:
@@ -61,6 +61,14 @@ class CapabilitiesResponse(CamelCaseModel):
     event_marketing: bool = False
     # Whether a new user uploads an identity document before review (#428).
     identity_verification: bool = True
+    default_country_code: str | None = Field(
+        None,
+        description=(
+            "The club's country calling code, one to three digits without "
+            '"+", for completing a phone number typed without one. Set per '
+            "deployment by `DEFAULT_COUNTRY_CODE`; null when it sets none (#15)."
+        ),
+    )
 
 
 class SystemStatusResponse(CamelCaseModel):

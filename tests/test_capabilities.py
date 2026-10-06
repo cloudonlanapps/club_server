@@ -122,7 +122,8 @@ async def test_should_return_a_closed_set_of_capabilities(
     """The document is a closed set, so a client can trust what it reads.
 
     The set grows as modules become optional — ``evaluations`` joined it in
-    #302, ``eventMarketing`` in #410, ``identityVerification`` in #428 — which is the shape #339 designed for. It stays asserted exactly
+    #302, ``eventMarketing`` in #410, ``identityVerification`` in #428,
+    ``defaultCountryCode`` in #15 — which is the shape #339 designed for. It stays asserted exactly
     so that growth is a deliberate edit rather than a silent one.
     """
     token = await create_member(db_session, "alice")
@@ -134,4 +135,5 @@ async def test_should_return_a_closed_set_of_capabilities(
         "evaluations",
         "eventMarketing",
         "identityVerification",
+        "defaultCountryCode",
     }
