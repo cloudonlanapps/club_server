@@ -9,6 +9,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .eligibility_helpers import with_event_band
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .redesign_helpers import (
     DAY_MS,
@@ -313,8 +314,10 @@ async def test_should_reach_eligibility_fields_through_correction(
         admin,
         programme["id"],
         gender="female",
-        dobOnOrAfterUtc=dob_after,
-        dobOnOrBeforeUtc=dob_before,
+        **with_event_band(
+            {"dobOnOrAfterUtc": dob_after, "dobOnOrBeforeUtc": dob_before},
+            programme["startTimeUtc"],
+        ),
     )
 
     assert response.status_code == 200, response.text

@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .eligibility_helpers import with_group_band
 from .helpers import (
     attach_identity_document,
     create_admin_user,
@@ -144,12 +145,14 @@ async def test_eligible_endpoint_for_semi_auto_includes_coaches_and_admins(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(admin_token),
     )
     gid = g.json()["id"]
@@ -177,12 +180,14 @@ async def test_eligible_endpoint_for_semi_auto_excludes_ineligible_members(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(admin_token),
     )
     gid = g.json()["id"]
@@ -279,17 +284,19 @@ async def test_mygroups_eligible_for_member(
     m = await client.post("/v1/groups", json={"name": "M1"}, headers=auth(admin_token))
     s = await client.post(
         "/v1/groups",
-        json={
-            "name": "S1",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S1",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(admin_token),
     )
     a = await client.post(
         "/v1/groups",
-        json={"name": "A1", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "A1", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(admin_token),
     )
     joined = await client.post(

@@ -9,6 +9,7 @@ from typing import ClassVar
 
 from pydantic import ConfigDict
 
+from ..age_eligibility import Age, EligibilityWindow
 from ..db.models.event import Event
 from ..utils import generate_event_public_id, generate_venue_public_id
 from .common import CamelCaseModel
@@ -54,8 +55,12 @@ class PublicEventResponse(CamelCaseModel):
     until_time_utc: int | None
     sessions: list[Session] | None
     gender: str | None
+    min_age: Age | None
+    max_age: Age | None
+    strict_age: bool
     dob_on_or_after_utc: int | None
     dob_on_or_before_utc: int | None
+    eligibility_reference_day_utc: int
     is_featured: bool
     is_past: bool
     cover: MediaRef | None
@@ -72,6 +77,7 @@ class PublicEventResponse(CamelCaseModel):
     def build(
         cls,
         event: Event,
+        window: EligibilityWindow,
         *,
         is_past: bool,
         cover: MediaRef | None,
@@ -80,7 +86,7 @@ class PublicEventResponse(CamelCaseModel):
         coaches: list[PublicProfileResponse],
     ) -> "PublicEventResponse":
         """Project an event with its pre-resolved public companions."""
-        base = EventResponse.from_model(event)
+        base = EventResponse.from_model(event, window)
         return cls(
             public_id=generate_event_public_id(event.id),
             title=base.title,
@@ -93,8 +99,12 @@ class PublicEventResponse(CamelCaseModel):
             until_time_utc=base.until_time_utc,
             sessions=base.sessions,
             gender=base.gender,
+            min_age=base.min_age,
+            max_age=base.max_age,
+            strict_age=base.strict_age,
             dob_on_or_after_utc=base.dob_on_or_after_utc,
             dob_on_or_before_utc=base.dob_on_or_before_utc,
+            eligibility_reference_day_utc=base.eligibility_reference_day_utc,
             is_featured=base.is_featured,
             is_past=is_past,
             cover=cover,

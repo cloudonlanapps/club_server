@@ -1,9 +1,12 @@
 import os
 import re
 from typing import Annotated, Any, ClassVar
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+from .club_calendar import DEFAULT_CLUB_TIMEZONE
 
 # Docker mounts secrets as files here, one per secret, named for the setting
 # they carry. pydantic-settings reads a file whose name matches a field, so
@@ -107,6 +110,10 @@ class Settings(BaseSettings):
     # format and complete a number typed without a code with this one; which
     # country a club is in is a fact about the deployment. Unset by default.
     default_country_code: str | None = None
+    # Club time zone (#16) — an IANA name. Ages are counted on calendar days
+    # (today, the day an event starts), and a day is the club's own: a session
+    # at 05:00 in India is still on the previous UTC day.
+    club_timezone: str = DEFAULT_CLUB_TIMEZONE
 
     # API
     api_v1_prefix: str = "/v1"
@@ -150,6 +157,23 @@ class Settings(BaseSettings):
                 'three digits without "+", e.g. 91'
             )
         return code
+
+    @field_validator("club_timezone", mode="before")
+    @classmethod
+    def _check_timezone(cls, value: Any) -> Any:
+        """Accept an IANA zone name; treat an empty value as not set."""
+        if not isinstance(value, str):
+            return value
+        name = value.strip()
+        if not name:
+            return DEFAULT_CLUB_TIMEZONE
+        try:
+            _ = ZoneInfo(name)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(
+                "CLUB_TIMEZONE must be an IANA time zone name, e.g. Asia/Kolkata"
+            )
+        return name
 
     @property
     def cors_allow_credentials(self) -> bool:

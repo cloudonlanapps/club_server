@@ -17,6 +17,7 @@ from ..schemas.public_event import PublicEventResponse
 from ..schemas.user import PublicProfileResponse
 from ..schemas.venue import PublicVenueResponse
 from ..utils import generate_event_public_id, generate_venue_public_id, now_utc_ms
+from .event_eligibility import event_window
 from .event_listing import _still_running_at
 from .lifecycle import is_past
 from .media import can_view_media
@@ -106,6 +107,7 @@ class PublicEventService:
         cover, gallery = await resolve_public_event_media(self.db, event.id)
         return PublicEventResponse.build(
             event,
+            await event_window(self.db, event, now_ms),
             is_past=await is_past(self.db, event, now_ms),
             cover=cover,
             gallery=gallery,

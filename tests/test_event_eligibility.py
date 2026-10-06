@@ -7,6 +7,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .eligibility_helpers import with_event_band
 from .helpers import attach_identity_document, create_admin_user
 
 DOB_2010 = 1262304000000  # 2010-01-01 UTC midnight
@@ -132,7 +133,9 @@ async def _create_event(
         body["isFeatured"] = True
     if gallery_uris is not None:
         body["galleryUris"] = gallery_uris
-    r = await client.post("/v1/events", json=body, headers=auth(admin_token))
+    r = await client.post(
+        "/v1/events", json=with_event_band(body), headers=auth(admin_token)
+    )
     assert r.status_code == expect_status, r.text
     return r.json() if expect_status == 201 else r.json()
 
@@ -186,7 +189,9 @@ async def test_create_rejects_inverted_dob_window(
         "dobOnOrAfterUtc": DOB_2014,
         "dobOnOrBeforeUtc": DOB_2010,
     }
-    r = await client.post("/v1/events", json=body, headers=auth(admin_token))
+    r = await client.post(
+        "/v1/events", json=with_event_band(body), headers=auth(admin_token)
+    )
     assert r.status_code == 422
     assert r.json()["detail"]["code"] == "INVALID_STATE"
 
@@ -195,19 +200,28 @@ async def test_create_rejects_inverted_dob_window(
 async def test_dob_bounds_non_midnight_rejected_with_422(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """Per #100: event dobOn* bounds must be at UTC midnight; non-midnight is 422."""
+    """An event no longer takes a date bound at all (#16, eligibility R11):
+    the field is refused whatever its value, a non-midnight one included."""
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
+    await db_session.commit()
     not_midnight = DOB_2010 + 12 * 60 * 60 * 1000  # 2010-01-01 12:00 UTC
-    r = await _create_event(
-        client,
-        admin_token,
-        venue_id,
-        dob_on_or_after_utc=not_midnight,
-        expect_status=422,
+    start = future_time(24)
+    r = await client.post(
+        "/v1/events",
+        json={
+            "title": "Camp",
+            "type": "camp",
+            "venueId": venue_id,
+            "startTimeUtc": start,
+            "endTimeUtc": start + 3600 * 1000,
+            "dobOnOrAfterUtc": not_midnight,
+        },
+        headers=auth(admin_token),
     )
-    assert r["detail"]["code"] == "INVALID_DOB_NOT_UTC_MIDNIGHT"
-    assert r["detail"]["field"] == "dobOnOrAfterUtc"
+    assert r.status_code == 422
+    listing = await client.get("/v1/events", headers=auth(admin_token))
+    assert listing.json()["total"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -329,7 +343,10 @@ async def test_approve_re_checks_eligibility(
     # Tighten the camp's eligibility — kid (DOB 2014) is now too young.
     patch = await client.patch(
         f"/v1/events/by_id/{event['id']}",
-        json={"dobOnOrAfterUtc": DOB_2010, "dobOnOrBeforeUtc": DOB_2010, "version": 1},
+        json=with_event_band(
+            {"dobOnOrAfterUtc": DOB_2010, "dobOnOrBeforeUtc": DOB_2010, "version": 1},
+            event["startTimeUtc"],
+        ),
         headers=auth(admin_token),
     )
     assert patch.status_code == 200
@@ -408,7 +425,9 @@ async def test_grandfathering_keeps_existing_enrollment(
     # Tighten — vet is now ineligible by DOB.
     patch = await client.patch(
         f"/v1/events/by_id/{event['id']}",
-        json={"dobOnOrAfterUtc": DOB_2010, "version": 1},
+        json=with_event_band(
+            {"dobOnOrAfterUtc": DOB_2010, "version": 1}, event["startTimeUtc"]
+        ),
         headers=auth(admin_token),
     )
     assert patch.status_code == 200
@@ -471,7 +490,9 @@ async def test_myevents_keeps_enrolled_event_even_when_ineligible(
     )
     _ = await client.patch(
         f"/v1/events/by_id/{event['id']}",
-        json={"dobOnOrAfterUtc": DOB_2010, "version": 1},
+        json=with_event_band(
+            {"dobOnOrAfterUtc": DOB_2010, "version": 1}, event["startTimeUtc"]
+        ),
         headers=auth(admin_token),
     )
     r = await client.get("/v1/myevents/by_id/vet2", headers=auth(user_token))
@@ -646,7 +667,10 @@ async def test_update_rejects_inverted_dob_window(
     event = await _create_event(client, admin_token, venue_id)
     r = await client.patch(
         f"/v1/events/by_id/{event['id']}",
-        json={"dobOnOrAfterUtc": DOB_2014, "dobOnOrBeforeUtc": DOB_2010, "version": 1},
+        json=with_event_band(
+            {"dobOnOrAfterUtc": DOB_2014, "dobOnOrBeforeUtc": DOB_2010, "version": 1},
+            event["startTimeUtc"],
+        ),
         headers=auth(admin_token),
     )
     assert r.status_code == 422
@@ -709,7 +733,9 @@ async def test_invite_replacing_terminal_enrollment_re_checks_eligibility(
     # Tighten — kid (DOB 2014) is now too old.
     pt = await client.patch(
         f"/v1/events/by_id/{event['id']}",
-        json={"dobOnOrBeforeUtc": DOB_2010, "version": 1},
+        json=with_event_band(
+            {"dobOnOrBeforeUtc": DOB_2010, "version": 1}, event["startTimeUtc"]
+        ),
         headers=auth(admin_token),
     )
     assert pt.status_code == 200

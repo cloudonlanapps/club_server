@@ -11,6 +11,7 @@ from club_server.db.models.group_join_request import (
     JoinRequestStatus,
 )
 
+from .eligibility_helpers import with_group_band
 from .helpers import (
     create_admin_user,
     create_coach_user,
@@ -43,12 +44,14 @@ async def _make_semi_auto(
 ) -> int:
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": name,
-            "dobOnOrAfterUtc": after,
-            "dobOnOrBeforeUtc": before,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": name,
+                "dobOnOrAfterUtc": after,
+                "dobOnOrBeforeUtc": before,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(admin_token),
     )
     assert g.status_code == 201
@@ -137,7 +140,7 @@ async def test_member_blocked_from_request_for_auto(
     member_token = await create_member_user(db_session, username="amy")
     g = await client.post(
         "/v1/groups",
-        json={"name": "A", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "A", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(admin_token),
     )
     gid = g.json()["id"]
@@ -307,7 +310,7 @@ async def test_approval_re_checks_semi_auto_eligibility(
     # Narrow window so 'ok' is no longer eligible.
     narrow = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrAfterUtc": DOB_2014},
+        json=with_group_band({"dobOnOrAfterUtc": DOB_2014}),
         headers=auth(admin_token),
     )
     assert narrow.status_code == 200
@@ -394,7 +397,7 @@ async def test_bulk_add_resolves_pending_requests_for_added_only(
     # simulate by widening the criteria, requesting, then narrowing.
     widen = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrAfterUtc": DOB_2010 - 5 * ONE_DAY_MS},
+        json=with_group_band({"dobOnOrAfterUtc": DOB_2010 - 5 * ONE_DAY_MS}),
         headers=auth(admin_token),
     )
     assert widen.status_code == 200
@@ -407,7 +410,7 @@ async def test_bulk_add_resolves_pending_requests_for_added_only(
     # narrow back so 'bad' is ineligible again
     narrow = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"dobOnOrAfterUtc": DOB_2010}),
         headers=auth(admin_token),
     )
     assert narrow.status_code == 200
@@ -596,7 +599,7 @@ async def test_failed_re_check_leaves_request_pending(
 
     narrow = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrAfterUtc": DOB_2014},
+        json=with_group_band({"dobOnOrAfterUtc": DOB_2014}),
         headers=auth(admin_token),
     )
     assert narrow.status_code == 200

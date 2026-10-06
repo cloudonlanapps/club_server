@@ -37,7 +37,7 @@ in-place reschedule (camp, one-off).
 | Field | Lives on | programme | camp / oneOff |
 |---|---|---|---|
 | `title`, `description`, `visibility` | event | correction | update |
-| `gender`, `dobOnOrAfterUtc`, `dobOnOrBeforeUtc` | event | correction | update |
+| `gender`, `minAge`, `maxAge`, `strictAge` | event | correction | update |
 | `isFeatured`, `galleryUris` | event | correction | update |
 | `organizerName`, `coachNames` | schedule | split | update (camp R2: staffing does not move an occurrence) |
 | `venueId`, `startTimeUtc`, `endTimeUtc`, `rrule`, `sessions` | schedule | split | reschedule |

@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .eligibility_helpers import with_group_band
 from .helpers import attach_identity_document, create_admin_user
 
 DOB_2010 = 1262304000000  # 2010-01-01 UTC midnight (ms)
@@ -90,7 +91,7 @@ async def test_create_auto_when_criteria_and_no_flag(
     token = await create_admin_user(db_session)
     response = await client.post(
         "/v1/groups",
-        json={"name": "Auto", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "Auto", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(token),
     )
     assert response.status_code == 201
@@ -105,12 +106,14 @@ async def test_create_semi_auto_when_flag_true(
     token = await create_admin_user(db_session)
     response = await client.post(
         "/v1/groups",
-        json={
-            "name": "Semi Auto",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "Semi Auto",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     assert response.status_code == 201
@@ -134,8 +137,10 @@ async def test_semi_auto_flag_ignored_when_no_criteria(
 async def test_dob_bounds_non_midnight_rejected_with_422(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """Per #100: group dob bounds must be at UTC midnight; non-midnight is 422."""
+    """A group no longer takes a date bound at all (#16, groups R11): the
+    field is refused whatever its value, a non-midnight one included."""
     token = await create_admin_user(db_session)
+    await db_session.commit()
     odd_ms = DOB_2010 + 14 * 3600 * 1000 + 23 * 60 * 1000 + 55 * 1000
     response = await client.post(
         "/v1/groups",
@@ -143,9 +148,8 @@ async def test_dob_bounds_non_midnight_rejected_with_422(
         headers=auth(token),
     )
     assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert detail["code"] == "INVALID_DOB_NOT_UTC_MIDNIGHT"
-    assert detail["field"] == "dobOnOrAfterUtc"
+    listing = await client.get("/v1/groups", headers=auth(token))
+    assert listing.json()["total"] == 0
 
 
 @pytest.mark.requirement("groups:R70")
@@ -156,7 +160,7 @@ async def test_inclusive_lower_bound(client: AsyncClient, db_session: AsyncSessi
 
     create = await client.post(
         "/v1/groups",
-        json={"name": "From 2010", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "From 2010", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(token),
     )
     assert create.status_code == 201, create.json()
@@ -175,7 +179,7 @@ async def test_inclusive_upper_bound(client: AsyncClient, db_session: AsyncSessi
 
     create = await client.post(
         "/v1/groups",
-        json={"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014},
+        json=with_group_band({"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014}),
         headers=auth(token),
     )
     group_id = create.json()["id"]
@@ -199,7 +203,7 @@ async def test_just_outside_lower_bound_excluded(
 
     create = await client.post(
         "/v1/groups",
-        json={"name": "From 2010", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "From 2010", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(token),
     )
     group_id = create.json()["id"]
@@ -222,7 +226,7 @@ async def test_just_outside_upper_bound_excluded(
 
     create = await client.post(
         "/v1/groups",
-        json={"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014},
+        json=with_group_band({"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014}),
         headers=auth(token),
     )
     group_id = create.json()["id"]
@@ -249,7 +253,7 @@ async def test_user_dob_at_upper_bound_midnight_included(
 
     create = await client.post(
         "/v1/groups",
-        json={"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014},
+        json=with_group_band({"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014}),
         headers=auth(token),
     )
     group_id = create.json()["id"]
@@ -279,7 +283,7 @@ async def test_user_dob_midday_rejected_at_write_with_422(
     # Sanity: stored value is unchanged (still the seed midnight from _approve_user).
     create = await client.post(
         "/v1/groups",
-        json={"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014},
+        json=with_group_band({"name": "Up to 2014", "dobOnOrBeforeUtc": DOB_2014}),
         headers=auth(token),
     )
     group_id = create.json()["id"]
@@ -301,7 +305,7 @@ async def test_user_with_null_dob_excluded_when_dob_criteria_set(
 
     create = await client.post(
         "/v1/groups",
-        json={"name": "From 2010", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "From 2010", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(token),
     )
     group_id = create.json()["id"]
@@ -378,11 +382,13 @@ async def test_manual_to_semi_auto_succeeds_when_all_members_eligible(
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     assert response.status_code == 200, response.json()
@@ -412,11 +418,13 @@ async def test_manual_to_semi_auto_blocked_when_some_members_ineligible(
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     assert response.status_code == 422
@@ -437,12 +445,14 @@ async def test_semi_auto_to_manual_keeps_members(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -453,7 +463,9 @@ async def test_semi_auto_to_manual_keeps_members(
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrAfterUtc": None, "dobOnOrBeforeUtc": None, "gender": None},
+        json=with_group_band(
+            {"dobOnOrAfterUtc": None, "dobOnOrBeforeUtc": None, "gender": None}
+        ),
         headers=auth(token),
     )
     assert response.status_code == 200
@@ -475,12 +487,14 @@ async def test_admin_added_to_semi_auto_regardless_of_criteria(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -502,12 +516,14 @@ async def test_coach_added_to_semi_auto_regardless_of_criteria(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -529,12 +545,14 @@ async def test_member_blocked_from_semi_auto_when_ineligible(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -557,12 +575,14 @@ async def test_member_added_to_semi_auto_when_eligible(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -593,12 +613,14 @@ async def test_bulk_add_to_semi_auto_partitions_results(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "S",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "S",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -636,11 +658,13 @@ async def test_empty_manual_can_be_converted_to_semi_auto(
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     assert response.status_code == 200
@@ -652,11 +676,12 @@ async def test_empty_manual_can_be_converted_to_semi_auto(
 async def test_dob_bounds_non_midnight_on_update_rejected_with_422(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """Per #100: PATCH with a non-midnight dob bound is rejected with 422."""
+    """A group no longer takes a date bound at all (#16, groups R11): PATCH
+    refuses the field whatever its value, and the band is unchanged."""
     token = await create_admin_user(db_session)
     g = await client.post(
         "/v1/groups",
-        json={"name": "Auto", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "Auto", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -668,9 +693,9 @@ async def test_dob_bounds_non_midnight_on_update_rejected_with_422(
         headers=auth(token),
     )
     assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert detail["code"] == "INVALID_DOB_NOT_UTC_MIDNIGHT"
-    assert detail["field"] == "dobOnOrBeforeUtc"
+    unchanged = await client.get(f"/v1/groups/by_id/{gid}", headers=auth(token))
+    assert unchanged.json()["dobOnOrAfterUtc"] == DOB_2010
+    assert unchanged.json()["dobOnOrBeforeUtc"] is None
 
 
 @pytest.mark.requirement("groups:R12")
@@ -682,14 +707,14 @@ async def test_inverted_dob_window_on_update_rejected(
     token = await create_admin_user(db_session)
     g = await client.post(
         "/v1/groups",
-        json={"name": "Auto", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "Auto", "dobOnOrAfterUtc": DOB_2010}),
         headers=auth(token),
     )
     gid = g.json()["id"]
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrBeforeUtc": DOB_2010 - ONE_DAY_MS},
+        json=with_group_band({"dobOnOrBeforeUtc": DOB_2010 - ONE_DAY_MS}),
         headers=auth(token),
     )
     assert response.status_code == 422
@@ -832,12 +857,14 @@ async def test_issue_93_semi_auto_criteria_edit_rejects_when_member_becomes_inel
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "I174A",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "I174A",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     assert g.status_code == 201, g.json()
@@ -851,7 +878,7 @@ async def test_issue_93_semi_auto_criteria_edit_rejects_when_member_becomes_inel
     new_lower = DOB_2010 + 30 * ONE_DAY_MS
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrAfterUtc": new_lower},
+        json=with_group_band({"dobOnOrAfterUtc": new_lower}),
         headers=auth(token),
     )
     assert response.status_code == 422, response.json()
@@ -882,12 +909,14 @@ async def test_issue_93_semi_auto_criteria_edit_succeeds_when_all_members_match(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "I174B",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "I174B",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -900,7 +929,7 @@ async def test_issue_93_semi_auto_criteria_edit_succeeds_when_all_members_match(
     new_lower = DOB_2010 + 50 * ONE_DAY_MS
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={"dobOnOrAfterUtc": new_lower},
+        json=with_group_band({"dobOnOrAfterUtc": new_lower}),
         headers=auth(token),
     )
     assert response.status_code == 200, response.json()
@@ -923,12 +952,14 @@ async def test_issue_93_semi_auto_to_manual_succeeds_without_eligibility_check(
 
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "I174C",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "I174C",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(token),
     )
     gid = g.json()["id"]
@@ -939,12 +970,14 @@ async def test_issue_93_semi_auto_to_manual_succeeds_without_eligibility_check(
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
-        json={
-            "dobOnOrAfterUtc": None,
-            "dobOnOrBeforeUtc": None,
-            "gender": None,
-            "semiAuto": False,
-        },
+        json=with_group_band(
+            {
+                "dobOnOrAfterUtc": None,
+                "dobOnOrBeforeUtc": None,
+                "gender": None,
+                "semiAuto": False,
+            }
+        ),
         headers=auth(token),
     )
     assert response.status_code == 200, response.json()

@@ -18,6 +18,9 @@ from ..schemas.event import EventResponse, EventScheduleResponse
 from .event import NOTIFIABLE_ENROLLMENT_STATUSES
 from .event_eligibility import (
     event_has_eligibility_criteria,
+    event_responses,
+    event_window,
+    event_windows,
     is_user_eligible_for_event,
 )
 from .schedule import last_slot
@@ -69,7 +72,7 @@ class EventListingService:
             query.offset(offset).limit(limit).order_by(Event.start_time)
         )
         return PaginatedResponse(
-            items=[EventResponse.from_model(e) for e in result.scalars().all()],
+            items=await event_responses(self.db, list(result.scalars().all())),
             total=total,
             offset=offset,
             limit=limit,
@@ -87,7 +90,7 @@ class EventListingService:
             query.offset(offset).limit(limit).order_by(Event.deleted_at.desc())
         )
         return PaginatedResponse(
-            items=[EventResponse.from_model(e) for e in result.scalars().all()],
+            items=await event_responses(self.db, list(result.scalars().all())),
             total=total,
             offset=offset,
             limit=limit,
@@ -131,11 +134,12 @@ class EventListingService:
             )
         )
         has_criteria = event_has_eligibility_criteria(event)
+        window = await event_window(self.db, event)
         eligible = [
             u
             for u in users_q.scalars().all()
             if u.username not in enrolled
-            and (not has_criteria or is_user_eligible_for_event(u, event))
+            and (not has_criteria or is_user_eligible_for_event(u, event, window))
         ]
         eligible.sort(key=lambda u: u.username)
         return eligible
@@ -191,16 +195,17 @@ class EventListingService:
 
         result = await self.db.execute(query.order_by(Event.start_time))
         events = list(result.scalars().all())
+        windows = await event_windows(self.db, events)
         if user is not None:
             events = [
                 ev
                 for ev in events
                 if ev.id in any_enrollment_event_ids
-                or is_user_eligible_for_event(user, ev)
+                or is_user_eligible_for_event(user, ev, windows[ev.id])
             ]
         page = events[offset : offset + limit]
         return PaginatedResponse(
-            items=[EventResponse.from_model(e) for e in page],
+            items=[EventResponse.from_model(e, windows[e.id]) for e in page],
             total=len(events),
             offset=offset,
             limit=limit,
@@ -247,9 +252,7 @@ class EventListingService:
         if from_time_utc:
             events = [e for e in events if _still_running_at(e, from_time_utc)]
         return PaginatedResponse(
-            items=[
-                EventResponse.from_model(e) for e in events[offset : offset + limit]
-            ],
+            items=await event_responses(self.db, events[offset : offset + limit]),
             total=len(events),
             offset=offset,
             limit=limit,

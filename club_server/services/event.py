@@ -25,10 +25,10 @@ from ..exceptions import (
     StaleVersionException,
     VenueIsDeletedException,
 )
+from ..age_eligibility import Age, encode_age
 from ..schemas.common import ChangeLog, UserRoles
 from ..schemas.event import Session
 from ..utils import now_utc_ms
-from ..validation import validate_utc_midnight
 from .conflict_gates import (
     ConflictGate,
     Finding,
@@ -37,7 +37,7 @@ from .conflict_gates import (
     check_conflicts,
     target_for_event,
 )
-from .event_eligibility import validate_dob_window
+from .event_eligibility import apply_age_band, validate_age_band
 from .event_marketing_basic import apply_basic_marketing
 from .event_types import validate_rrule_for
 from .notification import NotificationEvent, NotificationService
@@ -266,8 +266,9 @@ class EventService:
         rrule: str | None = None,
         default_organizer: str | None = None,
         gender: str | None = None,
-        dob_on_or_after_utc: int | None = None,
-        dob_on_or_before_utc: int | None = None,
+        min_age: Age | None = None,
+        max_age: Age | None = None,
+        strict_age: bool = False,
         is_featured: bool = False,
         gallery_uris: list[str] | None = None,
         sessions: list[Session] | None = None,
@@ -287,9 +288,7 @@ class EventService:
         await validate_coaches(self.db, coach_names)
         validate_rrule_for(event_type, rrule)
         validate_window(start_time, end_time)
-        validate_utc_midnight(dob_on_or_after_utc, "dobOnOrAfterUtc")
-        validate_utc_midnight(dob_on_or_before_utc, "dobOnOrBeforeUtc")
-        validate_dob_window(dob_on_or_after_utc, dob_on_or_before_utc)
+        validate_age_band(min_age, max_age)
         validate_timetable(sessions, start_time, end_time)
 
         now = now_utc_ms()
@@ -325,8 +324,9 @@ class EventService:
             end_time=end_time,
             rrule=rrule,
             gender=gender,
-            dob_on_or_after_utc=dob_on_or_after_utc,
-            dob_on_or_before_utc=dob_on_or_before_utc,
+            min_age=encode_age(min_age),
+            max_age=encode_age(max_age),
+            strict_age=strict_age,
             is_featured=is_featured,
             gallery_uris=encode_names(gallery_uris),
             sessions=encode_sessions(sessions),
@@ -357,8 +357,9 @@ class EventService:
         description: str | None = None,
         visibility: str | None = None,
         gender: str | None = None,
-        dob_on_or_after_utc: int | None = None,
-        dob_on_or_before_utc: int | None = None,
+        min_age: Age | None = None,
+        max_age: Age | None = None,
+        strict_age: bool | None = None,
         is_featured: bool | None = None,
         gallery_uris: list[str] | None = None,
         sessions: list[Session] | None = None,
@@ -399,18 +400,7 @@ class EventService:
         if "gender" in fields_set:
             changes.add("gender", event.gender, gender)
             event.gender = gender
-        if "dob_on_or_after_utc" in fields_set:
-            validate_utc_midnight(dob_on_or_after_utc, "dobOnOrAfterUtc")
-            changes.add(
-                "dob_on_or_after_utc", event.dob_on_or_after_utc, dob_on_or_after_utc
-            )
-            event.dob_on_or_after_utc = dob_on_or_after_utc
-        if "dob_on_or_before_utc" in fields_set:
-            validate_utc_midnight(dob_on_or_before_utc, "dobOnOrBeforeUtc")
-            changes.add(
-                "dob_on_or_before_utc", event.dob_on_or_before_utc, dob_on_or_before_utc
-            )
-            event.dob_on_or_before_utc = dob_on_or_before_utc
+        apply_age_band(event, changes, fields_set, min_age, max_age, strict_age)
         if is_featured is not None:
             changes.add("is_featured", event.is_featured, is_featured)
             event.is_featured = is_featured
@@ -428,7 +418,6 @@ class EventService:
                 "includes": includes,
             },
         )
-        validate_dob_window(event.dob_on_or_after_utc, event.dob_on_or_before_utc)
         event.touch(actor)
         await self.db.flush()
         return event, changes
@@ -465,8 +454,9 @@ class EventService:
         organizer_name: str | None = None,
         coach_names: list[str] | None = None,
         gender: str | None = None,
-        dob_on_or_after_utc: int | None = None,
-        dob_on_or_before_utc: int | None = None,
+        min_age: Age | None = None,
+        max_age: Age | None = None,
+        strict_age: bool | None = None,
         is_featured: bool | None = None,
         gallery_uris: list[str] | None = None,
         short_description: str | None = None,
@@ -520,18 +510,7 @@ class EventService:
         if "gender" in fields_set:
             changes.add("gender", event.gender, gender)
             event.gender = gender
-        if "dob_on_or_after_utc" in fields_set:
-            validate_utc_midnight(dob_on_or_after_utc, "dobOnOrAfterUtc")
-            changes.add(
-                "dob_on_or_after_utc", event.dob_on_or_after_utc, dob_on_or_after_utc
-            )
-            event.dob_on_or_after_utc = dob_on_or_after_utc
-        if "dob_on_or_before_utc" in fields_set:
-            validate_utc_midnight(dob_on_or_before_utc, "dobOnOrBeforeUtc")
-            changes.add(
-                "dob_on_or_before_utc", event.dob_on_or_before_utc, dob_on_or_before_utc
-            )
-            event.dob_on_or_before_utc = dob_on_or_before_utc
+        apply_age_band(event, changes, fields_set, min_age, max_age, strict_age)
         if is_featured is not None:
             changes.add("is_featured", event.is_featured, is_featured)
             event.is_featured = is_featured
@@ -549,7 +528,6 @@ class EventService:
             },
         )
 
-        validate_dob_window(event.dob_on_or_after_utc, event.dob_on_or_before_utc)
         # Timetable and schedule fields move through /reschedule; the stored
         # timetable is re-checked here only so a stale one is caught early.
         validate_timetable(

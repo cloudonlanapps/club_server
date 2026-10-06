@@ -9,6 +9,7 @@ from sqlalchemy import (
     String,
     Text,
     select,
+    text,
 )
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -55,8 +56,13 @@ class Event(Base):
     type: Mapped[str] = mapped_column(Text, nullable=False)
     visibility: Mapped[str] = mapped_column(Text, nullable=False)
     gender: Mapped[str | None] = mapped_column(Text, nullable=True)
-    dob_on_or_after_utc: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    dob_on_or_before_utc: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # Age band (#16): JSON ``{years, months, days}`` per bound, NULL for none.
+    # The window of birth dates is worked out from these on a reference day.
+    min_age: Mapped[str | None] = mapped_column(Text, nullable=True)
+    max_age: Mapped[str | None] = mapped_column(Text, nullable=True)
+    strict_age: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     gallery_uris: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Basic marketing block (#409): what every club's site puts on a card.

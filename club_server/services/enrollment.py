@@ -20,7 +20,7 @@ from ..exceptions import (
 )
 from ..schemas.common import UserRoles
 from ..schemas.enrollment import EnrollmentListResponse, EnrollmentResponse
-from ..services.event_eligibility import is_user_eligible_for_event
+from ..services.event_eligibility import event_window, is_user_eligible_for_event
 from ..schemas.credit import CreditDispositionRequest
 from ..services.credit_charge import CreditChargeService
 from ..services.notification import NotificationEvent, NotificationService
@@ -147,14 +147,18 @@ class EnrollmentService:
             raise UserNotFoundException(membername)
         return user
 
-    def check_event_eligibility(self, user: User, event: Event) -> None:
+    async def check_event_eligibility(self, user: User, event: Event) -> None:
         """Raise if `user` does not satisfy the event's structured eligibility criteria.
+
+        The age band is checked as the window it comes to today, on the
+        event's reference day (eligibility R13).
 
         Mirrors the rule introduced for groups in #11. No staff
         exemption; no super-admin override (eligibility is a data-safety
         invariant, not a temporal one).
         """
-        if not is_user_eligible_for_event(user, event):
+        window = await event_window(self.db, event)
+        if not is_user_eligible_for_event(user, event, window):
             raise UserNotEligibleForEventException(user.username, event.id)
 
     async def get_enrollment_or_raise(
@@ -286,7 +290,7 @@ class EnrollmentService:
         user = await self.get_user_or_raise(membername)
         event = await self.get_event_or_raise(event_id)
         await self.check_event_joinable(event, is_super_admin)
-        self.check_event_eligibility(user, event)
+        await self.check_event_eligibility(user, event)
 
         result = await self.db.execute(
             select(Enrollment).where(
@@ -336,7 +340,7 @@ class EnrollmentService:
         user = await self.get_user_or_raise(membername)
         event = await self.get_event_or_raise(event_id)
         await self.check_event_joinable(event, is_super_admin)
-        self.check_event_eligibility(user, event)
+        await self.check_event_eligibility(user, event)
         await self._credit.ensure_enrollment_credit(event, membername, is_trial=False)
         _ = await self.check_member_gate(event, membername)
 
@@ -383,7 +387,7 @@ class EnrollmentService:
         user = await self.get_user_or_raise(membername)
         event = await self.get_event_or_raise(event_id)
         await self.check_event_joinable(event, is_super_admin)
-        self.check_event_eligibility(user, event)
+        await self.check_event_eligibility(user, event)
         await self._credit.ensure_enrollment_credit(event, membername, is_trial=True)
         _ = await self.check_member_gate(event, membername)
 
@@ -447,7 +451,7 @@ class EnrollmentService:
             raise EnrollmentTransitionException("approve", enrollment.status)
 
         user = await self.get_user_or_raise(membername)
-        self.check_event_eligibility(user, event)
+        await self.check_event_eligibility(user, event)
         await self._credit.ensure_enrollment_credit(event, membername, is_trial=False)
         _ = await self.check_member_gate(event, membername)
 
@@ -702,7 +706,7 @@ class EnrollmentService:
         event = await self.get_event_or_raise(event_id)
         await self.check_event_joinable(event, is_super_admin)
         user = await self.get_user_or_raise(membername)
-        self.check_event_eligibility(user, event)
+        await self.check_event_eligibility(user, event)
         await self._credit.ensure_enrollment_credit(event, membername, is_trial=False)
         _ = await self.check_member_gate(event, membername)
 

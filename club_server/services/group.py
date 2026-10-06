@@ -4,6 +4,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ..age_eligibility import Age, decode_age, encode_age, is_inverted_band
 from ..db.models.group import Group, GroupMember
 from ..db.models.group_join_request import GroupJoinRequest, JoinRequestStatus
 from ..db.models.user import User, UserStatus
@@ -28,27 +29,26 @@ from ..exceptions import (
 from ..schemas.common import ChangeLog, PaginatedResponse, UserRoles
 from ..schemas.group import GroupResponse
 from ..utils import MS_PER_DAY, now_utc_ms
-from ..validation import validate_utc_midnight
 
 
 KIND_MANUAL = "manual"
 KIND_SEMI_AUTO = "semi_auto"
 KIND_AUTO = "auto"
 
+INVERTED_BAND_MESSAGE = "minAge must not be greater than maxAge"
+
 
 def _has_criteria(
-    dob_on_or_after_utc: int | None,
-    dob_on_or_before_utc: int | None,
+    min_age: str | None,
+    max_age: str | None,
     gender: str | None,
 ) -> bool:
-    return any(
-        v is not None for v in (dob_on_or_after_utc, dob_on_or_before_utc, gender)
-    )
+    return any(v is not None for v in (min_age, max_age, gender))
 
 
 def _compute_kind(
-    dob_on_or_after_utc: int | None,
-    dob_on_or_before_utc: int | None,
+    min_age: str | None,
+    max_age: str | None,
     gender: str | None,
     semi_auto: bool,
 ) -> str:
@@ -58,7 +58,7 @@ def _compute_kind(
     Criteria + semi_auto=True → semi_auto.
     Criteria + semi_auto=False → auto.
     """
-    if not _has_criteria(dob_on_or_after_utc, dob_on_or_before_utc, gender):
+    if not _has_criteria(min_age, max_age, gender):
         return KIND_MANUAL
     return KIND_SEMI_AUTO if semi_auto else KIND_AUTO
 
@@ -75,36 +75,24 @@ def _user_is_staff(user: User) -> bool:
 
 
 def _user_matches_criteria(user: User, group: Group) -> bool:
-    """Pure-Python eligibility check against a group's DOB window + gender.
+    """Pure-Python eligibility check against a group's gender and age band.
 
-    DOB bounds are stored as UTC midnight; both endpoints are inclusive at the
-    day level. The upper bound treats the entire day as eligible, so the
-    exclusion threshold is `dob_on_or_before_utc + 1 day`.
+    The band is checked as the window of birth dates it comes to today
+    (eligibility R4); both ends are inclusive at the day level.
     """
     if group.gender is not None and user.gender != group.gender:
         return False
-    if group.dob_on_or_after_utc is not None or group.dob_on_or_before_utc is not None:
-        if user.date_of_birth is None:
-            return False
-        if (
-            group.dob_on_or_after_utc is not None
-            and user.date_of_birth < group.dob_on_or_after_utc
-        ):
-            return False
-        if (
-            group.dob_on_or_before_utc is not None
-            and user.date_of_birth >= group.dob_on_or_before_utc + MS_PER_DAY
-        ):
-            return False
-    return True
+    return group.eligibility_window.admits(user.date_of_birth)
 
 
 def _build_auto_member_query(group: Group):
-    """Build a query for users matching a group's DOB window + gender criteria.
+    """Build a query for users matching a group's gender and today's window.
 
-    Both DOB endpoints are inclusive at the day level: upper-bound check uses
-    `< dob_on_or_before_utc + 1 day` so users born any time on that day match.
+    Both ends of the window are inclusive at the day level: the upper-bound
+    check uses `< dob_on_or_before_utc + 1 day` so users born any time on
+    that day match.
     """
+    window = group.eligibility_window
     query = select(User).where(
         User.deleted_at.is_(None),
         User.status == UserStatus.active.value,
@@ -114,14 +102,14 @@ def _build_auto_member_query(group: Group):
     if group.gender is not None:
         query = query.where(User.gender == group.gender)
 
-    if group.dob_on_or_after_utc is not None:
+    if window.dob_on_or_after_utc is not None:
         query = query.where(User.date_of_birth.isnot(None))
-        query = query.where(User.date_of_birth >= group.dob_on_or_after_utc)
+        query = query.where(User.date_of_birth >= window.dob_on_or_after_utc)
 
-    if group.dob_on_or_before_utc is not None:
+    if window.dob_on_or_before_utc is not None:
         query = query.where(User.date_of_birth.isnot(None))
         query = query.where(
-            User.date_of_birth < group.dob_on_or_before_utc + MS_PER_DAY
+            User.date_of_birth < window.dob_on_or_before_utc + MS_PER_DAY
         )
 
     return query
@@ -306,23 +294,19 @@ class GroupService:
         self,
         name: str,
         description: str | None = None,
-        dob_on_or_after_utc: int | None = None,
-        dob_on_or_before_utc: int | None = None,
+        min_age: Age | None = None,
+        max_age: Age | None = None,
+        strict_age: bool = False,
         gender: str | None = None,
         semi_auto: bool = False,
     ) -> Group:
         """Create a new group."""
-        validate_utc_midnight(dob_on_or_after_utc, "dobOnOrAfterUtc")
-        validate_utc_midnight(dob_on_or_before_utc, "dobOnOrBeforeUtc")
-        dob_after = dob_on_or_after_utc
-        dob_before = dob_on_or_before_utc
+        if is_inverted_band(min_age, max_age):
+            raise InvalidStateException(INVERTED_BAND_MESSAGE)
 
-        if dob_after is not None and dob_before is not None and dob_after > dob_before:
-            raise InvalidStateException(
-                "dobOnOrAfterUtc must not be later than dobOnOrBeforeUtc"
-            )
-
-        kind = _compute_kind(dob_after, dob_before, gender, semi_auto)
+        kind = _compute_kind(
+            encode_age(min_age), encode_age(max_age), gender, semi_auto
+        )
 
         now = now_utc_ms()
         group = Group(
@@ -330,8 +314,9 @@ class GroupService:
             description=description,
             kind=kind,
             gender=gender,
-            dob_on_or_after_utc=dob_after,
-            dob_on_or_before_utc=dob_before,
+            min_age=encode_age(min_age),
+            max_age=encode_age(max_age),
+            strict_age=strict_age,
             created_at=now,
         )
         self.db.add(group)
@@ -343,8 +328,9 @@ class GroupService:
         group_id: int,
         name: str | None = None,
         description: str | None = None,
-        dob_on_or_after_utc: int | None = None,
-        dob_on_or_before_utc: int | None = None,
+        min_age: Age | None = None,
+        max_age: Age | None = None,
+        strict_age: bool | None = None,
         gender: str | None = None,
         semi_auto: bool | None = None,
         fields_set: set[str] | None = None,
@@ -372,34 +358,24 @@ class GroupService:
             changes.add("description", group.description, description)
             group.description = description
 
-        if "dob_on_or_after_utc" in fields_set:
-            validate_utc_midnight(dob_on_or_after_utc, "dobOnOrAfterUtc")
-            changes.add(
-                "dob_on_or_after_utc", group.dob_on_or_after_utc, dob_on_or_after_utc
-            )
-            group.dob_on_or_after_utc = dob_on_or_after_utc
+        if "min_age" in fields_set:
+            changes.add("min_age", group.min_age, encode_age(min_age))
+            group.min_age = encode_age(min_age)
 
-        if "dob_on_or_before_utc" in fields_set:
-            validate_utc_midnight(dob_on_or_before_utc, "dobOnOrBeforeUtc")
-            changes.add(
-                "dob_on_or_before_utc",
-                group.dob_on_or_before_utc,
-                dob_on_or_before_utc,
-            )
-            group.dob_on_or_before_utc = dob_on_or_before_utc
+        if "max_age" in fields_set:
+            changes.add("max_age", group.max_age, encode_age(max_age))
+            group.max_age = encode_age(max_age)
+
+        if strict_age is not None:
+            changes.add("strict_age", bool(group.strict_age), strict_age)
+            group.strict_age = strict_age
 
         if "gender" in fields_set:
             changes.add("gender", group.gender, gender)
             group.gender = gender
 
-        if (
-            group.dob_on_or_after_utc is not None
-            and group.dob_on_or_before_utc is not None
-            and group.dob_on_or_after_utc > group.dob_on_or_before_utc
-        ):
-            raise InvalidStateException(
-                "dobOnOrAfterUtc must not be later than dobOnOrBeforeUtc"
-            )
+        if is_inverted_band(decode_age(group.min_age), decode_age(group.max_age)):
+            raise InvalidStateException(INVERTED_BAND_MESSAGE)
 
         # Determine the requested kind. If semi_auto isn't in the payload,
         # preserve the current group's mode where possible: a group already
@@ -412,8 +388,8 @@ class GroupService:
             requested_semi_auto = group.kind == KIND_SEMI_AUTO
 
         new_kind = _compute_kind(
-            group.dob_on_or_after_utc,
-            group.dob_on_or_before_utc,
+            group.min_age,
+            group.max_age,
             group.gender,
             requested_semi_auto,
         )

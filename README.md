@@ -85,7 +85,9 @@ Optional, with defaults in code: `ENVIRONMENT` (`development`),
 `EVALUATIONS_ENABLED` and `EVENT_MARKETING_ENABLED` (all off; their routes
 answer 503 while off), `IDENTITY_VERIFICATION_REQUIRED` (on; off, a new user
 registers straight to `pending` with no identity-document step),
-`DEFAULT_COUNTRY_CODE` (unset; the club's country calling code, one to three
+`CLUB_TIMEZONE` (`Asia/Kolkata`; the IANA time zone whose calendar days
+ages are counted on — today, and the day an event starts; an unknown zone stops
+the server at startup), `DEFAULT_COUNTRY_CODE` (unset; the club's country calling code, one to three
 digits without `+`, e.g. `91` — reported by `GET /v1/capabilities` as
 `defaultCountryCode` so the apps can complete a phone number typed without a
 code; any other value stops the server at startup), `ENCRYPTION_KEY` (base64 of 32 bytes; encrypted uploads
@@ -111,7 +113,9 @@ already the raw form:
 
 Alembic needs only `DATABASE_URL`, from the environment or, as in a container
 deployment, from `/run/secrets/database_url`; the data migrations that move
-files also read `UPLOAD_DIR` (#420). With the dev cluster running:
+files also read `UPLOAD_DIR` (#420), and the age-eligibility migration reads
+`CLUB_TIMEZONE` and, when a programme carries a date-of-birth bound, the rest of
+the server's environment, because it expands that programme's schedule (#16). With the dev cluster running:
 
 ```bash
 DATABASE_URL=postgresql+asyncpg://myclub:devpass@localhost:5437/myclub \

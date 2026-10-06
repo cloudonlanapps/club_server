@@ -1,6 +1,7 @@
 from typing import ClassVar
 from pydantic import ConfigDict, Field
 
+from ..age_eligibility import Age, decode_age
 from ..db.models.group import Group
 from .common import CamelCaseModel
 
@@ -10,8 +11,9 @@ class GroupCreate(CamelCaseModel):
 
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
-    dob_on_or_after_utc: int | None = None
-    dob_on_or_before_utc: int | None = None
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool = False
     gender: str | None = None
     semi_auto: bool = False
 
@@ -21,8 +23,9 @@ class GroupUpdate(CamelCaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=100)
     description: str | None = None
-    dob_on_or_after_utc: int | None = None
-    dob_on_or_before_utc: int | None = None
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool | None = None
     gender: str | None = None
     semi_auto: bool | None = None
 
@@ -45,6 +48,19 @@ class EligibleUserInfo(CamelCaseModel):
     nickname: str | None = None
 
 
+def age_band_fields(group: Group) -> dict[str, Age | bool | int | None]:
+    """A group's age band and the window it comes to today, as response fields."""
+    window = group.eligibility_window
+    return {
+        "min_age": decode_age(group.min_age),
+        "max_age": decode_age(group.max_age),
+        "strict_age": bool(group.strict_age),
+        "dob_on_or_after_utc": window.dob_on_or_after_utc,
+        "dob_on_or_before_utc": window.dob_on_or_before_utc,
+        "eligibility_reference_day_utc": window.reference_day_utc,
+    }
+
+
 class GroupResponse(CamelCaseModel):
     """Schema for group response."""
 
@@ -52,8 +68,14 @@ class GroupResponse(CamelCaseModel):
     name: str
     description: str | None
     kind: str
+    # The age band (eligibility R1), and what it comes to today (R12): the
+    # window of birth dates, both ends inclusive, and the day it is counted on.
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool = False
     dob_on_or_after_utc: int | None = None
     dob_on_or_before_utc: int | None = None
+    eligibility_reference_day_utc: int
     gender: str | None = None
     member_count: int
     created_at_utc: int
@@ -77,8 +99,7 @@ class GroupResponse(CamelCaseModel):
             name=group.name,
             description=group.description,
             kind=group.kind,
-            dob_on_or_after_utc=group.dob_on_or_after_utc,
-            dob_on_or_before_utc=group.dob_on_or_before_utc,
+            **age_band_fields(group),
             gender=group.gender,
             member_count=member_count,
             created_at_utc=group.created_at,
@@ -94,8 +115,14 @@ class GroupDetailResponse(CamelCaseModel):
     name: str
     description: str | None
     kind: str
+    # The age band (eligibility R1), and what it comes to today (R12): the
+    # window of birth dates, both ends inclusive, and the day it is counted on.
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool = False
     dob_on_or_after_utc: int | None = None
     dob_on_or_before_utc: int | None = None
+    eligibility_reference_day_utc: int
     gender: str | None = None
     members: list[GroupMemberInfo]
     created_at_utc: int

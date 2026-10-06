@@ -12,6 +12,7 @@ from ..dependencies import (
 )
 from ..schemas.common import PaginatedResponse
 from ..schemas.group import (
+    age_band_fields,
     BulkMembersAdd,
     BulkMembersResult,
     EligibleUserInfo,
@@ -117,8 +118,7 @@ async def get_group(
         name=group.name,
         description=group.description,
         kind=group.kind,
-        dob_on_or_after_utc=group.dob_on_or_after_utc,
-        dob_on_or_before_utc=group.dob_on_or_before_utc,
+        **age_band_fields(group),
         gender=group.gender,
         members=members,
         created_at_utc=group.created_at,
@@ -141,8 +141,9 @@ async def create_group(
         group = await group_service.create_group(
             name=data.name,
             description=data.description,
-            dob_on_or_after_utc=data.dob_on_or_after_utc,
-            dob_on_or_before_utc=data.dob_on_or_before_utc,
+            min_age=data.min_age,
+            max_age=data.max_age,
+            strict_age=data.strict_age,
             gender=data.gender,
             semi_auto=data.semi_auto,
         )
@@ -179,8 +180,8 @@ async def update_group(
     fields_set: set[str] = set()
     for schema_field in (
         "description",
-        "dob_on_or_after_utc",
-        "dob_on_or_before_utc",
+        "min_age",
+        "max_age",
         "gender",
         "semi_auto",
     ):
@@ -192,8 +193,9 @@ async def update_group(
             group_id,
             name=data.name,
             description=data.description,
-            dob_on_or_after_utc=data.dob_on_or_after_utc,
-            dob_on_or_before_utc=data.dob_on_or_before_utc,
+            min_age=data.min_age,
+            max_age=data.max_age,
+            strict_age=data.strict_age,
             gender=data.gender,
             semi_auto=data.semi_auto,
             fields_set=fields_set,

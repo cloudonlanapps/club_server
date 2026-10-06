@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from ...age_eligibility import EligibilityWindow, age_window, decode_age
+from ...club_calendar import club_today
 from ...db.base import Base
 
 if TYPE_CHECKING:
@@ -19,14 +21,29 @@ class Group(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     kind: Mapped[str] = mapped_column(Text, default="manual", nullable=False)
     gender: Mapped[str | None] = mapped_column(Text, nullable=True)
-    dob_on_or_after_utc: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    dob_on_or_before_utc: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # Age band (#16): JSON ``{years, months, days}`` per bound, NULL for none.
+    # The window of birth dates is worked out from these on a reference day.
+    min_age: Mapped[str | None] = mapped_column(Text, nullable=True)
+    max_age: Mapped[str | None] = mapped_column(Text, nullable=True)
+    strict_age: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     deleted_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     members: Mapped[list["GroupMember"]] = relationship(
         "GroupMember", back_populates="group", lazy="selectin", passive_deletes=True
     )
+
+    @property
+    def eligibility_window(self) -> EligibilityWindow:
+        """The birth dates the group's age band admits today (eligibility R4)."""
+        return age_window(
+            decode_age(self.min_age),
+            decode_age(self.max_age),
+            bool(self.strict_age),
+            club_today(),
+        )
 
 
 class GroupMember(Base):
