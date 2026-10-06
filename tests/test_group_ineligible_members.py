@@ -89,6 +89,23 @@ async def semi_auto_with(
     return group_id
 
 
+async def control_group(client: AsyncClient, db: AsyncSession, admin: str) -> None:
+    """A second semi-auto group whose member ``zed`` no longer matches.
+
+    It gives the scan something it must report, so a test that expects
+    someone else to stay unreported cannot pass on a scan that does nothing.
+    """
+    _ = await create_member_user(db, "zed", date_of_birth=births()["oldest"])
+    group_id = await create_group(client, admin, name="Control", **BAND, semiAuto=True)
+    await add(client, admin, group_id, "zed")
+    await set_birth(db, "zed", births()["too_old"])
+
+
+async def reported_members(db: AsyncSession) -> list[str]:
+    notices = await notifications_for(db, "admin", NOTICE)
+    return sorted(n.payload["data"]["membername"] for n in notices)
+
+
 @pytest.mark.asyncio
 @pytest.mark.requirement("groups:R82")
 async def test_should_keep_and_flag_a_member_who_passes_the_maximum_age(
@@ -239,12 +256,14 @@ async def test_should_never_flag_staff(client: AsyncClient, db_session: AsyncSes
     group_id = await create_group(client, admin, **BAND, semiAuto=True)
     await add(client, admin, group_id, "carl")
     await add(client, admin, group_id, "boss")
+    await control_group(client, db_session, admin)
 
-    assert await scan(db_session) == 0
+    assert await scan(db_session) == 2
 
     assert await members(client, admin, group_id) == {"carl": True, "boss": True}
     assert (await group(client, admin, group_id))["ineligibleMemberCount"] == 0
-    assert await notifications_for(db_session, "admin", NOTICE) == []
+    assert await reported_members(db_session) == ["zed"]
+    assert len(await notifications_for(db_session, "boss", NOTICE)) == 1
 
 
 @pytest.mark.asyncio
@@ -260,13 +279,14 @@ async def test_should_flag_nobody_in_manual_and_auto_groups(
     assert await members(client, admin, auto) == {"amy": True}
 
     await set_birth(db_session, "amy", births()["too_old"])
-    assert await scan(db_session) == 0
+    await control_group(client, db_session, admin)
+    assert await scan(db_session) == 1
 
     assert await members(client, admin, manual) == {"amy": True}
     assert await members(client, admin, auto) == {}
     for group_id in (manual, auto):
         assert (await group(client, admin, group_id))["ineligibleMemberCount"] == 0
-    assert await notifications_for(db_session, "admin", NOTICE) == []
+    assert await reported_members(db_session) == ["zed"]
 
 
 @pytest.mark.asyncio
@@ -279,7 +299,8 @@ async def test_should_not_report_members_of_a_soft_deleted_group(
     deleted = await client.delete(f"/v1/groups/by_id/{group_id}", headers=auth(admin))
     assert deleted.status_code == 200, deleted.text
     await set_birth(db_session, "amy", births()["too_old"])
+    await control_group(client, db_session, admin)
 
-    assert await scan(db_session) == 0
+    assert await scan(db_session) == 1
 
-    assert await notifications_for(db_session, "admin", NOTICE) == []
+    assert await reported_members(db_session) == ["zed"]
