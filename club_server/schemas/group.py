@@ -37,6 +37,9 @@ class GroupMemberInfo(CamelCaseModel):
     first_name: str | None = None
     last_name: str | None = None
     nickname: str | None = None
+    # False for a semi-auto member who no longer meets the group's criteria
+    # (groups R82); worked out when the row is read.
+    eligible: bool = True
 
 
 class EligibleUserInfo(CamelCaseModel):
@@ -78,6 +81,8 @@ class GroupResponse(CamelCaseModel):
     eligibility_reference_day_utc: int
     gender: str | None = None
     member_count: int
+    # Stored members who no longer meet the group's criteria (groups R83).
+    ineligible_member_count: int = 0
     created_at_utc: int
     deleted_at_utc: int | None = None
     requested: bool = False
@@ -92,6 +97,7 @@ class GroupResponse(CamelCaseModel):
         group: Group,
         member_count: int = 0,
         requested: bool = False,
+        ineligible_member_count: int = 0,
     ) -> "GroupResponse":
         """Create response from Group model."""
         return cls(
@@ -102,6 +108,7 @@ class GroupResponse(CamelCaseModel):
             **age_band_fields(group),
             gender=group.gender,
             member_count=member_count,
+            ineligible_member_count=ineligible_member_count,
             created_at_utc=group.created_at,
             deleted_at_utc=group.deleted_at,
             requested=requested,
@@ -125,6 +132,8 @@ class GroupDetailResponse(CamelCaseModel):
     eligibility_reference_day_utc: int
     gender: str | None = None
     members: list[GroupMemberInfo]
+    # Stored members who no longer meet the group's criteria (groups R83).
+    ineligible_member_count: int = 0
     created_at_utc: int
     deleted_at_utc: int | None = None
 

@@ -35,15 +35,19 @@ class Group(Base):
         "GroupMember", back_populates="group", lazy="selectin", passive_deletes=True
     )
 
-    @property
-    def eligibility_window(self) -> EligibilityWindow:
-        """The birth dates the group's age band admits today (eligibility R4)."""
+    def window_on(self, reference_day_utc: int) -> EligibilityWindow:
+        """The birth dates the group's age band admits on a given day."""
         return age_window(
             decode_age(self.min_age),
             decode_age(self.max_age),
             bool(self.strict_age),
-            club_today(),
+            reference_day_utc,
         )
+
+    @property
+    def eligibility_window(self) -> EligibilityWindow:
+        """The birth dates the group's age band admits today (eligibility R4)."""
+        return self.window_on(club_today())
 
 
 class GroupMember(Base):
@@ -56,6 +60,12 @@ class GroupMember(Base):
     )
     membername: Mapped[str] = mapped_column(
         String(50), ForeignKey("users.username", ondelete="CASCADE"), primary_key=True
+    )
+    # When the daily scan told the admins this member no longer meets the
+    # group's criteria (#17); NULL while they match. It is what makes the
+    # notice go out once, and again only after they have matched in between.
+    ineligible_reported_at: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True
     )
 
     group: Mapped["Group"] = relationship("Group", back_populates="members")

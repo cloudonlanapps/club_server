@@ -146,6 +146,33 @@ anyone born before midnight of the following day.
 - **R77** [X] soft-deleted users are excluded.
 - **R78** [X] super-admins are excluded.
 
+## Members who stop matching
+
+A semi-auto group stores its members and checks them only when they are
+added, when a join request is approved and when the criteria are edited.
+With an age band the window moves every day, so a stored member can stop
+matching — by growing out of the band, or by a change to their date of
+birth or gender. Such a member is kept and flagged; nobody is removed
+automatically.
+
+- **R82** [✅] A semi-auto member who no longer meets the group's
+  criteria (age band or gender) stays a member, and each member row —
+  in the member list and in the group detail — reports `eligible`, worked
+  out when it is read.
+- **R83** [✅] A group reports `ineligibleMemberCount`, the number
+  of its stored members who no longer meet its criteria.
+- **R84** [✅] Once a day the scheduler notifies the admins with
+  `group.member_ineligible`, naming the group and the member, for each
+  semi-auto member who has newly stopped matching.
+- **R85** [X] A member already reported is not reported again while they
+  remain ineligible, however many scans run.
+- **R86** [✅] A member who matches again is listed as eligible,
+  and is reported afresh if they stop matching later.
+- **R87** [X] Staff are never flagged or reported: they are exempt from a
+  semi-auto group's criteria (R36).
+- **R88** [X] Manual and auto groups flag nobody and produce no
+  notification, and a soft-deleted group is not scanned.
+
 ## Audit logging
 
 - **R79** [✅] every group mutation writes an audit row: `create_group`, `update_group`, `soft_delete_group`, `restore_group`, `wipeout_group`, `add_group_member`, `add_group_members_bulk`, `remove_group_member`.

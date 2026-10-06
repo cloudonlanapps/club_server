@@ -38,7 +38,7 @@ from ..exceptions import (
 )
 from ..services.audit import AuditService
 from ..services.audit_actions import AuditAction
-from ..services.group import GroupService
+from ..services.group import GroupService, is_member_eligible
 from ..utils import get_client_ip
 
 router = APIRouter(prefix="/groups", tags=["Groups"])
@@ -109,6 +109,7 @@ async def get_group(
             first_name=m.user.first_name if m.user else None,
             last_name=m.user.last_name if m.user else None,
             nickname=m.user.nickname if m.user else None,
+            eligible=is_member_eligible(group, m.user),
         )
         for m in member_objects
     ]
@@ -121,6 +122,7 @@ async def get_group(
         **age_band_fields(group),
         gender=group.gender,
         members=members,
+        ineligible_member_count=await group_service.ineligible_member_count(group),
         created_at_utc=group.created_at,
         deleted_at_utc=group.deleted_at,
     )
@@ -157,7 +159,7 @@ async def create_group(
             ip_address=get_client_ip(request),
         )
 
-        return GroupResponse.from_model(group, 0)
+        return await group_service.to_response(group, 0)
     except InvalidStateException as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -211,7 +213,7 @@ async def update_group(
         )
 
         member_count = len(group.members) if group.kind != "auto" else 0
-        return GroupResponse.from_model(group, member_count)
+        return await group_service.to_response(group, member_count)
     except InvalidStateException as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -254,7 +256,7 @@ async def delete_group(
         ip_address=get_client_ip(request),
     )
 
-    return GroupResponse.from_model(group)
+    return await group_service.to_response(group)
 
 
 @router.post("/by_id/{group_id}/restore", response_model=GroupResponse)
@@ -278,7 +280,7 @@ async def restore_group(
         ip_address=get_client_ip(request),
     )
 
-    return GroupResponse.from_model(group, len(group.members))
+    return await group_service.to_response(group, len(group.members))
 
 
 @router.delete("/by_id/{group_id}/hard", status_code=status.HTTP_204_NO_CONTENT)
@@ -319,6 +321,7 @@ async def list_group_members(
         sort_by=sort_by,
         descending=descending,
     )
+    group = await group_service.get_group(group_id)
 
     return [
         GroupMemberInfo(
@@ -326,6 +329,7 @@ async def list_group_members(
             first_name=m.user.first_name if m.user else None,
             last_name=m.user.last_name if m.user else None,
             nickname=m.user.nickname if m.user else None,
+            eligible=is_member_eligible(group, m.user),
         )
         for m in members
     ]
@@ -509,7 +513,7 @@ async def remove_group_member(
             },
         )
 
-    return GroupResponse.from_model(group, len(group.members))
+    return await group_service.to_response(group, len(group.members))
 
 
 # =============================================================================

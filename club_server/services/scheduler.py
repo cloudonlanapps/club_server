@@ -7,6 +7,7 @@ from the FastAPI lifespan in ``main.py``):
 - ``scan_pending_marks``       — every hour
 - ``sweep_credit_settlements`` — every hour (``credit_sweep.py``)
 - ``scan_absence_streaks``     — every 24 hours (``absence_streak.py``)
+- ``scan_group_eligibility``   — every 24 hours (``group_eligibility_scan.py``)
 
 All scans are idempotent: if a notification has already been emitted
 for the relevant ``(user, event, occurrence, lead)`` key, the scan
@@ -39,6 +40,7 @@ from ..db.models.user import User, UserStatus
 from ..schemas.common import UserRoles
 from ..utils import ceil_to_utc_day
 from .absence_streak import scan_absence_streaks
+from .group_eligibility_scan import scan_group_eligibility
 from .credit_sweep import sweep_credit_settlements
 from .inquiry import purge_expired_inquiries
 from .event import NOTIFIABLE_ENROLLMENT_STATUSES
@@ -366,6 +368,7 @@ async def scheduler_loop(
             if now - last_day >= _MS_PER_DAY:
                 scans += [
                     ("absence_streaks", scan_absence_streaks),
+                    ("group_eligibility", scan_group_eligibility),
                     ("expired_notifications", sweep_expired_notifications),
                     ("expired_inquiries", purge_expired_inquiries),
                 ]

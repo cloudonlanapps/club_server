@@ -288,3 +288,28 @@ async def test_should_run_hourly_scans_when_upcoming_scan_fails(
         db_session, "admin", "attendance.pending_mark_reminder"
     )
     assert [r.payload["data"]["eventId"] for r in rows] == [event_id]
+
+
+@pytest.mark.requirement("groups:R84")
+@pytest.mark.asyncio
+async def test_loop_reports_a_semi_auto_member_who_no_longer_matches(
+    db_session: AsyncSession, loop_session_factory
+):
+    """The daily cadence runs the group-eligibility scan (#17)."""
+    from club_server.db.models.group import Group, GroupMember
+
+    _ = await create_admin_user(db_session)
+    _ = await create_member_user(db_session, "amy", gender="male")
+    group = Group(name="Girls", kind="semi_auto", gender="female", created_at=0)
+    db_session.add(group)
+    await db_session.flush()
+    group_id = group.id
+    db_session.add(GroupMember(group_id=group_id, membername="amy"))
+    await db_session.commit()
+
+    await _run_loop_once(loop_session_factory)
+
+    rows = await _notifications_for(db_session, "admin", "group.member_ineligible")
+    assert len(rows) == 1
+    data: Any = rows[0].payload["data"]
+    assert data == {"groupId": group_id, "groupName": "Girls", "membername": "amy"}

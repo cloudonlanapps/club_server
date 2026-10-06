@@ -4,7 +4,13 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..age_eligibility import Age, decode_age, encode_age, is_inverted_band
+from ..age_eligibility import (
+    Age,
+    EligibilityWindow,
+    decode_age,
+    encode_age,
+    is_inverted_band,
+)
 from ..db.models.group import Group, GroupMember
 from ..db.models.group_join_request import GroupJoinRequest, JoinRequestStatus
 from ..db.models.user import User, UserStatus
@@ -74,7 +80,9 @@ def _user_is_staff(user: User) -> bool:
     return "admin" in roles or "coach" in roles
 
 
-def _user_matches_criteria(user: User, group: Group) -> bool:
+def _user_matches_criteria(
+    user: User, group: Group, window: EligibilityWindow | None = None
+) -> bool:
     """Pure-Python eligibility check against a group's gender and age band.
 
     The band is checked as the window of birth dates it comes to today
@@ -82,7 +90,8 @@ def _user_matches_criteria(user: User, group: Group) -> bool:
     """
     if group.gender is not None and user.gender != group.gender:
         return False
-    return group.eligibility_window.admits(user.date_of_birth)
+    window = group.eligibility_window if window is None else window
+    return window.admits(user.date_of_birth)
 
 
 def _build_auto_member_query(group: Group):
@@ -115,11 +124,28 @@ def _build_auto_member_query(group: Group):
     return query
 
 
-def is_eligible_for_semi_auto(user: User, group: Group) -> bool:
-    """Semi-auto eligibility: staff are exempt; everyone else must match criteria."""
+def is_eligible_for_semi_auto(
+    user: User, group: Group, window: EligibilityWindow | None = None
+) -> bool:
+    """Semi-auto eligibility: staff are exempt; everyone else must match criteria.
+
+    ``window`` is the group's window on the day in question; today's when
+    it is left out.
+    """
     if _user_is_staff(user):
         return True
-    return _user_matches_criteria(user, group)
+    return _user_matches_criteria(user, group, window)
+
+
+def is_member_eligible(group: Group, user: User | None) -> bool:
+    """Whether a member of ``group`` still meets its criteria today (R82).
+
+    Only a semi-auto group stores members it also has criteria for: a manual
+    group has none, and an auto group's members are those who match.
+    """
+    if group.kind != KIND_SEMI_AUTO or user is None:
+        return True
+    return is_eligible_for_semi_auto(user, group)
 
 
 class GroupService:
@@ -153,6 +179,41 @@ class GroupService:
             if "admin" in parsed.roles:
                 admins.append(u.username)
         return admins
+
+    async def ineligible_member_count(self, group: Group) -> int:
+        """How many stored members no longer meet the group's criteria (R83).
+
+        Read with its own query, so it does not depend on which of the
+        group's relationships the caller happened to load.
+        """
+        if group.kind != KIND_SEMI_AUTO:
+            return 0
+        users = (
+            await self.db.execute(
+                select(User)
+                .join(GroupMember, GroupMember.membername == User.username)
+                .where(GroupMember.group_id == group.id)
+            )
+        ).scalars()
+        window = group.eligibility_window
+        return sum(
+            1 for user in users if not is_eligible_for_semi_auto(user, group, window)
+        )
+
+    async def to_response(
+        self, group: Group, member_count: int = 0, requested: bool = False
+    ) -> GroupResponse:
+        """The group as the API returns it, with its ineligible-member count."""
+        return GroupResponse.from_model(
+            group,
+            member_count,
+            requested,
+            ineligible_member_count=await self.ineligible_member_count(group),
+        )
+
+    async def admin_usernames(self) -> list[str]:
+        """Who is told about a group on the admins' behalf (R84)."""
+        return await self._list_admin_usernames()
 
     async def _list_member_usernames(self, group: Group) -> list[str]:
         """Recipients for member-facing events.
@@ -206,7 +267,7 @@ class GroupService:
         items = []
         for g in groups:
             count = await self._get_member_count(g)
-            items.append(GroupResponse.from_model(g, count))
+            items.append(await self.to_response(g, count))
 
         return PaginatedResponse(
             items=items,
@@ -239,7 +300,7 @@ class GroupService:
         groups = result.scalars().all()
 
         return PaginatedResponse(
-            items=[GroupResponse.from_model(g, len(g.members)) for g in groups],
+            items=[await self.to_response(g, len(g.members)) for g in groups],
             total=total,
             offset=offset,
             limit=limit,
@@ -708,10 +769,10 @@ class GroupService:
 
         responses = []
         for g in explicit_groups:
-            responses.append(GroupResponse.from_model(g, len(g.members)))
+            responses.append(await self.to_response(g, len(g.members)))
         for g in matching_auto:
             count = await self._count_auto_members(g)
-            responses.append(GroupResponse.from_model(g, count))
+            responses.append(await self.to_response(g, count))
 
         responses.sort(key=lambda r: r.name)
         return responses
@@ -887,9 +948,7 @@ class GroupService:
         if not (has_membership or has_request):
             raise GroupNotFoundException(group_id)
 
-        return GroupResponse.from_model(
-            group, len(group.members), requested=has_pending
-        )
+        return await self.to_response(group, len(group.members), requested=has_pending)
 
     async def list_eligible_groups(self, username: str) -> list[GroupResponse]:
         """Groups the user is allowed to *request* to join."""
@@ -931,7 +990,7 @@ class GroupService:
             if g.kind == KIND_SEMI_AUTO and not is_eligible_for_semi_auto(user, g):
                 continue
             responses.append(
-                GroupResponse.from_model(g, len(g.members), requested=g.id in pending)
+                await self.to_response(g, len(g.members), requested=g.id in pending)
             )
 
         return responses
