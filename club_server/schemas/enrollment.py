@@ -20,13 +20,18 @@ class EnrollmentResponse(CamelCaseModel):
     withdrawn_at_utc: int | None
     created_at_utc: int
     updated_at_utc: int | None
+    # False while the member is enrolled and no longer meets the event's
+    # gender or age window (eligibility R20); worked out when the row is read.
+    eligible: bool = True
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         from_attributes=True, populate_by_name=True
     )
 
     @classmethod
-    def from_model(cls, enrollment: Enrollment) -> "EnrollmentResponse":
+    def from_model(
+        cls, enrollment: Enrollment, eligible: bool = True
+    ) -> "EnrollmentResponse":
         """Create response from Enrollment model."""
         return cls(
             id=enrollment.id,
@@ -40,6 +45,7 @@ class EnrollmentResponse(CamelCaseModel):
             withdrawn_at_utc=enrollment.withdrawn_at,
             created_at_utc=enrollment.created_at,
             updated_at_utc=enrollment.updated_at,
+            eligible=eligible,
         )
 
 

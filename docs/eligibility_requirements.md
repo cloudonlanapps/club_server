@@ -103,6 +103,29 @@ Vocabulary:
 - **R19** [✅] A group's kind is derived from having any criterion:
   an age bound alone makes it `auto`, or `semi_auto` when asked for.
 
+## Enrolled members who stop matching
+
+Eligibility is checked when a member joins an event (R13). A programme's
+window moves with its next occurrence, so an enrolled member can grow out
+of it; a member's date of birth or gender can also be corrected, or the
+criteria tightened. Such a member stays enrolled and is flagged; nobody is
+removed automatically.
+
+- **R20** [✅] An enrolment row — in an event's enrolment list and
+  in a member's own enrolment — reports `eligible`, worked out when it is
+  read: false while the member is enrolled (accepted, assigned, on trial or
+  asking to withdraw) and no longer meets the event's gender or window.
+  Any other row is true.
+- **R21** [✅] Once a day the scheduler notifies the admins with
+  `enrollment.member_ineligible`, naming the programme and the member, for
+  each enrolled programme member who has newly stopped matching.
+- **R22** [X] A member already reported is not reported again
+  while they remain ineligible, however many scans run.
+- **R23** [✅] A member who matches again is listed as eligible,
+  and is reported afresh if they stop matching later.
+- **R24** [X] Camps and one-offs, a programme with no live
+  occurrence left and a soft-deleted programme produce no notification.
+
 ## Migration
 
 - **R30** [✅] Each stored date bound becomes a strict age counted

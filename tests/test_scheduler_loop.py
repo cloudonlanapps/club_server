@@ -313,3 +313,35 @@ async def test_loop_reports_a_semi_auto_member_who_no_longer_matches(
     assert len(rows) == 1
     data: Any = rows[0].payload["data"]
     assert data == {"groupId": group_id, "groupName": "Girls", "membername": "amy"}
+
+
+@pytest.mark.requirement("eligibility:R21")
+@pytest.mark.asyncio
+async def test_loop_reports_a_programme_member_who_no_longer_matches(
+    db_session: AsyncSession, loop_session_factory
+):
+    """The daily cadence runs the enrolment-eligibility scan (#19)."""
+    from sqlalchemy import update
+
+    _ = await create_admin_user(db_session)
+    _ = await create_member_user(db_session, "amy", gender="male")
+    start = future_ms(48)
+    event_id = await _make_event(
+        db_session, start=start, end=start + 60 * 60 * 1000, title="Girls skate"
+    )
+    _ = await db_session.execute(
+        update(Event).where(Event.id == event_id).values(gender="female")
+    )
+    await _enroll(db_session, event_id, "amy")
+    await db_session.commit()
+
+    await _run_loop_once(loop_session_factory)
+
+    rows = await _notifications_for(db_session, "admin", "enrollment.member_ineligible")
+    assert len(rows) == 1
+    data: Any = rows[0].payload["data"]
+    assert data == {
+        "eventId": event_id,
+        "eventTitle": "Girls skate",
+        "membername": "amy",
+    }

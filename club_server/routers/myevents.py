@@ -178,7 +178,7 @@ async def get_user_enrollment(
     require_self_or_staff(username, current_user)
     enrollment_service = EnrollmentService(db)
     enrollment = await enrollment_service.get_enrollment_or_raise(event_id, username)
-    return EnrollmentResponse.from_model(enrollment)
+    return await enrollment_service.enrollment_response(enrollment)
 
 
 @router.get(

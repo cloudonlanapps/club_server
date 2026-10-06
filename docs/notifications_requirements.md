@@ -234,6 +234,9 @@ classes and their rules here.
 The daily notice to admins about a semi-auto member who no longer meets
 the group's criteria, `group.member_ineligible`, is specified in
 [`groups_requirements.md`](groups_requirements.md) R84–R88.
+The matching notice about an enrolled programme member,
+`enrollment.member_ineligible`, is specified in
+[`eligibility_requirements.md`](eligibility_requirements.md) R21–R24.
 
 ## Enrollment notifications
 

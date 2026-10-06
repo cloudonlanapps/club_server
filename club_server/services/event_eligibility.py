@@ -29,6 +29,7 @@ from ..age_eligibility import (
     is_inverted_band,
 )
 from ..club_calendar import club_day
+from ..db.models.enrollment import Enrollment, EnrollmentStatus
 from ..db.models.event import Event
 from ..db.models.occurrence_override import OccurrenceOverride
 from ..db.models.user import User
@@ -43,6 +44,16 @@ from .schedule import event_slots
 # How far ahead a programme is searched for its next live occurrence. A
 # programme is weekly, so only a year of cancelled sessions exhausts it.
 NEXT_OCCURRENCE_SEARCH_DAYS = 370
+
+ENROLLED_STATUSES = frozenset(
+    {
+        EnrollmentStatus.accepted.value,
+        EnrollmentStatus.assigned.value,
+        EnrollmentStatus.assigned_trial.value,
+        EnrollmentStatus.withdraw_requested.value,
+    }
+)
+"""The statuses in which a member is on the event's roster."""
 
 Overrides = dict[int, tuple[str, int | None]]
 """Slot → (override status, moved start) for one event."""
@@ -180,6 +191,22 @@ def is_user_eligible_for_event(
     ):
         return False
     return window.admits(user.date_of_birth)
+
+
+def still_meets_criteria(
+    enrollment: Enrollment,
+    user: User | None,
+    event: Event,
+    window: EligibilityWindow,
+) -> bool:
+    """Whether an enrolled member still meets the event's criteria (R20).
+
+    Only someone who is enrolled can have stopped matching: an invitation,
+    a request or a row that has ended is not asked.
+    """
+    if enrollment.status not in ENROLLED_STATUSES or user is None:
+        return True
+    return is_user_eligible_for_event(user, event, window)
 
 
 async def event_response(db: AsyncSession, event: Event) -> EventResponse:
