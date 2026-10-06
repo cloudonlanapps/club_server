@@ -59,6 +59,13 @@ class Enrollment(Base):
     # instant after which the sweep may apply it.
     pending_disposition: Mapped[str | None] = mapped_column(Text, nullable=True)
     settle_after_utc: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # When the daily scan told the admins this enrolled member no longer
+    # meets the programme's criteria (#19); NULL while they match. It is what
+    # makes the notice go out once, and again only after they have matched
+    # in between.
+    ineligible_reported_at: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True
+    )
 
     __table_args__ = (  # pyright: ignore[reportUnannotatedClassAttribute, reportAny]
         UniqueConstraint("membername", "event_id"),

@@ -20,7 +20,11 @@ from ..exceptions import (
 )
 from ..schemas.common import UserRoles
 from ..schemas.enrollment import EnrollmentListResponse, EnrollmentResponse
-from ..services.event_eligibility import event_window, is_user_eligible_for_event
+from ..services.event_eligibility import (
+    event_window,
+    is_user_eligible_for_event,
+    still_meets_criteria,
+)
 from ..schemas.credit import CreditDispositionRequest
 from ..services.credit_charge import CreditChargeService
 from ..services.notification import NotificationEvent, NotificationService
@@ -250,7 +254,7 @@ class EnrollmentService:
         status_filter: str | None = None,
     ) -> EnrollmentListResponse:
         """List enrollments for an event."""
-        _ = await self.get_event_or_raise(event_id)
+        event = await self.get_event_or_raise(event_id)
 
         query = select(Enrollment).where(Enrollment.event_id == event_id)
         if status_filter:
@@ -259,9 +263,23 @@ class EnrollmentService:
         result = await self.db.execute(query)
         enrollments = result.scalars().all()
 
+        window = await event_window(self.db, event)
         return EnrollmentListResponse(
             enrollments={e.membername: e.status for e in enrollments},
-            records=[EnrollmentResponse.from_model(e) for e in enrollments],
+            records=[
+                EnrollmentResponse.from_model(
+                    e, still_meets_criteria(e, e.user, event, window)
+                )
+                for e in enrollments
+            ],
+        )
+
+    async def enrollment_response(self, enrollment: Enrollment) -> EnrollmentResponse:
+        """One enrolment as the API returns it, with ``eligible`` worked out (R20)."""
+        event = enrollment.event
+        window = await event_window(self.db, event)
+        return EnrollmentResponse.from_model(
+            enrollment, still_meets_criteria(enrollment, enrollment.user, event, window)
         )
 
     async def get_enrollment_status(self, event_id: int, membername: str) -> str | None:
