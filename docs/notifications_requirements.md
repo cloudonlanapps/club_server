@@ -231,6 +231,10 @@ classes and their rules here.
 - **R56** [X] An auto group has no explicit members, so deleting it
   or changing its settings notifies nobody.
 
+The daily notice to admins about a semi-auto member who no longer meets
+the group's criteria, `group.member_ineligible`, is specified in
+[`groups_requirements.md`](groups_requirements.md) R84–R88.
+
 ## Enrollment notifications
 
 - **R57** [✅] Staff-facing enrollment and attendance notices reach every
