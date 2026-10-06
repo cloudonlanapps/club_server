@@ -16,12 +16,15 @@ Convention:
 Vocabulary:
 
 - A group has one of three **kinds**: `manual`, `semi_auto`, `auto`.
-- **Criteria** = any of `dobOnOrAfterUtc`, `dobOnOrBeforeUtc`, `gender`.
+- **Criteria** = any of `minAge`, `maxAge`, `gender`. The two ages are an
+  age band ([eligibility](eligibility_requirements.md) R1); the group
+  reports the window of birth dates it comes to today as `dobOnOrAfterUtc`
+  and `dobOnOrBeforeUtc`.
 - The `kind` is derived from the create/update payload (not directly
   settable): no criteria → `manual`; criteria + `semiAuto: false` (or
   omitted) → `auto`; criteria + `semiAuto: true` → `semi_auto`.
-- DOB bounds must be at UTC midnight. Both endpoints are inclusive at the
-  **day level** — a user born on the upper-bound day is included.
+- Both ends of the window are inclusive at the **day level** — a user born
+  on the upper-bound day is included.
 - **Staff** = users with the `admin` or `coach` role, or super-admin.
 - A **plain member** is an active user with neither role.
 
@@ -33,7 +36,7 @@ Vocabulary:
 - **R2** [✅] admin can create an `auto` group (criteria, `semiAuto` omitted or false).
 - **R3** [✅] admin can create a `semi_auto` group (criteria + `semiAuto: true`).
 - **R4** [✅] admin can update name and description on any group.
-- **R5** [✅] admin can update `dobOnOrAfterUtc`, `dobOnOrBeforeUtc`, `gender`, and `semiAuto`; `kind` is re-derived.
+- **R5** [✅] admin can update `minAge`, `maxAge`, `strictAge`, `gender`, and `semiAuto`; `kind` is re-derived.
 - **R5a** [✅] an update that omits `semiAuto` keeps the group's current mode: a `semi_auto` group whose criteria change stays `semi_auto`.
 - **R6** [✅] admin can convert an empty manual group to `auto` or `semi_auto`.
 - **R7** [✅] admin can convert `semi_auto` or `auto` back to `manual` by clearing all criteria; existing members are kept.
@@ -42,8 +45,8 @@ Vocabulary:
 - **R9a** [X] admin can't change a `semi_auto` group's criteria so that an existing member fails them → 422 `MEMBERS_INELIGIBLE` listing that member; the group's criteria are unchanged.
 - **R10** [✅] admin can convert manual → `semi_auto` when every existing member satisfies the criteria (or is staff).
 - **R10a** [✅] admin can change a `semi_auto` group's criteria when every existing member still satisfies them.
-- **R11** [X] a DOB bound that is not at UTC midnight is rejected on create and on update → 422 `INVALID_DOB_NOT_UTC_MIDNIGHT`, naming the offending field.
-- **R12** [X] inverted DOB window (`dobOnOrAfterUtc` later than `dobOnOrBeforeUtc`) is rejected on create and on update → 422.
+- **R11** [X] a date-of-birth bound (`dobOnOrAfterUtc`, `dobOnOrBeforeUtc`) is not accepted on create or on update → 422 (eligibility R11); until #16 it was accepted when at UTC midnight.
+- **R12** [X] inverted age band (`minAge` greater than `maxAge`, which is an inverted window) is rejected on create and on update → 422.
 - **R13** [✅] admin can soft-delete a group; it stays readable by id with its deletion time set.
 - **R14** [✅] admin can restore a soft-deleted group.
 - **R14a** [X] restoring a group that is not soft-deleted is rejected → 422 `NOTHING_TO_RESTORE` (#526).
@@ -128,8 +131,9 @@ for; the rules below say who may name whom.
 
 ## Auto-membership computation
 
-DOB bounds and user dates of birth are both stored as UTC midnight;
-**both endpoints are inclusive at the day level**: the upper bound admits
+The window is worked out from the group's age band for today
+(eligibility R4–R8). Its two dates and user dates of birth are both UTC
+midnight; **both endpoints are inclusive at the day level**: the upper bound admits
 anyone born before midnight of the following day.
 
 - **R70** [✅] user with DOB `== dobOnOrAfterUtc` is included (inclusive lower bound).

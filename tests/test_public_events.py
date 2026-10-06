@@ -24,6 +24,7 @@ from club_server.utils import (
     now_utc_ms,
 )
 
+from .eligibility_helpers import with_event_band
 from .helpers import create_admin_user, create_media_row
 
 HOUR = 3_600_000
@@ -82,7 +83,9 @@ async def _event(
         **({"coachNames": coach_names} if coach_names else {}),
         **extra,
     }
-    response = await client.post("/v1/events", json=body, headers=_auth(admin))
+    response = await client.post(
+        "/v1/events", json=with_event_band(body), headers=_auth(admin)
+    )
     assert response.status_code == 201, response.text
     return response.json()
 

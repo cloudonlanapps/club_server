@@ -40,6 +40,7 @@ from ..schemas.event import (
 from ..services.audit import AuditService
 from ..services.audit_actions import AuditAction
 from ..services.event import EventService
+from ..services.event_eligibility import event_response
 from ..services.event_listing import EventListingService
 from ..services.event_types import EventVerb, require_verb
 from ..services.oneoff import OneOffService
@@ -118,7 +119,7 @@ async def terminate_event(
         },
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.post("/by_id/{event_id}/extend", response_model=EventResponse)
@@ -156,7 +157,7 @@ async def extend_event(
         },
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.post("/by_id/{event_id}/extend-indefinitely", response_model=EventResponse)
@@ -183,7 +184,7 @@ async def extend_event_indefinitely(
         details={"reason": data.reason, "cutoff_before": before, "cutoff_after": None},
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.post("/by_id/{event_id}/drop", response_model=EventResponse)
@@ -238,7 +239,7 @@ async def drop_event(
         details={"reason": data.reason, "super_admin_override": override_used},
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.post("/by_id/{event_id}/reinstate", response_model=EventResponse)
@@ -266,7 +267,7 @@ async def reinstate_event(
         resource_id=str(event.id),
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.get("/by_id/{event_id}/schedules", response_model=list[EventScheduleResponse])

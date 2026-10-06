@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from club_server.db.models.user import UserStatus
 
+from .eligibility_helpers import with_group_band
 from .helpers import create_admin_user, create_member_user, create_user_with_status
 
 DOB_2010 = 1262304000000  # 2010-01-01 UTC midnight
@@ -23,12 +24,14 @@ def auth(token: str) -> dict:
 async def _make_semi_auto(client: AsyncClient, admin_token: str, name: str) -> int:
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": name,
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": name,
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(admin_token),
     )
     assert g.status_code == 201, g.json()

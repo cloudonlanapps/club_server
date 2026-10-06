@@ -90,7 +90,7 @@ makes the stored value not equal to the cutoff the admin actually named.
 Half-open intervals need no epsilon — that is what they are for.
 
 **On the event, not the schedule:** `title`, `description`, `visibility`,
-`isFeatured`, `galleryUris`, `gender`, the DOB bounds. These are the
+`isFeatured`, `galleryUris`, `gender`, the age band. These are the
 programme's identity and eligibility, they have exactly one value at a
 time, and they are changed by correction (programme R21, R22b). A split
 never sets them, which is what removes the correction-versus-split clash

@@ -170,7 +170,7 @@ class OccurrenceService:
         matches its eligibility; a private event only for the occurrences the
         user's enrollment covers (``enrollment_covers_occurrence``).
         """
-        from .event_eligibility import is_user_eligible_for_event
+        from .event_eligibility import event_windows, is_user_eligible_for_event
 
         _check_range(from_time_utc, to_time_utc)
         enrollments_by_event: dict[int, Enrollment] = {
@@ -225,6 +225,7 @@ class OccurrenceService:
             .all()
         }
 
+        windows = await event_windows(self.db, events, now_ms)
         occurrences: list[OccurrenceResponse] = []
         for event in events:
             enrollment = enrollments_by_event.get(event.id)
@@ -232,7 +233,7 @@ class OccurrenceService:
                 event.visibility == "public"
                 and enrollment is None
                 and user is not None
-                and not is_user_eligible_for_event(user, event)
+                and not is_user_eligible_for_event(user, event, windows[event.id])
             ):
                 continue
             for slot in event_slots(event, from_time_utc, to_time_utc):

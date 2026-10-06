@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from club_server.db.models.audit_log import AuditLog
 
+from .eligibility_helpers import with_group_band
 from .helpers import (
     attach_identity_document,
     create_admin_user,
@@ -658,12 +659,14 @@ async def test_create_auto_group_with_criteria(
 
     response = await client.post(
         "/v1/groups",
-        json={
-            "name": "Boys 2010-2014",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "gender": "male",
-        },
+        json=with_group_band(
+            {
+                "name": "Boys 2010-2014",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "gender": "male",
+            }
+        ),
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
@@ -701,11 +704,13 @@ async def test_dob_bounds_must_not_be_inverted(
 
     response = await client.post(
         "/v1/groups",
-        json={
-            "name": "Bad Window",
-            "dobOnOrAfterUtc": DOB_2014,
-            "dobOnOrBeforeUtc": DOB_2010,
-        },
+        json=with_group_band(
+            {
+                "name": "Bad Window",
+                "dobOnOrAfterUtc": DOB_2014,
+                "dobOnOrBeforeUtc": DOB_2010,
+            }
+        ),
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
@@ -745,7 +750,7 @@ async def test_auto_group_rejects_bulk_add(
 
     create_response = await client.post(
         "/v1/groups",
-        json={"name": "Auto Group", "dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"name": "Auto Group", "dobOnOrAfterUtc": DOB_2010}),
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -838,11 +843,13 @@ async def test_auto_group_dynamic_members_by_dob_window(
 
     create_response = await client.post(
         "/v1/groups",
-        json={
-            "name": "Born 2010-2014",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-        },
+        json=with_group_band(
+            {
+                "name": "Born 2010-2014",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+            }
+        ),
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -892,12 +899,14 @@ async def test_auto_group_dynamic_members_combined(
 
     create_response = await client.post(
         "/v1/groups",
-        json={
-            "name": "Boys 2010-2014",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "gender": "male",
-        },
+        json=with_group_band(
+            {
+                "name": "Boys 2010-2014",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "gender": "male",
+            }
+        ),
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -1002,11 +1011,13 @@ async def test_update_auto_group_dob_window(
 
     create_response = await client.post(
         "/v1/groups",
-        json={
-            "name": "Born 2010-2014",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-        },
+        json=with_group_band(
+            {
+                "name": "Born 2010-2014",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+            }
+        ),
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -1019,10 +1030,12 @@ async def test_update_auto_group_dob_window(
 
     await client.patch(
         f"/v1/groups/by_id/{group_id}",
-        json={
-            "dobOnOrAfterUtc": DOB_2014,
-            "dobOnOrBeforeUtc": DOB_2014 + 365 * 86400000,
-        },
+        json=with_group_band(
+            {
+                "dobOnOrAfterUtc": DOB_2014,
+                "dobOnOrBeforeUtc": DOB_2014 + 365 * 86400000,
+            }
+        ),
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -1043,11 +1056,13 @@ async def test_clear_dob_criteria_makes_group_manual(
 
     create_response = await client.post(
         "/v1/groups",
-        json={
-            "name": "Age Group",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-        },
+        json=with_group_band(
+            {
+                "name": "Age Group",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+            }
+        ),
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -1055,7 +1070,7 @@ async def test_clear_dob_criteria_makes_group_manual(
 
     update_response = await client.patch(
         f"/v1/groups/by_id/{group_id}",
-        json={"dobOnOrAfterUtc": None, "dobOnOrBeforeUtc": None},
+        json=with_group_band({"dobOnOrAfterUtc": None, "dobOnOrBeforeUtc": None}),
         headers={"Authorization": f"Bearer {token}"},
     )
     assert update_response.status_code == 200
@@ -1155,7 +1170,7 @@ async def test_update_manual_group_with_members_to_auto_rejected_dob(
 
     response = await client.patch(
         f"/v1/groups/by_id/{group_id}",
-        json={"dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"dobOnOrAfterUtc": DOB_2010}),
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
@@ -1204,7 +1219,7 @@ async def test_update_auto_group_criteria_change_allowed(
 
     response = await client.patch(
         f"/v1/groups/by_id/{group_id}",
-        json={"dobOnOrAfterUtc": DOB_2010},
+        json=with_group_band({"dobOnOrAfterUtc": DOB_2010}),
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200

@@ -81,6 +81,7 @@ from ..services.conflict_gates import (
 )
 from ..services.enrollment import EnrollmentService
 from ..services.event import EventService
+from ..services.event_eligibility import event_response
 from ..services.event_listing import EventListingService
 from ..services.public_event import attach_public_coaches
 from ..services.event_types import (
@@ -452,7 +453,7 @@ async def get_event(
     current_user: Annotated[User, Depends(require_admin_or_coach())],
 ):
     """Get event by ID (admin/coach only)."""
-    response = EventResponse.from_model(await EventService(db).get_event(event_id))
+    response = await event_response(db, await EventService(db).get_event(event_id))
     await attach_public_coaches(db, [response])
     return response
 
@@ -516,7 +517,7 @@ async def create_event(
         details={"title": data.title, "type": data.type, "visibility": data.visibility},
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.patch("/by_id/{event_id}", response_model=EventResponse)
@@ -550,7 +551,7 @@ async def update_event(
         details=changes.to_audit_dict(),
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.patch("/by_id/{event_id}/correction", response_model=EventResponse)
@@ -574,8 +575,9 @@ async def correct_event(
             description=data.description,
             visibility=data.visibility,
             gender=data.gender,
-            dob_on_or_after_utc=data.dob_on_or_after_utc,
-            dob_on_or_before_utc=data.dob_on_or_before_utc,
+            min_age=data.min_age,
+            max_age=data.max_age,
+            strict_age=data.strict_age,
             is_featured=data.is_featured,
             gallery_uris=data.gallery_uris,
             sessions=data.sessions,
@@ -598,7 +600,7 @@ async def correct_event(
         details=changes.to_audit_dict(),
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.patch("/by_id/{event_id}/future", response_model=EventResponse)
@@ -640,7 +642,7 @@ async def update_event_future(
         details={"cutoff": data.effective_date_time_utc, **changes.to_audit_dict()},
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.post("/by_id/{event_id}/cancel", response_model=EventResponse)
@@ -690,7 +692,7 @@ async def cancel_event(
         },
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 def _verbs_of(event) -> set[EventVerb]:
@@ -722,7 +724,7 @@ async def undo_cancel_event(
         resource_id=str(event.id),
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.post("/by_id/{event_id}/reschedule", response_model=EventResponse)
@@ -782,7 +784,7 @@ async def reschedule_event(
         details=details,
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(updated)
+    return await event_response(db, updated)
 
 
 @router.delete("/by_id/{event_id}", response_model=EventResponse)
@@ -803,7 +805,7 @@ async def delete_event(
         resource_id=str(event_id),
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.post("/by_id/{event_id}/restore", response_model=EventResponse)
@@ -833,7 +835,7 @@ async def restore_event(
         resource_id=str(event.id),
         ip_address=get_client_ip(request),
     )
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.delete("/by_id/{event_id}/hard", status_code=status.HTTP_204_NO_CONTENT)

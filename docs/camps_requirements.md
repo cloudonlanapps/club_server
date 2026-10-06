@@ -19,9 +19,11 @@ Convention:
 
 Vocabulary:
 
-- A camp's **eligibility criteria** = any of `gender`,
-  `dobOnOrAfterUtc`, `dobOnOrBeforeUtc` set on the camp itself,
-  mirroring the convention adopted for groups in #11.
+- A camp's **eligibility criteria** = any of `gender`, `minAge`,
+  `maxAge` set on the camp itself, mirroring the convention adopted for
+  groups in #11. The two ages are an age band
+  ([eligibility](eligibility_requirements.md) R1), reported as the window
+  `dobOnOrAfterUtc`–`dobOnOrBeforeUtc` it comes to on the camp's start day.
 - An **enrollment** carries one of the statuses: `invited`, `requested`,
   `accepted`, `rejected`, `assigned`, `assignedTrial`,
   `withdrawRequested`, `withdrawn`, `declined`, `removed`. Active =
@@ -116,17 +118,16 @@ Vocabulary:
 - **R12** [✅] An admin can list deleted camps via a dedicated "deleted"
   view.
 - **R13** [✅] An admin can set structured eligibility on a camp:
-  `gender`, `dobOnOrAfterUtc`, `dobOnOrBeforeUtc`. DOB bounds are
-  floored to UTC midnight on write; both endpoints are inclusive at
-  the day level.
+  `gender`, `minAge`, `maxAge`, `strictAge`. Both ends of the window the
+  band comes to are inclusive at the day level.
 - **R14** [✅] An admin can set `isFeatured`, `galleryUris`, and an
   ordered `sessions` timetable directly on the camp. `isFeatured` and the
   gallery are presentation rather than event management — see programme
   R22a. An earlier draft also listed `imageUri`; no such field exists
   anywhere in the model or the API.
-- **R15** [X] An inverted DOB window (after-bound greater than
-  before-bound) is rejected → 422 `INVALID_STATE` (mirrors R12 in
-  groups).
+- **R15** [X] An inverted age band (`minAge` greater than `maxAge`,
+  which is an inverted window) is rejected → 422 `INVALID_STATE` (mirrors
+  R12 in groups).
 - **R16a** [X] A coach who is not the camp's organizer cannot update,
   cancel, or delete the camp → 403 / `INSUFFICIENT_PERMISSION`.
 - **R16b** [✅] A coach who *is* the organizer can act with admin-level
@@ -252,9 +253,9 @@ Vocabulary:
 - **R40** [✅] Camp eligibility mirrors group eligibility: a user is
   eligible iff their `gender` matches (when set) and their date of
   birth falls within `[dobOnOrAfterUtc, dobOnOrBeforeUtc]` inclusive
-  (when set).
+  (when set) — the window its age band comes to on its start day.
 - **R41** [X] A user with no recorded date of birth is ineligible for
-  any camp that has either DOB bound set.
+  any camp that has either age bound set.
 - **R42** [X] A user with no recorded gender is ineligible for any
   camp that has `gender` set.
 - **R43** [✅] Tightening eligibility on a camp does **not** auto-

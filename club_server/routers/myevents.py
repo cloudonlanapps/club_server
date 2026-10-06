@@ -32,6 +32,7 @@ from ..services.audit import AuditService
 from ..services.audit_actions import AuditAction
 from ..services.enrollment import EnrollmentService
 from ..services.event import EventService
+from ..services.event_eligibility import event_response
 from ..services.event_listing import EventListingService
 from ..services.occurrence import OccurrenceService
 
@@ -145,7 +146,7 @@ async def get_user_event(
     require_self_or_staff(username, current_user)
     event_service = EventService(db)
     event = await event_service.check_user_event_access(event_id, username)
-    return EventResponse.from_model(event)
+    return await event_response(db, event)
 
 
 @router.get(

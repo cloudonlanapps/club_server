@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
+from ..age_eligibility import Age, EligibilityWindow, decode_age
 from ..db.models.event import Event
 from ..db.models.event_schedule import EventSchedule
 from .common import CamelCaseModel, to_camel
@@ -69,8 +70,9 @@ class EventCreate(BasicMarketingFields):
     end_time_utc: int
     rrule: str | None = None
     gender: str | None = None
-    dob_on_or_after_utc: int | None = None
-    dob_on_or_before_utc: int | None = None
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool = False
     is_featured: bool = False
     gallery_uris: list[str] | None = None
     sessions: list[Session] | None = None
@@ -102,8 +104,9 @@ class EventUpdate(BasicMarketingFields):
     organizer_name: str | None = None
     coach_names: list[str] | None = None
     gender: str | None = None
-    dob_on_or_after_utc: int | None = None
-    dob_on_or_before_utc: int | None = None
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool | None = None
     is_featured: bool | None = None
     gallery_uris: list[str] | None = None
     sessions: list[Session] | None = None
@@ -137,8 +140,14 @@ class EventResponse(CamelCaseModel):
     end_time_utc: int
     until_time_utc: int | None
     gender: str | None = None
+    # The age band (eligibility R1), and what it comes to on the event's
+    # reference day (R12): the window of birth dates, both ends inclusive.
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool = False
     dob_on_or_after_utc: int | None = None
     dob_on_or_before_utc: int | None = None
+    eligibility_reference_day_utc: int
     is_featured: bool = False
     gallery_uris: list[str] | None = None
     sessions: list[Session] | None = None
@@ -157,8 +166,8 @@ class EventResponse(CamelCaseModel):
     )
 
     @classmethod
-    def from_model(cls, event: Event) -> "EventResponse":
-        """Create response from Event model."""
+    def from_model(cls, event: Event, window: EligibilityWindow) -> "EventResponse":
+        """Create response from Event model and its window of birth dates."""
         import json
 
         current = event.current_schedule
@@ -176,8 +185,12 @@ class EventResponse(CamelCaseModel):
             end_time_utc=current.end_time,
             until_time_utc=current.effective_until,
             gender=event.gender,
-            dob_on_or_after_utc=event.dob_on_or_after_utc,
-            dob_on_or_before_utc=event.dob_on_or_before_utc,
+            min_age=decode_age(event.min_age),
+            max_age=decode_age(event.max_age),
+            strict_age=bool(event.strict_age),
+            dob_on_or_after_utc=window.dob_on_or_after_utc,
+            dob_on_or_before_utc=window.dob_on_or_before_utc,
+            eligibility_reference_day_utc=window.reference_day_utc,
             is_featured=bool(event.is_featured),
             gallery_uris=json.loads(event.gallery_uris) if event.gallery_uris else None,
             sessions=[Session(**s) for s in json.loads(current.sessions)]
@@ -335,8 +348,9 @@ class EventCorrectionRequest(BasicMarketingFields):
     description: str | None = None
     visibility: VisibilityT | None = None
     gender: str | None = None
-    dob_on_or_after_utc: int | None = None
-    dob_on_or_before_utc: int | None = None
+    min_age: Age | None = None
+    max_age: Age | None = None
+    strict_age: bool | None = None
     is_featured: bool | None = None
     gallery_uris: list[str] | None = None
     sessions: list[Session] | None = None

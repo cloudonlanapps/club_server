@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .eligibility_helpers import with_group_band
 from .helpers import (
     create_admin_user,
     create_coach_user,
@@ -52,12 +53,14 @@ async def test_mygroups_returns_semi_auto_memberships(
     )
     g = await client.post(
         "/v1/groups",
-        json={
-            "name": "Semi1",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-            "semiAuto": True,
-        },
+        json=with_group_band(
+            {
+                "name": "Semi1",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+                "semiAuto": True,
+            }
+        ),
         headers=auth(admin_token),
     )
     gid = g.json()["id"]
@@ -82,11 +85,13 @@ async def test_mygroups_returns_matching_auto_groups(
     )
     await client.post(
         "/v1/groups",
-        json={
-            "name": "Auto1",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-        },
+        json=with_group_band(
+            {
+                "name": "Auto1",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+            }
+        ),
         headers=auth(admin_token),
     )
 
@@ -105,11 +110,13 @@ async def test_mygroups_excludes_non_matching_auto_groups(
     )
     await client.post(
         "/v1/groups",
-        json={
-            "name": "Auto1",
-            "dobOnOrAfterUtc": DOB_2010,
-            "dobOnOrBeforeUtc": DOB_2014,
-        },
+        json=with_group_band(
+            {
+                "name": "Auto1",
+                "dobOnOrAfterUtc": DOB_2010,
+                "dobOnOrBeforeUtc": DOB_2014,
+            }
+        ),
         headers=auth(admin_token),
     )
 

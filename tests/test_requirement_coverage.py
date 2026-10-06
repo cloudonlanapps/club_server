@@ -37,6 +37,7 @@ FULLY_SCOPED_DOCS: dict[str, str] = {
     "auth": "auth_requirements.md",
     "platform": "platform_requirements.md",
     "evaluation": "evaluation_requirements.md",
+    "eligibility": "eligibility_requirements.md",
 }
 
 PARTIALLY_SCOPED_DOCS: dict[str, tuple[str, frozenset[str]]] = {

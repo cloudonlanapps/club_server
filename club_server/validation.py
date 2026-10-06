@@ -8,9 +8,8 @@ from .utils import MS_PER_DAY
 def validate_utc_midnight(value: int | None, field: str) -> None:
     """Ensure a ms-since-epoch timestamp lands at 00:00:00 UTC of some day.
 
-    DOB-shaped fields (`users.date_of_birth`, group/event `dob_on_or_after_utc`
-    and `dob_on_or_before_utc`) represent calendar dates; only UTC-midnight ms
-    values are admissible. Non-midnight inputs indicate a client-side
+    A date of birth (`users.date_of_birth`) is a calendar date; only
+    UTC-midnight ms values are admissible. Non-midnight inputs indicate a client-side
     timezone bug (e.g. a picker emitting local-midnight) and are rejected
     with 422 rather than silently flattened to an unintended calendar date.
     """

@@ -6,6 +6,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .eligibility_helpers import with_event_band
 from .helpers import attach_identity_document, create_admin_user
 
 DOB_2010 = 1262304000000  # 2010-01-01 UTC midnight
@@ -92,7 +93,9 @@ async def _create_event(
         body["dobOnOrAfterUtc"] = dob_on_or_after_utc
     if dob_on_or_before_utc is not None:
         body["dobOnOrBeforeUtc"] = dob_on_or_before_utc
-    r = await client.post("/v1/events", json=body, headers=auth(admin_token))
+    r = await client.post(
+        "/v1/events", json=with_event_band(body), headers=auth(admin_token)
+    )
     assert r.status_code == 201, r.text
     return r.json()
 
