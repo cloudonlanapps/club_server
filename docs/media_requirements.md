@@ -68,6 +68,19 @@ Convention:
 - **R6** [✅] A video upload answers 202 with the record in
   `pending` conversion; the file is converted afterwards by the conversion
   worker (R15–R19).
+- **R6a** [✅] An admin, the super admin included, can upload on
+  behalf of a user by naming them in `ownerUsername`. The item records that
+  user as its uploader, so `self`, the right to change and delete it (R43)
+  and the listing of their own uploads (R37) are the named user's, not the
+  admin's.
+- **R6b** [X] A coach or a member naming anyone but themselves in
+  `ownerUsername` → 403 `FORBIDDEN`, and nothing is stored. Naming
+  themselves is the same as leaving it out.
+- **R6c** [X] An `ownerUsername` that names no user, or a deleted
+  one → 404 `USER_NOT_FOUND`, and nothing is stored.
+- **R6d** [✅] The audit row of an upload made on behalf of a user
+  names the admin as its actor and the owner as its target, with the owner
+  in its details.
 
 ## Types and conversion
 

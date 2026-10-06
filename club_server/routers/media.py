@@ -22,6 +22,7 @@ from ..utils import get_client_ip
 from ..dependencies import (
     get_authenticated_user,
     get_db,
+    is_admin,
     is_admin_or_coach,
     require_admin_or_coach,
     require_super_admin,
@@ -36,6 +37,7 @@ from ..exceptions import (
     InvalidMediaTypeException,
     MediaFileMissingException,
     MediaInUseException,
+    UserNotFoundException,
 )
 from ..schemas.common import PaginatedResponse
 from ..schemas.media import MediaPatchRequest, MediaResponse
@@ -49,6 +51,7 @@ from ..services.media import (
     can_view_media,
     resolve_media_file_path,
 )
+from ..services.user import UserService
 from ..services.media_links import (
     OWNER_REGISTRY,
     assert_media_not_in_use,
@@ -90,6 +93,35 @@ def _require_media_modify(media: Media, user: User) -> None:
             },
         )
     raise _media_404()
+
+
+async def _resolve_upload_owner(
+    db: AsyncSession, caller: User, owner_username: str | None
+) -> str:
+    """The username an upload is recorded under (#18).
+
+    The caller, unless an admin names another user. A non-admin naming
+    anyone else is refused before the lookup, so the field cannot be used
+    to find out which usernames exist.
+    """
+    if owner_username is None or owner_username == caller.username:
+        return caller.username
+    if not is_admin(caller):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN",
+                "message": "Only an admin may upload on behalf of another user",
+            },
+        )
+    try:
+        owner = await UserService(db).get_user_or_raise(owner_username)
+    except UserNotFoundException:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        )
+    return owner.username
 
 
 def _parse_access_roles(raw: str | None) -> list[str] | None:
@@ -160,15 +192,30 @@ async def upload_media(
     start: Annotated[float | None, Form()] = None,
     access_roles: Annotated[str | None, Form(alias="accessRoles")] = None,
     encrypt: Annotated[bool, Form()] = False,
+    owner_username: Annotated[
+        str | None,
+        Form(
+            alias="ownerUsername",
+            description=(
+                "Upload on behalf of this user: the file is recorded with them "
+                "as its uploader, so `self`, the right to change or delete it "
+                "and their own file listing are theirs. Admins only; anyone "
+                "else may name only themselves. Omitted, the caller is the "
+                "uploader."
+            ),
+        ),
+    ] = None,
 ):
     """Upload a media file. Returns 201 for image/pdf (sync), 202 for video (async)."""
     media_service = MediaService(db)
     audit_service = AuditService(db)
+    owner = await _resolve_upload_owner(db, current_user, owner_username)
+    on_behalf = owner != current_user.username
 
     try:
         media = await media_service.create_media(
             file=file,
-            uploaded_by=current_user.username,
+            uploaded_by=owner,
             preserve_original=preserve_original,
             duration=duration,
             start=start,
@@ -176,16 +223,20 @@ async def upload_media(
             encrypt=encrypt,
         )
 
+        details: dict[str, str | bool] = {
+            "filename": media.original_filename,
+            "media_type": media.media_type,
+            "preserve_original": preserve_original,
+        }
+        if on_behalf:
+            details["owner_username"] = owner
         await audit_service.log(
             actor_username=current_user.username,
             action=AuditAction.UPLOAD_MEDIA_V2,
+            target_username=owner if on_behalf else None,
             resource_type="media",
             resource_id=str(media.id),
-            details={
-                "filename": media.original_filename,
-                "media_type": media.media_type,
-                "preserve_original": preserve_original,
-            },
+            details=details,
             ip_address=get_client_ip(request),
         )
 
