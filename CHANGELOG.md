@@ -131,10 +131,12 @@ everything in this section is what an SDK update has to absorb.
 
 - `GET /` and `openapi.json` (`info.version`) report the `VERSION` file instead of a hardcoded `1.0.0`, and `pyproject.toml` reads its version from the same file, replacing `0.1.0`. `VERSION` is the server's only version number.
 - `VERSION` goes to 0.7.1, a patch: the credit follow-ups (#445, #446, #447, #448, #449, #451) add no deployment setting.
+- `VERSION` goes to 0.8.0: `DEFAULT_COUNTRY_CODE` is a new deployment setting (#15).
 
 ### Capabilities
 
 - `GET /v1/capabilities` no longer requires authentication: an anonymous caller gets the same document as a signed-in one, so a signup page can tell whether identity verification is on before anyone logs in. Every flag was already discoverable anonymously, through a disabled module's 503 or the status `register` returns (#443).
+- Add the optional deployment setting `DEFAULT_COUNTRY_CODE`: the club's country calling code, one to three digits without `+`; any other value stops the server at startup, and an empty one counts as unset. `GET /v1/capabilities` gains `defaultCountryCode`, that code as a string, or `null` when the deployment sets none (#15).
 
 ### Inquiries
 

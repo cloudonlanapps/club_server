@@ -36,4 +36,5 @@ async def get_capabilities() -> CapabilitiesResponse:
         evaluations=settings.evaluations_enabled,
         event_marketing=settings.event_marketing_enabled,
         identity_verification=settings.identity_verification_required,
+        default_country_code=settings.default_country_code,
     )

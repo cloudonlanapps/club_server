@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Annotated, Any, ClassVar
 
 from pydantic import field_validator
@@ -17,6 +18,9 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 # above file secrets. That is deliberate — a deployment can move one value at a
 # time instead of all at once.
 _SECRETS_DIR: str | None = "/run/secrets" if os.path.isdir("/run/secrets") else None
+
+# A country calling code: one to three ASCII digits, written without "+".
+_COUNTRY_CODE_PATTERN = re.compile(r"[0-9]{1,3}")
 
 
 class Settings(BaseSettings):
@@ -98,6 +102,11 @@ class Settings(BaseSettings):
     # Configurable because it protects nothing but the cost of a conflict
     # report, and how far ahead a club plans is a fact about the club.
     scheduling_horizon_weeks: int = 52
+    # Default country code (#15) — the club's country calling code, one to
+    # three digits without "+". The apps store phone numbers in international
+    # format and complete a number typed without a code with this one; which
+    # country a club is in is a fact about the deployment. Unset by default.
+    default_country_code: str | None = None
 
     # API
     api_v1_prefix: str = "/v1"
@@ -120,6 +129,27 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [part.strip() for part in value.split(",") if part.strip()]
         return value
+
+    @field_validator("default_country_code", mode="before")
+    @classmethod
+    def _check_country_code(cls, value: Any) -> Any:
+        """Accept one to three digits; treat an empty value as not set.
+
+        A deploy conf writes a key it has no value for as an empty string, so
+        that must mean "unset" rather than stop the server. Anything else that
+        is not a calling code fails at startup, naming this setting.
+        """
+        if not isinstance(value, str):
+            return value
+        code = value.strip()
+        if not code:
+            return None
+        if not _COUNTRY_CODE_PATTERN.fullmatch(code):
+            raise ValueError(
+                "DEFAULT_COUNTRY_CODE must be a country calling code of one to "
+                'three digits without "+", e.g. 91'
+            )
+        return code
 
     @property
     def cors_allow_credentials(self) -> bool:

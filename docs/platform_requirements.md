@@ -85,12 +85,20 @@ and when. A key never written has no writer and no time.
 
 - **R12** [✅] Anyone, signed in or not, whatever their status or role,
   can read what this deployment does, and everyone gets the same answer.
-- **R13** [✅] The document is a closed set of four flags: the credit
-  system, evaluations, event marketing and identity verification.
+- **R13** [✅] The document is a closed set: four flags — the credit
+  system, evaluations, event marketing and identity verification — and
+  the default country code.
 - **R14** [✅] Each flag reports the deployment's configuration: credit
   off unless enabled, identity verification on unless disabled.
 - **R14a** [✅] Evaluations and event marketing each report
   whether the deployment enables them.
+- **R14b** [✅] `defaultCountryCode` reports the deployment's
+  `DEFAULT_COUNTRY_CODE` — the club's country calling code, one to three
+  digits without `+`, as a string — and `null` when the deployment sets
+  none.
+- **R14c** [X] A `DEFAULT_COUNTRY_CODE` that is not one to three
+  digits stops the server at startup, naming the setting. An empty value
+  counts as not set.
 
 ## Audit log: recording
 

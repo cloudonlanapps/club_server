@@ -84,7 +84,11 @@ Optional, with defaults in code: `ENVIRONMENT` (`development`),
 `SCHEDULING_HORIZON_WEEKS`, the three module switches `CREDIT_SYSTEM_ENABLED`,
 `EVALUATIONS_ENABLED` and `EVENT_MARKETING_ENABLED` (all off; their routes
 answer 503 while off), `IDENTITY_VERIFICATION_REQUIRED` (on; off, a new user
-registers straight to `pending` with no identity-document step), `ENCRYPTION_KEY` (base64 of 32 bytes; encrypted uploads
+registers straight to `pending` with no identity-document step),
+`DEFAULT_COUNTRY_CODE` (unset; the club's country calling code, one to three
+digits without `+`, e.g. `91` — reported by `GET /v1/capabilities` as
+`defaultCountryCode` so the apps can complete a phone number typed without a
+code; any other value stops the server at startup), `ENCRYPTION_KEY` (base64 of 32 bytes; encrypted uploads
 answer 503 without it), `TRANSACTIONAL_EMAIL_PROVIDER`
 and `BROADCAST_EMAIL_PROVIDER` (`console`, i.e. print instead of send; `resend`
 / `brevo` need `RESEND_API_KEY` / `BREVO_API_KEY`), `EMAIL_LOGO_PATH`,
