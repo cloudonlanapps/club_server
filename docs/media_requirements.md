@@ -185,6 +185,12 @@ answered.
 - **R39** [X] Anyone else reading a media record → 404 `MEDIA_NOT_FOUND`.
 - **R40** [✅] An admin or coach reads a record whatever its access
   roles, and a soft-deleted record is still readable.
+- **R40a** [✅] A media record can also be read by the item's uuid, the
+  identifier a link carries, by the same callers and with the same answer
+  as reading it by id, a soft-deleted record included (#27).
+- **R40b** [X] Anyone else reading a record by uuid, a uuid no item has,
+  and a malformed one → 404 `MEDIA_NOT_FOUND`, answered identically. An
+  anonymous caller → 401.
 - **R41** [✅] Only a media item's access roles can be changed. Other
   fields sent with the change are ignored, not refused.
 - **R42** [✅] Uploads outlive their uploaders: permanently deleting
