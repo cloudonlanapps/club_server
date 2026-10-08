@@ -144,24 +144,29 @@ Vocabulary:
   accepted `UNTIL` as a second way of bounding a camp.
 - **R19** [✅] A camp's recurrence rule may include explicit
   exception dates (`EXDATE`). An excepted day is a **rest day**: no camp
-  happens on it.
-- **R19a** [✅] **A camp's length is what its rule generates after
-  rest days are removed.** `COUNT` bounds the set the rule generates
-  *before* exceptions are removed, so `FREQ=DAILY;COUNT=7` with three
-  `EXDATE`s is a camp of four days across seven; that is what every
-  standard client reads too, and the server does not reinterpret it.
+  happens on it. A rest day is named by the UTC start of the occurrence
+  it removes; an `EXDATE` at any other instant removes nothing.
+- **R19a** [✅] **A camp's `COUNT` is the number of days it is held.**
+  Rest days are not counted: the rule is expanded until it has given
+  `COUNT` occurrences that are not rest days, so `FREQ=DAILY;COUNT=7`
+  with three `EXDATE`s inside its run is a camp of seven days across ten.
 
   A club that wants seven camp days across a ten-day window composes the
-  rule as `FREQ=DAILY;COUNT=10` with three `EXDATE`s. The rule is stored
-  and presented exactly as given; there is no camp-days field and no
-  server-side inflation of `COUNT`. Decided 2026-09-04 (#394, closed as
-  not planned): the stored rule always means what a standard expansion
-  says, so nothing the server presents can disagree with what a client
-  would compute from it.
+  rule as `FREQ=DAILY;COUNT=7` with its three rest days as `EXDATE`s. The
+  rule is stored and presented exactly as given; there is no camp-days
+  field, because `COUNT` is that number.
+
+  Decided 2026-10-08 (#30): the requirement follows what the server and
+  the SDK's expansion have always done. It replaces the reading of
+  2026-09-04 (#394), under which `COUNT` bounded the rule before rest
+  days were removed. A client that expands a stored rule itself applies
+  this rule; a plain RFC 5545 expansion gives a camp shorter by its rest
+  days.
 - **R19b** [✅] A camp's end — its schedule's `effective_until`
   ([`event_schedule_model.md`](event_schedule_model.md)) — is the day
   after its last generated occurrence. It is derived by expanding the
-  stored rule, so it already accounts for the rest days the rule names.
+  stored rule as R19a says, so it lies past the rest days the rule
+  names.
 - **R19c** A rest day and a cancelled occurrence are different facts
   and are recorded differently, which is why a camp has both.
 
