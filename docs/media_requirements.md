@@ -274,6 +274,23 @@ tags. Evaluation links follow them too, with the additions under
 - **R69** [✅] Permanently deleting an owner removes its links; the
   media items stay.
 
+### One avatar
+
+- **R69a** [✅] A user has one avatar. Linking an item to a user under
+  `user_avatar` removes the user's other links under that tag, whether or
+  not the caller may view their items, and soft-deletes each item whose
+  link was removed, in the same step as the new link. The tag is never
+  full (R62): the new link takes the place of the others (#28).
+- **R69b** [✅] A replaced item that another link still uses keeps that
+  link and is not deleted.
+- **R69c** [X] A link that is refused (R57–R60) replaces nothing: the
+  current avatar stays linked and its item is not deleted.
+- **R69d** [✅] Only a user's avatar is held to one. Every other tag of a
+  user, and every tag of an event, group or venue, `user_avatar` included,
+  keeps each item linked under it.
+- **R69e** [✅] The audit row of the new link names the items it replaced
+  and those of them that were soft-deleted.
+
 ### Who may read and write links
 
 - **R70** [✅] A user's links can be read by that user and by any admin or
