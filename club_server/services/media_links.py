@@ -6,6 +6,7 @@ from sqlalchemy import distinct, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
+from ..constants import USER_AVATAR_TAG
 from ..db.models.media import Media
 from ..db.models.media_links import (
     EventMediaLink,
@@ -205,7 +206,10 @@ class MediaLinkService:
                 .where(self.owner_col == owner_id, self.model.tag == tag)
             )
         ).scalar_one()
-        if tag_count >= settings.media_max_links_per_owner_tag:
+        # A tag that holds one item is never full: linking replaces (#28).
+        if tag_count >= settings.media_max_links_per_owner_tag and not self.holds_one(
+            tag
+        ):
             raise MediaLinkTagFullException(
                 self.owner_type,
                 owner_id,
@@ -241,6 +245,68 @@ class MediaLinkService:
         self.db.add(link)
         await self.db.flush()
         return _link_to_response(link, media)
+
+    def holds_one(self, tag: str) -> bool:
+        """Whether an owner of this type keeps a single item under ``tag``.
+
+        Only a user's avatar does (#28); every other tag keeps what is linked.
+        """
+        return self.owner_type == "user" and tag == USER_AVATAR_TAG
+
+    async def replace_others(
+        self, owner_id: str | int, tag: str, keep_media_uuid: str
+    ) -> tuple[list[str], list[str]]:
+        """Remove the owner's links under ``tag`` other than the one kept.
+
+        A no-op unless the tag holds one item (``holds_one``). Every other
+        link goes, whether or not the caller may view its item: the listing
+        a client would work from leaves those out, which is how an old
+        avatar used to stay behind (#28). An item no link uses any more is
+        soft-deleted; one still linked elsewhere is left as it is.
+
+        Returns the uuids whose link was removed, and those soft-deleted.
+        """
+        if not self.holds_one(tag):
+            return [], []
+        others = (
+            (
+                await self.db.execute(
+                    select(self.model)
+                    .where(
+                        self.owner_col == owner_id,
+                        self.model.tag == tag,
+                        self.model.media_uuid != keep_media_uuid,
+                    )
+                    .order_by(self.model.created_at)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        replaced = [link.media_uuid for link in others]
+        for link in others:
+            await self.db.delete(link)
+        await self.db.flush()
+
+        deleted: list[str] = []
+        now = now_utc_ms()
+        for media_uuid in replaced:
+            if await check_media_in_use(self.db, media_uuid):
+                continue
+            media = (
+                await self.db.execute(
+                    select(Media).where(
+                        Media.uuid == media_uuid, Media.deleted_at.is_(None)
+                    )
+                )
+            ).scalar_one_or_none()
+            if media is None:
+                continue
+            media.deleted_at = now
+            media.updated_at = now
+            deleted.append(media_uuid)
+        await self.db.flush()
+        return replaced, deleted
 
     async def update_metadata(
         self,

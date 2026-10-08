@@ -26,6 +26,7 @@ from ..exceptions import (
     MediaLinkTooManyTagsException,
     MediaNotFoundException,
 )
+from ..schemas.common import FieldValue
 from ..schemas.media_links import MediaLinkCreate, MediaLinkPatch
 from ..services.audit import AuditService
 from ..services.audit_actions import AuditAction
@@ -130,7 +131,21 @@ async def _audit_create(
     metadata: str | None,
     target_username: str | None = None,
     ip_address: str | None = None,
+    replaced: list[str] | None = None,
+    deleted: list[str] | None = None,
 ) -> None:
+    """Audit a new link. ``replaced`` names the items whose link it took the
+    place of, and ``deleted`` those of them that were soft-deleted (#28)."""
+    details: dict[str, FieldValue] = {
+        "ownerType": owner_type,
+        "ownerId": str(owner_id),
+        "tag": tag,
+        "mediaUuid": media_uuid,
+        "metadata": metadata,
+    }
+    if replaced:
+        details["replacedMediaUuids"] = replaced
+        details["deletedMediaUuids"] = deleted or []
     await AuditService(db).log(
         actor_username=actor,
         action=AuditAction(f"create_{owner_type}_media_link"),
@@ -138,13 +153,7 @@ async def _audit_create(
         ip_address=ip_address,
         resource_type=f"{owner_type}_media_link",
         resource_id=f"{owner_id}:{tag}:{media_uuid}",
-        details={
-            "ownerType": owner_type,
-            "ownerId": str(owner_id),
-            "tag": tag,
-            "mediaUuid": media_uuid,
-            "metadata": metadata,
-        },
+        details=details,
     )
 
 
@@ -286,8 +295,9 @@ async def _handle_create(
     ip_address: str | None = None,
 ):
     await ensure_fn(db, owner_id)
+    service = MediaLinkService(db, owner_type)
     try:
-        payload = await MediaLinkService(db, owner_type).create(
+        payload = await service.create(
             owner_id,
             body.tag,
             body.media_uuid,
@@ -296,6 +306,10 @@ async def _handle_create(
         )
     except Exception as e:
         raise _map_create_errors(e, owner_type, owner_id)
+    # A user has one avatar: the new link takes the place of the others (#28).
+    replaced, deleted = await service.replace_others(
+        owner_id, body.tag, body.media_uuid
+    )
     await _audit_create(
         db,
         current_user.username,
@@ -306,6 +320,8 @@ async def _handle_create(
         body.metadata,
         target_username=target_username,
         ip_address=ip_address,
+        replaced=replaced,
+        deleted=deleted,
     )
     return payload
 

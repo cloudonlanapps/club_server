@@ -37,6 +37,7 @@ from ..exceptions import (
     InvalidMediaTypeException,
     MediaFileMissingException,
     MediaInUseException,
+    MediaNotFoundException,
     UserNotFoundException,
 )
 from ..schemas.common import PaginatedResponse
@@ -295,6 +296,31 @@ async def get_media(
     """Get media metadata by ID. Owner or admin/coach only; otherwise 404."""
     service = MediaService(db)
     media = await service.get(media_id, include_deleted=True)
+
+    if media.uploaded_by != current_user.username and not is_admin_or_coach(
+        current_user
+    ):
+        raise _media_404()
+    return MediaResponse.from_model(media)
+
+
+@router.get("/by_uuid/{uuid}", response_model=MediaResponse)
+async def get_media_by_uuid(
+    uuid: str,
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+    current_user: Annotated[User, Depends(get_authenticated_user)],
+):
+    """Get media metadata by uuid (#27). Same callers and answer as by id.
+
+    A link carries the uuid and the mutations take the id; this is the step
+    between the two.
+    """
+    try:
+        media = await MediaService(db).get_by_uuid(uuid, include_deleted=True)
+    except MediaNotFoundException:
+        # Answered as a file the caller may not read is, so the two cannot
+        # be told apart.
+        raise _media_404()
 
     if media.uploaded_by != current_user.username and not is_admin_or_coach(
         current_user

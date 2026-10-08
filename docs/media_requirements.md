@@ -185,6 +185,12 @@ answered.
 - **R39** [X] Anyone else reading a media record → 404 `MEDIA_NOT_FOUND`.
 - **R40** [✅] An admin or coach reads a record whatever its access
   roles, and a soft-deleted record is still readable.
+- **R40a** [✅] A media record can also be read by the item's uuid, the
+  identifier a link carries, by the same callers and with the same answer
+  as reading it by id, a soft-deleted record included (#27).
+- **R40b** [X] Anyone else reading a record by uuid, a uuid no item has,
+  and a malformed one → 404 `MEDIA_NOT_FOUND`, answered identically. An
+  anonymous caller → 401.
 - **R41** [✅] Only a media item's access roles can be changed. Other
   fields sent with the change are ignored, not refused.
 - **R42** [✅] Uploads outlive their uploaders: permanently deleting
@@ -267,6 +273,23 @@ tags. Evaluation links follow them too, with the additions under
   naming the owner, the tag and the media item.
 - **R69** [✅] Permanently deleting an owner removes its links; the
   media items stay.
+
+### One avatar
+
+- **R69a** [✅] A user has one avatar. Linking an item to a user under
+  `user_avatar` removes the user's other links under that tag, whether or
+  not the caller may view their items, and soft-deletes each item whose
+  link was removed, in the same step as the new link. The tag is never
+  full (R62): the new link takes the place of the others (#28).
+- **R69b** [✅] A replaced item that another link still uses keeps that
+  link and is not deleted.
+- **R69c** [X] A link that is refused (R57–R60) replaces nothing: the
+  current avatar stays linked and its item is not deleted.
+- **R69d** [✅] Only a user's avatar is held to one. Every other tag of a
+  user, and every tag of an event, group or venue, `user_avatar` included,
+  keeps each item linked under it.
+- **R69e** [✅] The audit row of the new link names the items it replaced
+  and those of them that were soft-deleted.
 
 ### Who may read and write links
 
