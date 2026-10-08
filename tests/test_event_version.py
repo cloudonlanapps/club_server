@@ -5,8 +5,10 @@ Every event carries a ``version`` that every mutation bumps, and
 the version the client last saw: a missing one is 422, a stale one is 409
 ``STALE_VERSION`` whose body carries the current ``version``, ``updatedAt``
 and ``updatedBy`` so the app can say who changed the event before asking
-the user to reload. Cancel, undo-cancel, delete and restore take no
-version but bump it, so a client editing across one of them is told.
+the user to reload. Delete and restore take no version but bump it, so a
+client editing across one of them is told. The cutoff verbs take the
+version too (#13); ``test_cutoff_version_camp.py`` and
+``test_cutoff_version_programme.py`` are the evidence for that.
 """
 
 import pytest
@@ -23,6 +25,7 @@ from .redesign_helpers import (
     create_programme,
     create_venue,
     get_event,
+    undo_cancel_series,
 )
 
 DAY_MS = 24 * 60 * 60 * 1000
@@ -284,7 +287,7 @@ async def test_should_reject_split_when_version_is_stale(
     assert len(schedules.json()) == 1
 
 
-# --- mutations that take no version still bump it ---------------------------
+# --- every mutation bumps it, whether or not it takes one --------------------
 
 
 @pytest.mark.asyncio
@@ -301,9 +304,7 @@ async def test_should_bump_version_when_series_cancelled_and_undone(
     assert cancelled.json()["version"] == 2
     assert cancelled.json()["updatedBy"] == "second_admin"
 
-    undone = await client.post(
-        f"/v1/events/by_id/{event['id']}/undo-cancel", headers=auth(admin)
-    )
+    undone = await undo_cancel_series(client, admin, event["id"], version=2)
     assert undone.status_code == 200, undone.text
     assert undone.json()["version"] == 3
     assert undone.json()["updatedBy"] == "admin"

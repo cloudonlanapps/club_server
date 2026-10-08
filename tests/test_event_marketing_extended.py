@@ -3,6 +3,10 @@
 Deployment-gated like credit and evaluations: every route registered,
 503 while off. Holds the commercial detail one club wants and another
 does not. Currency is stored but never exposed.
+
+Every write sends the block's ``version`` (#13, marketing R13a): 1 while
+the event has no block, and the one the last write returned after that.
+``test_event_marketing_version.py`` is the evidence for the version itself.
 """
 
 import json
@@ -123,10 +127,14 @@ async def test_should_refuse_every_marketing_route_when_module_off(
     calls = [
         client.get(f"/v1/events/by_id/{event['id']}/marketing", headers=_auth(admin)),
         client.put(
-            f"/v1/events/by_id/{event['id']}/marketing", json=FULL, headers=_auth(admin)
+            f"/v1/events/by_id/{event['id']}/marketing",
+            json={**FULL, "version": 1},
+            headers=_auth(admin),
         ),
         client.delete(
-            f"/v1/events/by_id/{event['id']}/marketing", headers=_auth(admin)
+            f"/v1/events/by_id/{event['id']}/marketing",
+            params={"version": 1},
+            headers=_auth(admin),
         ),
         client.get(f"/v1/public/events/{pid}/marketing"),
         client.get("/v1/public/events/marketing", params={"ids": pid}),
@@ -159,7 +167,7 @@ async def test_should_put_read_and_delete_marketing_as_admin_with_audit(
 
     assert (await client.get(url, headers=_auth(admin))).status_code == 404
 
-    response = await client.put(url, json=FULL, headers=_auth(admin))
+    response = await client.put(url, json={**FULL, "version": 1}, headers=_auth(admin))
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["eventId"] == event["id"]
@@ -170,7 +178,9 @@ async def test_should_put_read_and_delete_marketing_as_admin_with_audit(
     stored = (await db_session.execute(select(EventMarketing))).scalar_one()
     assert stored.currency == "INR"
 
-    response = await client.put(url, json={"fee": 5000}, headers=_auth(admin))
+    response = await client.put(
+        url, json={"fee": 5000, "version": body["version"]}, headers=_auth(admin)
+    )
     assert response.status_code == 200
     assert response.json()["fee"] == 5000
     assert response.json()["feeStructure"] is None  # PUT replaces the whole row
@@ -178,7 +188,9 @@ async def test_should_put_read_and_delete_marketing_as_admin_with_audit(
     fetched = await client.get(url, headers=_auth(admin))
     assert fetched.json()["fee"] == 5000
 
-    deleted = await client.delete(url, headers=_auth(admin))
+    deleted = await client.delete(
+        url, params={"version": fetched.json()["version"]}, headers=_auth(admin)
+    )
     assert deleted.status_code == 204
     assert (await client.get(url, headers=_auth(admin))).status_code == 404
 
@@ -210,16 +222,23 @@ async def test_should_let_organizer_write_and_coach_read_but_not_member(
     event = await _event(client, admin, venue_id, organizerName="orga")
     url = f"/v1/events/by_id/{event['id']}/marketing"
 
-    response = await client.put(url, json={"fee": 100}, headers=_auth(organizer))
+    response = await client.put(
+        url, json={"fee": 100, "version": 1}, headers=_auth(organizer)
+    )
     assert response.status_code == 200, response.text
+    current = response.json()["version"]
     assert (await client.get(url, headers=_auth(coach))).status_code == 200
     assert (
-        await client.put(url, json={"fee": 1}, headers=_auth(coach))
+        await client.put(url, json={"fee": 1, "version": current}, headers=_auth(coach))
     ).status_code == 403
-    assert (await client.delete(url, headers=_auth(coach))).status_code == 403
+    assert (
+        await client.delete(url, params={"version": current}, headers=_auth(coach))
+    ).status_code == 403
     assert (await client.get(url, headers=_auth(member))).status_code == 403
     assert (
-        await client.put(url, json={"fee": 1}, headers=_auth(member))
+        await client.put(
+            url, json={"fee": 1, "version": current}, headers=_auth(member)
+        )
     ).status_code == 403
     assert (await client.get(url)).status_code == 401
 
@@ -249,11 +268,13 @@ async def test_should_reject_malformed_extended_values(
         {"currency": "USD"},
         {"unknownField": 1},
     ):
-        response = await client.put(url, json=bad, headers=_auth(admin))
+        response = await client.put(
+            url, json={**bad, "version": 1}, headers=_auth(admin)
+        )
         assert response.status_code == 422, bad
     assert (await client.get(url, headers=_auth(admin))).status_code == 404
 
-    response = await client.put(url, json={}, headers=_auth(admin))
+    response = await client.put(url, json={"version": 1}, headers=_auth(admin))
     assert response.status_code == 200
     assert response.json()["fee"] is None
     assert response.json()["hasOpenSlots"] is None
@@ -274,6 +295,7 @@ async def test_should_store_both_fee_and_fee_structure_without_reconciling(
     response = await client.put(
         url,
         json={
+            "version": 1,
             "fee": 1000,
             "feeStructure": [{"name": "Monthly", "amount": 1200, "period": "month"}],
         },
@@ -299,9 +321,12 @@ async def test_should_read_public_event_marketing_by_public_id(
     private_event = await _event(client, admin, venue_id, visibility="private")
     bare_event = await _event(client, admin, venue_id)
     for e in (public_event, private_event):
-        await client.put(
-            f"/v1/events/by_id/{e['id']}/marketing", json=FULL, headers=_auth(admin)
+        written = await client.put(
+            f"/v1/events/by_id/{e['id']}/marketing",
+            json={**FULL, "version": 1},
+            headers=_auth(admin),
         )
+        assert written.status_code == 200, written.text
 
     response = await client.get(
         f"/v1/public/events/{generate_event_public_id(public_event['id'])}/marketing"
@@ -337,7 +362,7 @@ async def test_should_batch_read_public_marketing_for_listing_cards(
     for e, fee in ((a, 100), (b, 200), (c, 300)):
         await client.put(
             f"/v1/events/by_id/{e['id']}/marketing",
-            json={"fee": fee},
+            json={"fee": fee, "version": 1},
             headers=_auth(admin),
         )
     pids = [generate_event_public_id(e["id"]) for e in (a, b, c)]
@@ -366,7 +391,7 @@ async def test_should_drop_marketing_row_with_the_event(
     event = await _event(client, admin, venue_id)
     await client.put(
         f"/v1/events/by_id/{event['id']}/marketing",
-        json={"fee": 1},
+        json={"fee": 1, "version": 1},
         headers=_auth(admin),
     )
     soft = await client.delete(f"/v1/events/by_id/{event['id']}", headers=_auth(admin))

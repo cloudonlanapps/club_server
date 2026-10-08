@@ -2695,6 +2695,7 @@ async def _cancel_event(
         json={
             "reason": "No longer needed",
             "cutoffTimeUtc": fetched.json()["startTimeUtc"],
+            "version": fetched.json()["version"],
         },
         headers={"Authorization": f"Bearer {super_admin_token}"},
     )

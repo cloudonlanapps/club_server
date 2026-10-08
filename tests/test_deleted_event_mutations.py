@@ -23,6 +23,7 @@ from .redesign_helpers import (
     create_venue,
     get_event,
     notifications_for,
+    undo_cancel_series,
     version_of,
 )
 
@@ -121,9 +122,7 @@ async def test_should_return_404_when_undoing_the_cancel_of_a_deleted_camp(
     assert cancelled.status_code == 200, cancelled.text
     await _delete(client, admin, camp["id"])
 
-    response = await client.post(
-        f"/v1/events/by_id/{camp['id']}/undo-cancel", headers=auth(admin)
-    )
+    response = await undo_cancel_series(client, admin, camp["id"])
 
     _assert_event_not_found(response)
     assert (await get_event(client, admin, camp["id"]))["untilTimeUtc"] == start
@@ -294,9 +293,31 @@ def _marketing_url(event_id: int) -> str:
     return f"/v1/events/by_id/{event_id}/marketing"
 
 
+async def _marketing_version(client: AsyncClient, token: str, event_id: int) -> int:
+    """The block's current version (#13): 1 while the event has none."""
+    response = await client.get(_marketing_url(event_id), headers=auth(token))
+    if response.status_code == 404:
+        return 1
+    assert response.status_code == 200, response.text
+    return response.json()["version"]
+
+
 async def _put_marketing(client: AsyncClient, token: str, event_id: int, fee: int):
     return await client.put(
-        _marketing_url(event_id), json={"fee": fee}, headers=auth(token)
+        _marketing_url(event_id),
+        json={
+            "fee": fee,
+            "version": await _marketing_version(client, token, event_id),
+        },
+        headers=auth(token),
+    )
+
+
+async def _delete_marketing(client: AsyncClient, token: str, event_id: int):
+    return await client.delete(
+        _marketing_url(event_id),
+        params={"version": await _marketing_version(client, token, event_id)},
+        headers=auth(token),
     )
 
 
@@ -337,7 +358,7 @@ async def test_should_return_404_when_deleting_marketing_of_a_deleted_event(
     assert (await _put_marketing(client, admin, camp["id"], 5000)).status_code == 200
     await _delete(client, admin, camp["id"])
 
-    response = await client.delete(_marketing_url(camp["id"]), headers=auth(admin))
+    response = await _delete_marketing(client, admin, camp["id"])
 
     _assert_event_not_found(response)
     assert await _marketing_fee(client, admin, camp["id"]) == 5000
@@ -359,6 +380,6 @@ async def test_should_replace_and_delete_marketing_when_the_event_is_restored(
     assert replaced.status_code == 200, replaced.text
     assert await _marketing_fee(client, admin, camp["id"]) == 5000
 
-    deleted = await client.delete(_marketing_url(camp["id"]), headers=auth(admin))
+    deleted = await _delete_marketing(client, admin, camp["id"])
     assert deleted.status_code == 204, deleted.text
     assert await _marketing_fee(client, admin, camp["id"]) is None

@@ -96,6 +96,7 @@ class CampService(EventService):
         reason: str,
         effective_time: int,
         is_super_admin: bool = False,
+        expected_version: int,
         actor: str | None = None,
     ) -> tuple[Event, bool]:
         """R5, R5a: set the cutoff. The camp runs normally up to it (L6, L9).
@@ -107,6 +108,7 @@ class CampService(EventService):
         the cutoff is ahead of every open register.
         """
         event = await self.get_live_event(event_id)
+        self.check_version(event, expected_version)
         if event.cutoff is not None:
             raise EventAlreadyCancelledException(event_id)
         override_used = validate_camp_cancellation_time(
@@ -137,10 +139,11 @@ class CampService(EventService):
         return event, override_used
 
     async def undo_cancel_series(
-        self, event_id: int, actor: str | None = None
+        self, event_id: int, *, expected_version: int, actor: str | None = None
     ) -> Event:
         """R5d: clear the cutoff and apply the undo-notification policy."""
         event = await self.get_live_event(event_id)
+        self.check_version(event, expected_version)
         if event.cutoff is None:
             raise EventNotCancelledException(event_id)
         audience = await self.list_change_audience(event)

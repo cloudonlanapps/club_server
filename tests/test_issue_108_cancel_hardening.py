@@ -94,7 +94,7 @@ async def test_event_cancel_requires_effective_time(
     event_id = await _camp(client, admin, start=at(hours=48))
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x"},
+        json={"reason": "x", "version": 1},
         headers=auth(admin),
     )
     assert resp.status_code == 422
@@ -129,7 +129,11 @@ async def test_camp_cancel_rejects_non_boundary_time(
     event_id = await _camp(client, admin, start=start)
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x", "effectiveDateTimeUtc": start + 49 * 3600_000},
+        json={
+            "reason": "x",
+            "version": 1,
+            "effectiveDateTimeUtc": start + 49 * 3600_000,
+        },
         headers=auth(admin),
     )
     assert resp.status_code == 400
@@ -168,7 +172,7 @@ async def test_camp_cancel_from_third_occurrence_keeps_two(
 
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x", "effectiveDateTimeUtc": start + 2 * DAY_MS},
+        json={"reason": "x", "version": 1, "effectiveDateTimeUtc": start + 2 * DAY_MS},
         headers=auth(admin),
     )
     assert resp.status_code == 200
@@ -203,7 +207,7 @@ async def test_camp_cancel_lead_time_violated_for_admin(
 
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x", "effectiveDateTimeUtc": start},
+        json={"reason": "x", "version": 1, "effectiveDateTimeUtc": start},
         headers=auth(admin),
     )
     assert resp.status_code == 400
@@ -221,7 +225,7 @@ async def test_camp_cancel_past_rejected_for_admin(
 
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x", "effectiveDateTimeUtc": start + DAY_MS},
+        json={"reason": "x", "version": 1, "effectiveDateTimeUtc": start + DAY_MS},
         headers=auth(admin),
     )
     assert resp.status_code == 400
@@ -245,7 +249,7 @@ async def test_camp_cancel_super_admin_bypasses_past_and_suppresses_notification
 
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x", "effectiveDateTimeUtc": start + DAY_MS},
+        json={"reason": "x", "version": 1, "effectiveDateTimeUtc": start + DAY_MS},
         headers=auth(super_admin),
     )
     assert resp.status_code == 200
@@ -279,7 +283,7 @@ async def test_camp_cancel_notifies_enrollees_coaches_and_organizer(
 
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x", "effectiveDateTimeUtc": start + 2 * DAY_MS},
+        json={"reason": "x", "version": 1, "effectiveDateTimeUtc": start + 2 * DAY_MS},
         headers=auth(admin),
     )
     assert resp.status_code == 200
@@ -303,7 +307,7 @@ async def test_camp_cancel_preserves_enrollment(
 
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "x", "effectiveDateTimeUtc": start + 2 * DAY_MS},
+        json={"reason": "x", "version": 1, "effectiveDateTimeUtc": start + 2 * DAY_MS},
         headers=auth(admin),
     )
     assert resp.status_code == 200

@@ -27,6 +27,7 @@ from ..exceptions import (
     InvalidStateException,
     PastOccurrenceException,
     StaleOccurrenceVersionException,
+    StaleVersionException,
 )
 from ..schemas.event import (
     EventDropRequest,
@@ -45,6 +46,7 @@ from ..services.event_listing import EventListingService
 from ..services.event_types import EventVerb, require_verb
 from ..services.oneoff import OneOffService
 from ..services.programme import ProgrammeService
+from .events import stale_event_error
 from .occurrences import stale_occurrence_error
 from ..utils import get_client_ip
 
@@ -58,7 +60,17 @@ def _invalid_state(e: InvalidStateException) -> HTTPException:
     )
 
 
+_CUTOFF_EXCEPTIONS = (
+    StaleVersionException,
+    EffectiveTimeNotSessionBoundaryException,
+    CutoffTooSoonException,
+    InvalidStateException,
+)
+
+
 def _cutoff_errors(exc: Exception) -> HTTPException:
+    if isinstance(exc, StaleVersionException):
+        return stale_event_error(exc)
     if isinstance(exc, EffectiveTimeNotSessionBoundaryException):
         return HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -99,13 +111,10 @@ async def terminate_event(
             event_id,
             reason=data.reason,
             cutoff_ms=data.cutoff_time_utc,
+            expected_version=data.version,
             actor=current_user.username,
         )
-    except (
-        EffectiveTimeNotSessionBoundaryException,
-        CutoffTooSoonException,
-        InvalidStateException,
-    ) as e:
+    except _CUTOFF_EXCEPTIONS as e:
         raise _cutoff_errors(e) from e
     await AuditService(db).log(
         actor_username=current_user.username,
@@ -137,13 +146,10 @@ async def extend_event(
             event_id,
             cutoff_ms=data.cutoff_time_utc,
             reason=data.reason,
+            expected_version=data.version,
             actor=current_user.username,
         )
-    except (
-        EffectiveTimeNotSessionBoundaryException,
-        CutoffTooSoonException,
-        InvalidStateException,
-    ) as e:
+    except _CUTOFF_EXCEPTIONS as e:
         raise _cutoff_errors(e) from e
     await AuditService(db).log(
         actor_username=current_user.username,
@@ -172,10 +178,14 @@ async def extend_event_indefinitely(
     _ = await _gated_event(db, event_id, current_user, EventVerb.extend)
     try:
         event, before = await ProgrammeService(db).extend(
-            event_id, cutoff_ms=None, reason=data.reason, actor=current_user.username
+            event_id,
+            cutoff_ms=None,
+            reason=data.reason,
+            expected_version=data.version,
+            actor=current_user.username,
         )
-    except InvalidStateException as e:
-        raise _invalid_state(e) from e
+    except _CUTOFF_EXCEPTIONS as e:
+        raise _cutoff_errors(e) from e
     await AuditService(db).log(
         actor_username=current_user.username,
         action=AuditAction.EXTEND_EVENT,

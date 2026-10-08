@@ -304,7 +304,11 @@ async def test_cancel_skips_users_with_no_active_enrollment(
 
     _ = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "moved", "effectiveDateTimeUtc": future_time_ms(24)},
+        json={
+            "reason": "moved",
+            "effectiveDateTimeUtc": future_time_ms(24),
+            "version": 1,
+        },
         headers=auth(admin_token),
     )
 

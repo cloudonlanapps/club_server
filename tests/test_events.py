@@ -521,7 +521,7 @@ async def test_cancel_event_series(client: AsyncClient, db_session: AsyncSession
 
     cancel_response = await client.post(
         f"/v1/events/by_id/{event_id}/terminate",
-        json={"reason": "Budget constraints", "cutoffTimeUtc": cutoff},
+        json={"reason": "Budget constraints", "cutoffTimeUtc": cutoff, "version": 1},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert cancel_response.status_code == 200
@@ -555,7 +555,7 @@ async def test_cancel_event_already_cancelled_fails(
     # Terminate once
     first = await client.post(
         f"/v1/events/by_id/{event_id}/terminate",
-        json={"reason": "First cancellation", "cutoffTimeUtc": cutoff},
+        json={"reason": "First cancellation", "cutoffTimeUtc": cutoff, "version": 1},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert first.status_code == 200
@@ -563,7 +563,11 @@ async def test_cancel_event_already_cancelled_fails(
     # Terminating again is refused: a bounded programme is extended instead.
     second_cancel = await client.post(
         f"/v1/events/by_id/{event_id}/terminate",
-        json={"reason": "Second cancellation", "cutoffTimeUtc": cutoff},
+        json={
+            "reason": "Second cancellation",
+            "cutoffTimeUtc": cutoff,
+            "version": first.json()["version"],
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert second_cancel.status_code == 422
@@ -636,7 +640,7 @@ async def test_coach_can_cancel_own_event(
     # Coach should be able to terminate their own programme
     cancel_response = await client.post(
         f"/v1/events/by_id/{event_id}/terminate",
-        json={"reason": "Schedule conflict", "cutoffTimeUtc": cutoff},
+        json={"reason": "Schedule conflict", "cutoffTimeUtc": cutoff, "version": 1},
         headers={"Authorization": f"Bearer {coach_token}"},
     )
     assert cancel_response.status_code == 200
@@ -1131,6 +1135,7 @@ async def test_cancel_camp_event(client: AsyncClient, db_session: AsyncSession):
         json={
             "reason": "Weather",
             "effectiveDateTimeUtc": start + 2 * 86_400_000,
+            "version": 1,
         },
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1174,6 +1179,7 @@ async def test_cancel_camp_partial(client: AsyncClient, db_session: AsyncSession
         json={
             "reason": "Force majeure",
             "effectiveDateTimeUtc": cancel_from,
+            "version": 1,
         },
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1226,7 +1232,11 @@ async def test_cancel_already_cancelled_rejected_for_all_types(
             )
         else:
             path = f"/v1/events/by_id/{event_id}/cancel"
-            payload = {"reason": "first", "effectiveDateTimeUtc": body["startTimeUtc"]}
+            payload = {
+                "reason": "first",
+                "effectiveDateTimeUtc": body["startTimeUtc"],
+                "version": create.json()["version"],
+            }
         first = await client.post(
             path, json=payload, headers={"Authorization": f"Bearer {token}"}
         )
@@ -1237,6 +1247,9 @@ async def test_cancel_already_cancelled_rejected_for_all_types(
             payload["version"] = await oneoff_occurrence_version(
                 client, token, event_id
             )
+        else:
+            # The cancel moved the event on; send the version it is at now (#13).
+            payload["version"] = first.json()["version"]
         second = await client.post(
             path, json=payload, headers={"Authorization": f"Bearer {token}"}
         )
@@ -1283,6 +1296,7 @@ async def test_list_occurrences_after_partial_cancel(
         json={
             "reason": "Force majeure",
             "effectiveDateTimeUtc": cancel_at,
+            "version": 1,
         },
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1356,6 +1370,7 @@ async def test_list_occurrences_override_takes_precedence_over_series_cancel(
         json={
             "reason": "Force majeure",
             "effectiveDateTimeUtc": cancel_at,
+            "version": 1,
         },
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1603,7 +1618,7 @@ async def test_r16a_non_organizer_coach_cannot_cancel(
 
     response = await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "no", "effectiveDateTimeUtc": future_time(24)},
+        json={"reason": "no", "effectiveDateTimeUtc": future_time(24), "version": 1},
         headers={"Authorization": f"Bearer {coach_token}"},
     )
     assert response.status_code == 403
@@ -1873,7 +1888,7 @@ async def test_cancel_endpoint_still_sets_until_time_utc(
 
     cancel_response = await client.post(
         f"/v1/events/by_id/{event_id}/terminate",
-        json={"reason": "Budget", "cutoffTimeUtc": cutoff},
+        json={"reason": "Budget", "cutoffTimeUtc": cutoff, "version": 1},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert cancel_response.status_code == 200

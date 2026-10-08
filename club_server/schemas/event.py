@@ -367,10 +367,22 @@ class EventCorrectionRequest(BasicMarketingFields):
 
 
 class EventCancelRequest(CamelCaseModel):
-    """Cancel a camp series from an occurrence start (camp R5)."""
+    """Cancel a camp series from an occurrence start (camp R5).
 
+    ``version`` is required, as on every cutoff verb (lifecycle L22a, #13):
+    each replaces the cutoff another admin may be moving at the same moment.
+    """
+
+    version: int = Field(..., ge=1, description="The event version the client last saw")
     reason: str = Field(..., min_length=1, max_length=500)
     effective_date_time_utc: int = Field(...)
+
+
+class EventVersionRequest(CamelCaseModel):
+    """A change to an event that carries nothing but its version: a camp's
+    undo-cancel (lifecycle L22a, #13)."""
+
+    version: int = Field(..., ge=1, description="The event version the client last saw")
 
 
 class EventUpdateFutureRequest(CamelCaseModel):
@@ -445,22 +457,28 @@ class EventTerminateRequest(CamelCaseModel):
 
     ``cutoff_time_utc`` must be an occurrence start of the current schedule,
     at least 30 minutes ahead. There is no credit disposition here (R10a).
+    ``version`` is the event's (lifecycle L22a).
     """
 
+    version: int = Field(..., ge=1, description="The event version the client last saw")
     reason: str = Field(..., min_length=1, max_length=500)
     cutoff_time_utc: int
 
 
 class EventExtendRequest(CamelCaseModel):
-    """Move a terminated programme's cutoff, later or earlier (R6, R7)."""
+    """Move a terminated programme's cutoff, later or earlier (R6, R7), at
+    the event's ``version`` (lifecycle L22a)."""
 
+    version: int = Field(..., ge=1, description="The event version the client last saw")
     cutoff_time_utc: int
     reason: str | None = Field(None, max_length=500)
 
 
 class EventExtendIndefinitelyRequest(CamelCaseModel):
-    """Remove a terminated programme's cutoff (R8)."""
+    """Remove a terminated programme's cutoff (R8), at the event's
+    ``version`` (lifecycle L22a)."""
 
+    version: int = Field(..., ge=1, description="The event version the client last saw")
     reason: str | None = Field(None, max_length=500)
 
 
