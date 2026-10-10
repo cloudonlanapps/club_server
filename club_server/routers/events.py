@@ -63,6 +63,7 @@ from ..schemas.event import (
     EventResponse,
     EventUpdate,
     EventUpdateFutureRequest,
+    EventVersionRequest,
     UserConflictItemResponse,
     UserConflictReport,
 )
@@ -102,6 +103,20 @@ router = APIRouter(prefix="/events", tags=["Events"])
 # =============================================================================
 
 
+def stale_event_error(exc: StaleVersionException) -> HTTPException:
+    """409 for a change carrying a version the event has moved past (L22b)."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "STALE_VERSION",
+            "message": "The event was changed since you last loaded it",
+            "version": exc.version,
+            "updatedAt": exc.updated_at,
+            "updatedBy": exc.updated_by,
+        },
+    )
+
+
 def _schedule_error(exc: Exception) -> HTTPException | None:
     """The HTTP shape of an exception any schedule write may raise."""
     if isinstance(exc, OrganizerNotFoundException):
@@ -110,16 +125,7 @@ def _schedule_error(exc: Exception) -> HTTPException | None:
             detail={"code": "USER_NOT_FOUND", "message": "Organizer not found"},
         )
     if isinstance(exc, StaleVersionException):
-        return HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "code": "STALE_VERSION",
-                "message": "The event was changed since you last loaded it",
-                "version": exc.version,
-                "updatedAt": exc.updated_at,
-                "updatedBy": exc.updated_by,
-            },
-        )
+        return stale_event_error(exc)
     if isinstance(exc, CoachNotFoundException):
         return HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -676,6 +682,7 @@ async def cancel_event(
             reason=data.reason,
             effective_time=data.effective_date_time_utc,
             is_super_admin=bool(current_user.is_super_admin),
+            expected_version=data.version,
             actor=current_user.username,
         )
     except _SCHEDULE_EXCEPTIONS as e:
@@ -705,6 +712,7 @@ def _verbs_of(event) -> set[EventVerb]:
 async def undo_cancel_event(
     request: Request,
     event_id: int,
+    data: EventVersionRequest,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
@@ -714,7 +722,9 @@ async def undo_cancel_event(
     require_organizer_or_admin(event.organizer_name, current_user)
     require_verb(event, EventVerb.cancel)
     try:
-        event = await service.undo_cancel_series(event_id, actor=current_user.username)
+        event = await service.undo_cancel_series(
+            event_id, expected_version=data.version, actor=current_user.username
+        )
     except _SCHEDULE_EXCEPTIONS as e:
         _raise_http(e)
     await AuditService(db).log(

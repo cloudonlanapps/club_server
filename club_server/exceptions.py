@@ -495,6 +495,18 @@ class StaleOccurrenceVersionException(StaleVersionException):
         super().__init__(version, updated_at, updated_by, subject="Occurrence")
 
 
+class StaleMarketingVersionException(StaleVersionException):
+    """Raised when a marketing write carries a version the block has moved
+    past (#13).
+
+    An event with no block is at version 1 and has no author, so
+    ``updated_at`` may be ``None``.
+    """
+
+    def __init__(self, version: int, updated_at: int | None, updated_by: str | None):
+        super().__init__(version, updated_at, updated_by, subject="Event marketing")
+
+
 class CoachNotFoundException(Exception):
     """Raised when a named coach is not a user (#386)."""
 

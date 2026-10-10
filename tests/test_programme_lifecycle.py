@@ -88,7 +88,7 @@ async def test_should_reject_terminate_when_reason_missing(
 
     response = await client.post(
         f"/v1/events/by_id/{programme['id']}/terminate",
-        json={"cutoffTimeUtc": start + 5 * DAY_MS},
+        json={"cutoffTimeUtc": start + 5 * DAY_MS, "version": 1},
         headers=auth(admin),
     )
 
@@ -745,6 +745,7 @@ async def test_should_reject_terminate_when_a_credit_disposition_is_supplied(
         json={
             "reason": "Season over",
             "cutoffTimeUtc": start + 3 * DAY_MS,
+            "version": 1,
             "creditDisposition": {
                 "penalty": 0,
                 "validFromUtc": at(),

@@ -42,3 +42,17 @@ class EventMarketing(Base):
     facilities: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # Optimistic locking (#13), on an occurrence's terms (#430). An event
+    # with no row is at version 1, so a row starts at 2 and only goes up.
+    version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=2, server_default="2"
+    )
+    updated_by: Mapped[str | None] = mapped_column(
+        String(50),
+        ForeignKey(
+            "users.username",
+            ondelete="SET NULL",
+            name="fk_event_marketing_updated_by",
+        ),
+        nullable=True,
+    )

@@ -253,18 +253,24 @@ idea what the client last saw (#292).
   in-place reschedule refuses while occurrence changes exist unless asked
   to reset them. Two changes to the same occurrence are protected by the
   occurrence's own version (#430).
-- **L22a** [✅] Update, correction, split and in-place reschedule
-  **require** the version the client last saw in the request body → 422
-  when missing. Each of them rewrites fields another editor may be looking
-  at; a reschedule moves the window, venue and timetable that update and
-  split read (#434). The other mutations take no version; their bump is what
+- **L22a** [✅] Update, correction, split, in-place reschedule and the
+  cutoff verbs — camp cancel and undo-cancel, terminate, extend and
+  extend-indefinitely — **require** the version the client last saw in the
+  request body → 422 when missing. Each of them rewrites fields another
+  editor may be looking at; a reschedule moves the window, venue and
+  timetable that update and split read (#434), and each cutoff verb
+  replaces the cutoff another admin may be moving at the same moment
+  (#13). Undo-cancel carries nothing but the version. Delete and restore
+  take no version: repeating either is harmless, and their bump is what
   tells an editor the event moved under them.
 - **L22b** [✅] A version the event has moved past is refused → 409
   `STALE_VERSION`. The body carries the current `version`, `updatedAt` and
   `updatedBy`, so the app can say who changed the event and when before
   asking the user to reload. Nothing is written.
-- **L22c** Scope is events and their occurrences (L23). Other entities
-  get the same protection under their own issues, if at all.
+- **L22c** Scope is events, their occurrences (L23) and an event's
+  marketing block, which carries a version of its own (marketing R13).
+  Other entities get the same protection under their own issues, if at
+  all.
 - **L23** [✅] Every occurrence carries a `version`, `updatedAt` and
   `updatedBy`, returned in every occurrence response (#430). An
   occurrence nobody has changed is at version 1 with no author. Every

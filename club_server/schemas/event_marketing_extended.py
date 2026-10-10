@@ -1,9 +1,10 @@
 """Extended marketing block schemas (#410).
 
 ``EventMarketingWrite`` is the whole-row PUT body: every field optional,
-omitted means cleared. ``currency`` is deliberately not a field. The two
-responses differ only in how the event is named: integer id for staff,
-public id for the website.
+omitted means cleared, plus the block ``version`` the client last saw (#13).
+``currency`` is deliberately not a field. The two responses differ in how
+the event is named, integer id for staff and public id for the website, and
+in that only staff see the block's version and who wrote it last.
 """
 
 import json
@@ -51,8 +52,11 @@ class Facility(CamelCaseModel):
 
 
 class EventMarketingWrite(CamelCaseModel):
-    """Whole-row replace body (R6, R8)."""
+    """Whole-row replace body (R6, R8), at the block's ``version`` (R13a)."""
 
+    version: int = Field(
+        ..., ge=1, description="The marketing version the client last saw"
+    )
     duration_text: str | None = Field(None, max_length=TEXT_MAX)
     schedule_text: str | None = Field(None, max_length=TEXT_MAX)
     eligibility_text: str | None = Field(None, max_length=TEXT_MAX)
@@ -112,13 +116,23 @@ class _MarketingFields(CamelCaseModel):
 
 
 class EventMarketingResponse(_MarketingFields):
-    """Staff view, keyed by the integer event id."""
+    """Staff view, keyed by the integer event id, with the block's own
+    version and who wrote it last (R13)."""
 
     event_id: int
+    version: int
+    updated_at: int
+    updated_by: str | None
 
     @classmethod
     def from_model(cls, row: EventMarketing) -> "EventMarketingResponse":
-        return cls(event_id=row.event_id, **cls._fields(row))
+        return cls(
+            event_id=row.event_id,
+            version=row.version,
+            updated_at=row.updated_at,
+            updated_by=row.updated_by,
+            **cls._fields(row),
+        )
 
 
 class PublicEventMarketingResponse(_MarketingFields):

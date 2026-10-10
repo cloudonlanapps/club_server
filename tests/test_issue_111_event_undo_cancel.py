@@ -17,7 +17,7 @@ from club_server.db.models.notification import Notification
 from club_server.services.notification import UNDO_GRACE_WINDOW_MS
 
 from .helpers import create_admin_user, create_coach_user, create_member_user
-from .redesign_helpers import occurrence_version
+from .redesign_helpers import occurrence_version, undo_cancel_series, version_of
 
 DAY_MS = 86_400_000
 
@@ -94,7 +94,11 @@ async def _create_camp(
 async def _cancel(client: AsyncClient, token: str, event_id: int, effective: int):
     return await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "Force majeure", "effectiveDateTimeUtc": effective},
+        json={
+            "reason": "Force majeure",
+            "effectiveDateTimeUtc": effective,
+            "version": await version_of(client, token, event_id),
+        },
         headers=auth(token),
     )
 
@@ -114,9 +118,7 @@ async def test_undo_cancel_clears_until_time(
         await _cancel(client, admin, event_id, start + 2 * DAY_MS)
     ).status_code == 200
 
-    resp = await client.post(
-        f"/v1/events/by_id/{event_id}/undo-cancel", headers=auth(admin)
-    )
+    resp = await undo_cancel_series(client, admin, event_id)
     assert resp.status_code == 200, resp.text
     assert resp.json()["untilTimeUtc"] is None
 
@@ -128,9 +130,7 @@ async def test_undo_on_non_cancelled_event_returns_400(
     admin = await create_admin_user(db_session)
     event_id, _ = await _create_camp(client, admin)
 
-    resp = await client.post(
-        f"/v1/events/by_id/{event_id}/undo-cancel", headers=auth(admin)
-    )
+    resp = await undo_cancel_series(client, admin, event_id)
     assert resp.status_code == 400
     assert resp.json()["detail"]["code"] == "EVENT_NOT_CANCELLED"
 
@@ -146,9 +146,7 @@ async def test_undo_forbidden_for_unrelated_user(
         await _cancel(client, admin, event_id, start + 2 * DAY_MS)
     ).status_code == 200
 
-    resp = await client.post(
-        f"/v1/events/by_id/{event_id}/undo-cancel", headers=auth(member)
-    )
+    resp = await undo_cancel_series(client, member, event_id)
     assert resp.status_code == 403
 
 
@@ -181,9 +179,7 @@ async def test_undo_within_grace_unread_deletes_cancellation_no_restored(
     ).status_code == 200
     assert len(await _notifs(db_session, "amy", "event.cancelled")) == 1
 
-    resp = await client.post(
-        f"/v1/events/by_id/{event_id}/undo-cancel", headers=auth(admin)
-    )
+    resp = await undo_cancel_series(client, admin, event_id)
     assert resp.status_code == 200
     # Unread + in-window → cancellation deleted, no restored.
     assert await _notifs(db_session, "amy", "event.cancelled") == []
@@ -205,9 +201,7 @@ async def test_undo_after_read_preserves_cancellation_and_fires_restored(
     ).status_code == 200
     await _mark_read(db_session, "amy", "event.cancelled")
 
-    resp = await client.post(
-        f"/v1/events/by_id/{event_id}/undo-cancel", headers=auth(admin)
-    )
+    resp = await undo_cancel_series(client, admin, event_id)
     assert resp.status_code == 200
     assert len(await _notifs(db_session, "amy", "event.cancelled")) == 1
     restored = await _notifs(db_session, "amy", "event.restored")
@@ -232,9 +226,7 @@ async def test_undo_past_grace_window_fires_restored(
         db_session, "amy", "event.cancelled", UNDO_GRACE_WINDOW_MS + 60_000
     )
 
-    resp = await client.post(
-        f"/v1/events/by_id/{event_id}/undo-cancel", headers=auth(admin)
-    )
+    resp = await undo_cancel_series(client, admin, event_id)
     assert resp.status_code == 200
     assert len(await _notifs(db_session, "amy", "event.cancelled")) == 1
     assert len(await _notifs(db_session, "amy", "event.restored")) == 1
@@ -261,9 +253,7 @@ async def test_undo_audience_includes_coach_and_organizer(
     for u in ("amy", "olive", "carl"):
         await _mark_read(db_session, u, "event.cancelled")
 
-    resp = await client.post(
-        f"/v1/events/by_id/{event_id}/undo-cancel", headers=auth(admin)
-    )
+    resp = await undo_cancel_series(client, admin, event_id)
     assert resp.status_code == 200
     for u in ("amy", "olive", "carl"):
         assert len(await _notifs(db_session, u, "event.restored")) == 1, (
