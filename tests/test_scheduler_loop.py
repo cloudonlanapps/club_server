@@ -2,8 +2,10 @@
 
 Each test sets up a real scenario (event ended without attendance,
 event starting inside the reminder window, etc.), starts
-``scheduler_loop`` with a 1-second tick, waits for one tick, cancels
-the task, and asserts the expected notification rows appear.
+``scheduler_loop`` with a 1-second tick, waits until the loop has closed
+its first tick's session, cancels the task, and asserts the expected
+notification rows appear. The wait is for the tick, not for a fixed time,
+so the tests do not depend on how fast the machine is (#34).
 
 These exercise:
 - the loop's cadence gating (hourly/daily gates start at 0 so the
@@ -31,8 +33,8 @@ from club_server.db.models.enrollment import Enrollment, EnrollmentStatus
 from club_server.db.models.event import Event
 from club_server.db.models.notification import Notification
 from club_server.db.models.venue import Venue
-from club_server.services.scheduler import scheduler_loop
 
+from .scheduler_loop_helpers import run_loop_once
 from .helpers import (
     create_admin_user,
     create_coach_user,
@@ -98,19 +100,6 @@ async def _notifications_for(
     return list(result.scalars().all())
 
 
-async def _run_loop_once(session_factory, tick_seconds: float = 1.0) -> None:
-    """Start the loop, give it ~one tick, cancel, swallow CancelledError."""
-    task = asyncio.create_task(
-        scheduler_loop(session_factory, tick_seconds=tick_seconds)
-    )
-    await asyncio.sleep(tick_seconds * 1.5)
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
-
-
 @pytest_asyncio.fixture(scope="function")
 async def loop_session_factory(test_engine):
     """Build a session factory bound to the per-test test_engine.
@@ -135,7 +124,7 @@ async def test_loop_emits_upcoming_event_reminder(
     await _enroll(db_session, event_id, "amy")
     await db_session.commit()
 
-    await _run_loop_once(loop_session_factory)
+    await run_loop_once(loop_session_factory)
 
     rows = await _notifications_for(db_session, "amy", "event.upcoming_reminder")
     leads = sorted(r.payload["data"]["leadHours"] for r in rows)
@@ -158,7 +147,7 @@ async def test_loop_emits_pending_mark_reminder(
     await _enroll(db_session, event_id, "amy")
     await db_session.commit()
 
-    await _run_loop_once(loop_session_factory)
+    await run_loop_once(loop_session_factory)
 
     for staff_name in ("admin", "co"):
         rows = await _notifications_for(
@@ -202,7 +191,7 @@ async def test_loop_emits_absence_streak_warning(
         )
     await db_session.commit()
 
-    await _run_loop_once(loop_session_factory)
+    await run_loop_once(loop_session_factory)
 
     rows = await _notifications_for(
         db_session, "amy", "attendance.absence_streak_warning"
@@ -261,7 +250,7 @@ async def test_should_run_daily_scans_when_credit_sweep_fails(
     await _absent_three_times(db_session, "amy", future_ms(0))
     await db_session.commit()
 
-    await _run_loop_once(loop_session_factory)
+    await run_loop_once(loop_session_factory)
 
     rows = await _notifications_for(
         db_session, "amy", "attendance.absence_streak_warning"
@@ -282,7 +271,7 @@ async def test_should_run_hourly_scans_when_upcoming_scan_fails(
     await _enroll(db_session, event_id, "amy")
     await db_session.commit()
 
-    await _run_loop_once(loop_session_factory)
+    await run_loop_once(loop_session_factory)
 
     rows = await _notifications_for(
         db_session, "admin", "attendance.pending_mark_reminder"
@@ -307,7 +296,7 @@ async def test_loop_reports_a_semi_auto_member_who_no_longer_matches(
     db_session.add(GroupMember(group_id=group_id, membername="amy"))
     await db_session.commit()
 
-    await _run_loop_once(loop_session_factory)
+    await run_loop_once(loop_session_factory)
 
     rows = await _notifications_for(db_session, "admin", "group.member_ineligible")
     assert len(rows) == 1
@@ -335,7 +324,7 @@ async def test_loop_reports_a_programme_member_who_no_longer_matches(
     await _enroll(db_session, event_id, "amy")
     await db_session.commit()
 
-    await _run_loop_once(loop_session_factory)
+    await run_loop_once(loop_session_factory)
 
     rows = await _notifications_for(db_session, "admin", "enrollment.member_ineligible")
     assert len(rows) == 1
@@ -345,3 +334,27 @@ async def test_loop_reports_a_programme_member_who_no_longer_matches(
         "eventTitle": "Girls skate",
         "membername": "amy",
     }
+
+
+async def _slow(*_args: Any, **_kwargs: Any) -> int:
+    await asyncio.sleep(1.0)
+    return 0
+
+
+@pytest.mark.asyncio
+async def test_should_see_every_scan_of_the_first_tick_when_a_scan_is_slow(
+    db_session: AsyncSession, loop_session_factory, monkeypatch: pytest.MonkeyPatch
+):
+    """The harness waits for the tick, not for a fixed time (#34)."""
+    monkeypatch.setattr("club_server.services.scheduler.scan_upcoming_events", _slow)
+    _ = await create_admin_user(db_session)
+    _ = await create_member_user(db_session, "amy")
+    await _absent_three_times(db_session, "amy", future_ms(0))
+    await db_session.commit()
+
+    await run_loop_once(loop_session_factory)
+
+    rows = await _notifications_for(
+        db_session, "amy", "attendance.absence_streak_warning"
+    )
+    assert len(rows) == 1
