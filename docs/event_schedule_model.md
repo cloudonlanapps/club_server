@@ -142,10 +142,9 @@ already gated to programmes.
   is **derived** by expanding that `COUNT`, not stored independently, so a
   camp's length has one source of truth.
 
-  The stored rule means exactly what a standard expansion says (camp
-  R19a): `COUNT` counts calendar slots before rest days (`EXDATE`) are
-  removed, so a club wanting seven camp days across ten composes
-  `COUNT=10` with three `EXDATE`s. Cancelling a camp closes
+  `COUNT` is the number of days the camp is held (camp R19a): rest days
+  (`EXDATE`) are not counted, so a club wanting seven camp days across
+  ten composes `COUNT=7` with three `EXDATE`s. Cancelling a camp closes
   `effective_until` earlier.
 - **one-off** — one row, `rrule` NULL, `effective_until` = its end time.
 
