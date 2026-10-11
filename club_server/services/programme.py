@@ -100,6 +100,7 @@ class ProgrammeService(EventService):
         *,
         reason: str,
         cutoff_ms: int,
+        expected_version: int,
         actor: str | None = None,
     ) -> tuple[Event, int | None]:
         """R1–R5: close the current schedule at ``cutoff_ms`` and insert nothing.
@@ -110,6 +111,7 @@ class ProgrammeService(EventService):
         ahead of every open register, so in practice there are none.
         """
         event = await self.get_live_event(event_id)
+        self.check_version(event, expected_version)
         if event.cutoff is not None:
             raise InvalidStateException(
                 f"Event {event.id} already has a cutoff; use extend to move it"
@@ -141,6 +143,7 @@ class ProgrammeService(EventService):
         *,
         cutoff_ms: int | None,
         reason: str | None,
+        expected_version: int,
         actor: str | None = None,
     ) -> tuple[Event, int | None]:
         """R6–R8: move the cutoff, or clear it when ``cutoff_ms`` is ``None``.
@@ -149,6 +152,7 @@ class ProgrammeService(EventService):
         passed the bound balances have been released and cannot be recalled.
         """
         event = await self.get_live_event(event_id)
+        self.check_version(event, expected_version)
         before = event.cutoff
         now = now_utc_ms()
         if before is None:

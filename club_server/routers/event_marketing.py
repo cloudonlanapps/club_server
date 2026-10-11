@@ -1,8 +1,8 @@
-"""Event Marketing module: staff endpoints (#410, marketing R5–R9)."""
+"""Event Marketing module: staff endpoints (#410, marketing R5–R9, R13)."""
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
@@ -12,6 +12,7 @@ from ..dependencies import (
     require_event_marketing_enabled,
     require_organizer_or_admin,
 )
+from ..exceptions import StaleMarketingVersionException
 from ..schemas.event_marketing_extended import (
     EventMarketingResponse,
     EventMarketingWrite,
@@ -27,6 +28,20 @@ router = APIRouter(
     tags=["Event Marketing"],
     dependencies=[Depends(require_event_marketing_enabled)],
 )
+
+
+def _stale_marketing_error(exc: StaleMarketingVersionException) -> HTTPException:
+    """409 for a write carrying a version the block has moved past (R13a)."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "STALE_VERSION",
+            "message": "The event marketing was changed since you last loaded it",
+            "version": exc.version,
+            "updatedAt": exc.updated_at,
+            "updatedBy": exc.updated_by,
+        },
+    )
 
 
 @router.get("", response_model=EventMarketingResponse)
@@ -51,13 +66,20 @@ async def replace_event_marketing(
     """Replace the whole block (admin or organizer); 404 for a deleted event."""
     event = await EventService(db).get_live_event(event_id)
     require_organizer_or_admin(event.organizer_name, current_user)
-    response = await EventMarketingService(db).replace(event_id, data)
+    try:
+        response = await EventMarketingService(db).replace(
+            event_id, data, actor=current_user.username
+        )
+    except StaleMarketingVersionException as e:
+        raise _stale_marketing_error(e) from e
     await AuditService(db).log(
         actor_username=current_user.username,
         action=AuditAction.UPDATE_EVENT_MARKETING,
         resource_type="event",
         resource_id=str(event_id),
-        details={"fields": sorted(data.model_dump(exclude_none=True))},
+        details={
+            "fields": sorted(data.model_dump(exclude_none=True, exclude={"version"}))
+        },
         ip_address=get_client_ip(request),
     )
     return response
@@ -67,13 +89,19 @@ async def replace_event_marketing(
 async def delete_event_marketing(
     event_id: int,
     request: Request,
+    version: Annotated[
+        int, Query(ge=1, description="The marketing version the client last saw")
+    ],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
 ) -> None:
     """Remove the block (admin or organizer); 404 for a deleted event."""
     event = await EventService(db).get_live_event(event_id)
     require_organizer_or_admin(event.organizer_name, current_user)
-    await EventMarketingService(db).delete(event_id)
+    try:
+        await EventMarketingService(db).delete(event_id, version)
+    except StaleMarketingVersionException as e:
+        raise _stale_marketing_error(e) from e
     await AuditService(db).log(
         actor_username=current_user.username,
         action=AuditAction.DELETE_EVENT_MARKETING,

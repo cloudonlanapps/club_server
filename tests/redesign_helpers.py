@@ -212,42 +212,79 @@ async def list_user_occurrences(
     return items
 
 
+async def version_of(client: AsyncClient, token: str, event_id: int) -> int:
+    """The event's current ``version`` (#292), for a mutation that must send it."""
+    return (await get_event(client, token, event_id))["version"]
+
+
+async def _version_to_send(
+    client: AsyncClient, token: str, event_id: int, version: int | None
+) -> int:
+    """``version`` when the caller names one, else the event's current one.
+
+    A caller who may not read the event sends 1: such a caller is refused
+    before the version is looked at, and the body still has to be valid.
+    """
+    if version is not None:
+        return version
+    response = await client.get(f"/v1/events/by_id/{event_id}", headers=auth(token))
+    return response.json()["version"] if response.status_code == 200 else 1
+
+
 async def terminate(
     client: AsyncClient,
     token: str,
     event_id: int,
     cutoff: int,
     reason: str = "Season over",
+    version: int | None = None,
 ):
-    """POST /terminate and return the raw response."""
+    """POST /terminate and return the raw response.
+
+    Sends the event's current ``version`` (#13) unless the caller supplies one.
+    """
     return await client.post(
         f"/v1/events/by_id/{event_id}/terminate",
-        json={"reason": reason, "cutoffTimeUtc": cutoff},
+        json={
+            "reason": reason,
+            "cutoffTimeUtc": cutoff,
+            "version": await _version_to_send(client, token, event_id, version),
+        },
         headers=auth(token),
     )
 
 
-async def extend(client: AsyncClient, token: str, event_id: int, cutoff: int):
-    """POST /extend and return the raw response."""
+async def extend(
+    client: AsyncClient,
+    token: str,
+    event_id: int,
+    cutoff: int,
+    version: int | None = None,
+):
+    """POST /extend, at the event's current ``version`` unless one is given."""
     return await client.post(
         f"/v1/events/by_id/{event_id}/extend",
-        json={"cutoffTimeUtc": cutoff, "reason": "More ice time"},
+        json={
+            "cutoffTimeUtc": cutoff,
+            "reason": "More ice time",
+            "version": await _version_to_send(client, token, event_id, version),
+        },
         headers=auth(token),
     )
 
 
-async def extend_indefinitely(client: AsyncClient, token: str, event_id: int):
-    """POST /extend-indefinitely and return the raw response."""
+async def extend_indefinitely(
+    client: AsyncClient, token: str, event_id: int, version: int | None = None
+):
+    """POST /extend-indefinitely, at the event's current ``version`` unless given."""
     return await client.post(
         f"/v1/events/by_id/{event_id}/extend-indefinitely",
-        json={"reason": "Running on"},
+        json={
+            "reason": "Running on",
+            "version": await _version_to_send(client, token, event_id, version),
+        },
         headers=auth(token),
     )
-
-
-async def version_of(client: AsyncClient, token: str, event_id: int) -> int:
-    """The event's current ``version`` (#292), for a mutation that must send it."""
-    return (await get_event(client, token, event_id))["version"]
 
 
 async def split(client: AsyncClient, token: str, event_id: int, **body: object):
@@ -261,11 +298,32 @@ async def split(client: AsyncClient, token: str, event_id: int, **body: object):
     )
 
 
-async def cancel_series(client: AsyncClient, token: str, event_id: int, effective: int):
-    """POST /cancel and return the raw response."""
+async def cancel_series(
+    client: AsyncClient,
+    token: str,
+    event_id: int,
+    effective: int,
+    version: int | None = None,
+):
+    """POST /cancel, at the event's current ``version`` (#13) unless one is given."""
     return await client.post(
         f"/v1/events/by_id/{event_id}/cancel",
-        json={"reason": "Weather", "effectiveDateTimeUtc": effective},
+        json={
+            "reason": "Weather",
+            "effectiveDateTimeUtc": effective,
+            "version": await _version_to_send(client, token, event_id, version),
+        },
+        headers=auth(token),
+    )
+
+
+async def undo_cancel_series(
+    client: AsyncClient, token: str, event_id: int, version: int | None = None
+):
+    """POST /undo-cancel, at the event's current ``version`` (#13) unless given."""
+    return await client.post(
+        f"/v1/events/by_id/{event_id}/undo-cancel",
+        json={"version": await _version_to_send(client, token, event_id, version)},
         headers=auth(token),
     )
 

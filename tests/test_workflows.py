@@ -216,7 +216,11 @@ async def test_workflow_cancellation_flow(
     # Terminate the programme at its only occurrence
     cancel_response = await client.post(
         f"/v1/events/by_id/{event_id}/terminate",
-        json={"reason": "Instructor unavailable", "cutoffTimeUtc": start_time},
+        json={
+            "reason": "Instructor unavailable",
+            "cutoffTimeUtc": start_time,
+            "version": 1,
+        },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert cancel_response.status_code == 200
@@ -413,6 +417,7 @@ async def test_workflow_cancelled_event_enrollment(
         json={
             "reason": "No longer needed",
             "cutoffTimeUtc": event_response.json()["startTimeUtc"],
+            "version": event_response.json()["version"],
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )

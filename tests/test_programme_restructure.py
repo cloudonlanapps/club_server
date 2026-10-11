@@ -573,7 +573,11 @@ async def test_should_stay_scheduled_when_split_and_be_bounded_when_terminated(
 
     ended = await client.post(
         f"/v1/events/by_id/{programme['id']}/terminate",
-        json={"reason": "Season over", "cutoffTimeUtc": start + 6 * DAY_MS},
+        json={
+            "reason": "Season over",
+            "cutoffTimeUtc": start + 6 * DAY_MS,
+            "version": after_split["version"],
+        },
         headers=auth(admin),
     )
     assert ended.status_code == 200, ended.text

@@ -64,6 +64,21 @@ overrides the client uses instead of deriving from the timetable.
   are silently absent. More than 50 → 422.
 - **R12** [✅] The block belongs to its event: a soft-deleted event's
   block is unreadable publicly, and hard-deleting the event removes it.
+- **R13** [✅] The block carries its own `version`, `updatedAt` and
+  `updatedBy`, returned on every staff read and write and never on the
+  public projection (#13). An event with no block counts as version 1
+  with no author, so the first replace writes the block at 2, and every
+  replace after bumps it and records who made it. The event's own version
+  is not touched by a replace or a removal, and does not protect the
+  block.
+- **R13a** [X] Replace and removal **require** the block version the
+  client last saw → 422 when missing. A version the block has moved past
+  → 409 `STALE_VERSION`, whose body carries the current `version`,
+  `updatedAt` and `updatedBy`. Nothing is written. Removing a block that
+  does not exist is still not an error at version 1.
+
+  Without it, two editors working on the same event's page each wiped
+  out the other's fields: replace is a whole-row write.
 
 ## See also
 
