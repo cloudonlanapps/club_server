@@ -349,6 +349,9 @@ Conflating the two is the root of several defects recorded below.
   adjacent with no gap and no overlap
   ([`event_schedule_model.md`](event_schedule_model.md)). An occurrence at
   the cutoff belongs to the new schedule.
+
+  The one exception is R24e: a split that moves the start earlier opens
+  the new schedule at the new start, not at the cutoff.
 - **R24b** Occurrence overrides do not move. They are keyed by
   `(event_id, occurrence_time)`, the event id does not change, and an
   override's slot decides which schedule produced it. A cancellation or
@@ -372,6 +375,24 @@ Conflating the two is the root of several defects recorded below.
   not overrides, not credit. This is the property the schedule model
   exists for, and it is worth stating as a rule so that any future design
   that reintroduces movement is recognised as a regression.
+- **R24e** [✅] A split whose new start falls before the cutoff opens
+  the new schedule at that start, and the old one closes there. The
+  cutoff still names the occurrence the new terms replace (R24); the
+  new schedule's occurrence on that day is the first it gives. Without
+  this, moving 18:00 to 17:00 from a Monday leaves that Monday with no
+  occurrence: the old schedule stops at 18:00, and the new one, opening
+  at 18:00, gives nothing before it (#40).
+
+  A cutoff at the current schedule's first occurrence is R26a.
+
+  The cutoff stays the boundary when the split sets no start, when the
+  new start is at or after the cutoff, when it is not after the current
+  schedule's own start, or when an occurrence of the programme lies
+  between it and the cutoff: an earlier boundary never moves an
+  occurrence of the old schedule to the new one. The earlier boundary is
+  held to the same 30-minute lead (R24) → 422 `CUTOFF_TOO_SOON`. The
+  conflict check, the audit and the members' notification name the
+  boundary applied.
 - **R25** [X] A programme cannot be updated through the generic event
   update; corrections and splits are its only metadata paths.
 - **R25a** [✅] Every settable field is reachable through one of the two
@@ -412,6 +433,20 @@ Conflating the two is the root of several defects recorded below.
   corrected (R22c).
   This is the answer to the open question #306 raises about programmes
   being unreschedulable: it is deliberate, not a gap.
+- **R26a** [✅] A split at the current schedule's **first** occurrence
+  rewrites that schedule in place with the new terms; no second schedule
+  is opened. Nothing has run under it, so R26's reason to split does not
+  apply, and closing it there would leave a schedule that ends where it
+  starts beside one opening at the same instant (#42). This covers a
+  programme that has not started and the first occurrence after an
+  earlier split.
+
+  A new start before the cutoff moves the schedule's start back to it,
+  and the previous schedule's end with it, under R24e's guards: after
+  the previous schedule's own start, no occurrence between it and the
+  cutoff, and the 30-minute lead → 422 `CUTOFF_TOO_SOON`. It is still a
+  split to its audience: the audit and the members' notification are
+  the same.
 
 ## Trial enrollment
 

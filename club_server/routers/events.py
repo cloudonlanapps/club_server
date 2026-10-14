@@ -618,7 +618,8 @@ async def update_event_future(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     """Split a programme: close its current schedule at the cutoff and open the
-    next with the new terms (admin/organizer only; programme R23–R25a)."""
+    next with the new terms (admin/organizer only; programme R23–R25a). A new
+    start before the cutoff opens the next schedule at that start (R24e)."""
     service = ProgrammeService(db)
     event = await service.get_live_event(event_id)
     require_organizer_or_admin(event.organizer_name, current_user)
@@ -645,7 +646,10 @@ async def update_event_future(
         action=AuditAction.SPLIT_EVENT,
         resource_type="event",
         resource_id=str(event.id),
-        details={"cutoff": data.effective_date_time_utc, **changes.to_audit_dict()},
+        details={
+            "cutoff": event.current_schedule.effective_from,
+            **changes.to_audit_dict(),
+        },
         ip_address=get_client_ip(request),
     )
     return await event_response(db, event)

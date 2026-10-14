@@ -15,6 +15,9 @@ InquiryKind = Literal["contact", "interest"]
 class InquirySubmission(CamelCaseModel):
     """The public form body (R23, R24, R26).
 
+    ``message`` is optional: absent or ``null`` is stored as no message, and
+    an empty string is refused, so "no message" has one spelling (#41).
+
     ``token`` is the server-issued fill-time token; ``website`` is the
     honeypot, a field a human never fills.
     """
@@ -23,7 +26,7 @@ class InquirySubmission(CamelCaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     email: EmailStr = Field(..., max_length=320)
     phone: str | None = Field(None, max_length=32)
-    message: str = Field(..., min_length=1, max_length=MESSAGE_MAX)
+    message: str | None = Field(None, min_length=1, max_length=MESSAGE_MAX)
     extra: dict[str, Any] | None = None
     token: str = Field(..., min_length=1, max_length=200)
     website: str | None = Field(None, max_length=500)
@@ -49,7 +52,7 @@ class InquiryResponse(CamelCaseModel):
     name: str
     email: str
     phone: str | None
-    message: str
+    message: str | None
     extra: dict[str, Any] | None
     created_at_utc: int
     handled_at: int | None

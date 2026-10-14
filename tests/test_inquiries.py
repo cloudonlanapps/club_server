@@ -356,3 +356,88 @@ async def test_should_not_write_submissions_to_the_audit_log(
     assert (await client.post("/v1/public/inquiries", json=_body())).status_code == 202
     audit = await client.get("/v1/audit_log", headers=_auth(admin))
     assert audit.json()["total"] == 0
+
+
+# ── an inquiry without a message (#41) ─────────────────────────────────────
+
+
+def _body_without_message(**overrides) -> dict:
+    body = _body(**overrides)
+    del body["message"]
+    return body
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("public:R23")
+async def test_should_accept_contact_and_interest_inquiries_without_a_message(
+    client: AsyncClient, db_session: AsyncSession
+):
+    response = await client.post("/v1/public/inquiries", json=_body_without_message())
+    assert response.status_code == 202, response.text
+    response = await client.post(
+        "/v1/public/inquiries",
+        json=_body(kind="interest", email="kid@example.com", message=None),
+    )
+    assert response.status_code == 202, response.text
+
+    rows = (
+        (await db_session.execute(select(Inquiry).order_by(Inquiry.id))).scalars().all()
+    )
+    assert [(r.kind, r.message) for r in rows] == [
+        ("contact", None),
+        ("interest", None),
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("public:R26")
+async def test_should_reject_an_empty_message(
+    client: AsyncClient, db_session: AsyncSession
+):
+    response = await client.post("/v1/public/inquiries", json=_body(message=""))
+
+    assert response.status_code == 422, response.text
+    assert (await db_session.execute(select(Inquiry))).scalars().all() == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("public:R28")
+async def test_should_list_an_inquiry_without_a_message_in_the_inbox(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    await db_session.commit()
+    sent = await client.post(
+        "/v1/public/inquiries", json=_body_without_message(kind="interest")
+    )
+    assert sent.status_code == 202, sent.text
+
+    listing = await client.get("/v1/admin/inquiries", headers=_auth(admin))
+
+    assert listing.status_code == 200, listing.text
+    items = listing.json()["items"]
+    assert [(i["kind"], i["message"]) for i in items] == [("interest", None)]
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("public:R27")
+async def test_should_email_an_inquiry_without_a_message_with_no_message_line(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    await db_session.commit()
+    await _set_inquiry_email(client, admin, "query@example.com")
+
+    response = await client.post(
+        "/v1/public/inquiries",
+        json=_body_without_message(kind="interest", extra={"ageGroup": "U12"}),
+    )
+    assert response.status_code == 202, response.text
+
+    assert len(ConsoleEmailSender.outbox) == 1
+    sent = ConsoleEmailSender.outbox[0]
+    assert "Pat Visitor" in sent.text
+    assert "ageGroup: U12" in sent.text
+    assert "None" not in sent.text and "None" not in sent.html
+    assert "\n\n\n" not in sent.text
+    assert "<p></p>" not in sent.html
