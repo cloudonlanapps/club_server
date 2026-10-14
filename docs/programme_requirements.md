@@ -383,6 +383,8 @@ Conflating the two is the root of several defects recorded below.
   occurrence: the old schedule stops at 18:00, and the new one, opening
   at 18:00, gives nothing before it (#40).
 
+  A cutoff at the current schedule's first occurrence is R26a.
+
   The cutoff stays the boundary when the split sets no start, when the
   new start is at or after the cutoff, when it is not after the current
   schedule's own start, or when an occurrence of the programme lies
@@ -431,6 +433,20 @@ Conflating the two is the root of several defects recorded below.
   corrected (R22c).
   This is the answer to the open question #306 raises about programmes
   being unreschedulable: it is deliberate, not a gap.
+- **R26a** [✅] A split at the current schedule's **first** occurrence
+  rewrites that schedule in place with the new terms; no second schedule
+  is opened. Nothing has run under it, so R26's reason to split does not
+  apply, and closing it there would leave a schedule that ends where it
+  starts beside one opening at the same instant (#42). This covers a
+  programme that has not started and the first occurrence after an
+  earlier split.
+
+  A new start before the cutoff moves the schedule's start back to it,
+  and the previous schedule's end with it, under R24e's guards: after
+  the previous schedule's own start, no occurrence between it and the
+  cutoff, and the 30-minute lead → 422 `CUTOFF_TOO_SOON`. It is still a
+  split to its audience: the audit and the members' notification are
+  the same.
 
 ## Trial enrollment
 

@@ -30,7 +30,7 @@ from .conflict_gates import (
 )
 from .event import EventService
 from .rrule import parse_rrule_with_exdates, validate_rrule
-from .schedule import event_slots, is_slot_of_current_schedule
+from .schedule import event_slots, is_slot_of_current_schedule, schedule_slots
 from .schedule_writes import (
     CANCELLATION_LEAD_TIME_MS,
     decode_sessions,
@@ -91,21 +91,24 @@ def validate_cutoff(event: Event, cutoff_ms: int, now_ms: int) -> None:
         raise CutoffTooSoonException()
 
 
-def split_boundary(event: Event, cutoff_ms: int, start_time: int | None) -> int:
-    """R24e: where a split closes the current schedule and opens the next.
+def earlier_start(
+    event: Event, cutoff_ms: int, start_time: int | None, after: int | None
+) -> int | None:
+    """R24e, R26a: the new start a split's terms take effect from, when it is
+    before the cutoff.
 
-    The cutoff, unless the split sets a start before it that is inside the
-    current schedule's period with no occurrence of the event between it and
-    the cutoff. Then it is that start, so the new schedule's occurrence on
-    the cutoff's day is not lost between the two, and no occurrence of the
-    old one moves.
+    ``None`` unless the split sets a start before the cutoff, after ``after``
+    (the start of the schedule whose period it would cut into), with no
+    occurrence of the event between it and the cutoff. So the new terms'
+    occurrence on the cutoff's day is kept, and no occurrence of the old
+    terms moves to the new.
     """
     if start_time is None or start_time >= cutoff_ms:
-        return cutoff_ms
-    if start_time <= event.current_schedule.effective_from:
-        return cutoff_ms
+        return None
+    if after is not None and start_time <= after:
+        return None
     if event_slots(event, start_time, cutoff_ms):
-        return cutoff_ms
+        return None
     return start_time
 
 
@@ -217,7 +220,10 @@ class ProgrammeService(EventService):
         """R23–R24e: close the current schedule at the cutoff and open the next.
 
         A new start before the cutoff moves that boundary back to it
-        (``split_boundary``, R24e).
+        (``earlier_start``, R24e). A cutoff at the current schedule's first
+        occurrence rewrites that schedule in place instead (R26a): nothing
+        has run under it, and closing it there would leave a schedule that
+        ends where it starts.
 
         The programme, its id, its enrollments, attendance, overrides and
         credit are untouched (R24d). The new schedule inherits whatever the
@@ -228,10 +234,24 @@ class ProgrammeService(EventService):
         self.check_version(event, expected_version)
         now = now_utc_ms()
         validate_cutoff(event, cutoff_ms, now)
-        boundary = split_boundary(event, cutoff_ms, start_time)
-        if boundary < now + CANCELLATION_LEAD_TIME_MS:
-            raise CutoffTooSoonException()
         current = event.current_schedule
+        previous = event.schedules[-2] if len(event.schedules) > 1 else None
+        in_place = not schedule_slots(event, current, current.effective_from, cutoff_ms)
+        if in_place:
+            earlier = earlier_start(
+                event,
+                cutoff_ms,
+                start_time,
+                previous.effective_from if previous else None,
+            )
+            boundary = earlier if earlier is not None else current.effective_from
+        else:
+            earlier = earlier_start(
+                event, cutoff_ms, start_time, current.effective_from
+            )
+            boundary = earlier if earlier is not None else cutoff_ms
+        if earlier is not None and earlier < now + CANCELLATION_LEAD_TIME_MS:
+            raise CutoffTooSoonException()
 
         new_venue = venue_id if venue_id is not None else current.venue_id
         new_organizer = (
@@ -296,22 +316,37 @@ class ProgrammeService(EventService):
         )
 
         audience = await self.list_change_audience(event)
-        current.effective_until = boundary
-        current.updated_at = now
-        successor = EventSchedule(
-            effective_from=boundary,
-            effective_until=None,
-            start_time=new_start,
-            end_time=new_end,
-            rrule=new_rrule,
-            venue_id=new_venue,
-            organizer_name=new_organizer,
-            sessions=new_sessions,
-            created_at=now,
-            updated_at=now,
-        )
-        successor.set_coaches(new_coaches)
-        event.schedules.append(successor)
+        if in_place:
+            if previous is not None:
+                previous.effective_until = boundary
+                previous.updated_at = now
+            current.effective_from = boundary
+            current.start_time = new_start
+            current.end_time = new_end
+            current.rrule = new_rrule
+            current.venue_id = new_venue
+            current.organizer_name = new_organizer
+            current.sessions = new_sessions
+            if new_coaches != current.coach_names_list:
+                current.set_coaches(new_coaches)
+            current.updated_at = now
+        else:
+            current.effective_until = boundary
+            current.updated_at = now
+            successor = EventSchedule(
+                effective_from=boundary,
+                effective_until=None,
+                start_time=new_start,
+                end_time=new_end,
+                rrule=new_rrule,
+                venue_id=new_venue,
+                organizer_name=new_organizer,
+                sessions=new_sessions,
+                created_at=now,
+                updated_at=now,
+            )
+            successor.set_coaches(new_coaches)
+            event.schedules.append(successor)
         event.touch(actor, now)
         await self.db.flush()
 
