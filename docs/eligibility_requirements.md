@@ -1,7 +1,7 @@
-# Eligibility by age — Requirements
+# Eligibility by age and gender — Requirements
 
 This document is the testable specification for who an event or a group
-admits by age. It is written as plain-English rules. Each rule's test names
+admits by age and by gender. It is written as plain-English rules. Each rule's test names
 it with `@pytest.mark.requirement("eligibility:Rn")`, and
 `tests/test_requirement_coverage.py` checks every marked rule has one.
 
@@ -30,7 +30,7 @@ Vocabulary:
 - The **window** is the range of dates of birth a band admits on its
   reference day. Dates are calendar dates, carried as UTC-midnight
   milliseconds like a user's date of birth.
-- **Criteria** = gender, or either age bound.
+- **Criteria** = a non-empty list of genders, or either age bound.
 
 ---
 
@@ -126,9 +126,37 @@ removed automatically.
 - **R24** [X] Camps and one-offs, a programme with no live
   occurrence left and a soft-deleted programme produce no notification.
 
+## Gender
+
+- **R31** [✅] An event of any type and a group each store `genders`, a
+  list of the genders a person can register with (`male`, `female`,
+  `other`, `prefer_not_to_say`). It is set on create and on update (an
+  event's correction included); an empty list or `null` clears it, and an
+  update that leaves it out keeps it. Every event and group response
+  carries it, and the audit of a change names the old and the new list
+  (#25, #26).
+- **R32** [✅] With no gender criterion every member passes on gender,
+  with or without a gender recorded. With one, a member passes when their
+  gender is in the list; a member with no gender recorded does not. This
+  is the rule for enrolment, an event's and a semi-auto group's eligible
+  users, an auto group's members and the no-longer-eligible marks alike.
+- **R33** [X] A value that is not a gender, a value repeated in the list,
+  or a write that sends both `genders` and `gender` → 422, and nothing is
+  changed.
+- **R34** [✅] For one release the single `gender` stays on the API. On a
+  write it is a list of one, and `null` clears the criterion; on a read it
+  is the one value when the list holds exactly one, else `null`.
+- **R35** [✅] A group whose `genders` is empty has no gender criterion,
+  so a group with no age bound either is manual (groups R5).
+
 ## Migration
 
 - **R30** [✅] Each stored date bound becomes a strict age counted
   from the record's reference day on the day of the migration, so every
   event and group reports the same two dates immediately afterwards. A
   bound later than its reference day becomes age zero.
+- The single `gender` column is left in place and no longer read when
+  `genders` is added. Its values are moved by hand on each deployment —
+  `UPDATE events SET genders = json_build_array(gender)::text WHERE gender
+  IS NOT NULL`, and the same for `groups` — and the column is dropped in a
+  later release.

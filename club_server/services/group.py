@@ -1,5 +1,6 @@
 """Group service for group management operations."""
 
+from collections.abc import Sequence
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,6 +15,7 @@ from ..age_eligibility import (
 from ..db.models.group import Group, GroupMember
 from ..db.models.group_join_request import GroupJoinRequest, JoinRequestStatus
 from ..db.models.user import User, UserStatus
+from ..genders import admits_gender, decode_genders, encode_genders
 from .notification import NotificationEvent, NotificationService
 from ..exceptions import (
     AlreadyMemberException,
@@ -44,18 +46,22 @@ KIND_AUTO = "auto"
 INVERTED_BAND_MESSAGE = "minAge must not be greater than maxAge"
 
 
+def _values(genders: Sequence[str] | None) -> list[str]:
+    return decode_genders(encode_genders(genders))
+
+
 def _has_criteria(
     min_age: str | None,
     max_age: str | None,
-    gender: str | None,
+    genders: list[str],
 ) -> bool:
-    return any(v is not None for v in (min_age, max_age, gender))
+    return bool(genders) or any(v is not None for v in (min_age, max_age))
 
 
 def _compute_kind(
     min_age: str | None,
     max_age: str | None,
-    gender: str | None,
+    genders: list[str],
     semi_auto: bool,
 ) -> str:
     """Derive group kind from criteria + the semi_auto flag.
@@ -64,7 +70,7 @@ def _compute_kind(
     Criteria + semi_auto=True → semi_auto.
     Criteria + semi_auto=False → auto.
     """
-    if not _has_criteria(min_age, max_age, gender):
+    if not _has_criteria(min_age, max_age, genders):
         return KIND_MANUAL
     return KIND_SEMI_AUTO if semi_auto else KIND_AUTO
 
@@ -88,7 +94,7 @@ def _user_matches_criteria(
     The band is checked as the window of birth dates it comes to today
     (eligibility R4); both ends are inclusive at the day level.
     """
-    if group.gender is not None and user.gender != group.gender:
+    if not admits_gender(group.gender_list, user.gender):
         return False
     window = group.eligibility_window if window is None else window
     return window.admits(user.date_of_birth)
@@ -108,8 +114,8 @@ def _build_auto_member_query(group: Group):
         User.is_super_admin == 0,
     )
 
-    if group.gender is not None:
-        query = query.where(User.gender == group.gender)
+    if group.gender_list:
+        query = query.where(User.gender.in_(group.gender_list))
 
     if window.dob_on_or_after_utc is not None:
         query = query.where(User.date_of_birth.isnot(None))
@@ -358,7 +364,7 @@ class GroupService:
         min_age: Age | None = None,
         max_age: Age | None = None,
         strict_age: bool = False,
-        gender: str | None = None,
+        genders: Sequence[str] | None = None,
         semi_auto: bool = False,
     ) -> Group:
         """Create a new group."""
@@ -366,7 +372,7 @@ class GroupService:
             raise InvalidStateException(INVERTED_BAND_MESSAGE)
 
         kind = _compute_kind(
-            encode_age(min_age), encode_age(max_age), gender, semi_auto
+            encode_age(min_age), encode_age(max_age), _values(genders), semi_auto
         )
 
         now = now_utc_ms()
@@ -374,7 +380,7 @@ class GroupService:
             name=name,
             description=description,
             kind=kind,
-            gender=gender,
+            genders=encode_genders(genders),
             min_age=encode_age(min_age),
             max_age=encode_age(max_age),
             strict_age=strict_age,
@@ -392,7 +398,7 @@ class GroupService:
         min_age: Age | None = None,
         max_age: Age | None = None,
         strict_age: bool | None = None,
-        gender: str | None = None,
+        genders: Sequence[str] | None = None,
         semi_auto: bool | None = None,
         fields_set: set[str] | None = None,
     ) -> tuple[Group, ChangeLog]:
@@ -431,9 +437,11 @@ class GroupService:
             changes.add("strict_age", bool(group.strict_age), strict_age)
             group.strict_age = strict_age
 
-        if "gender" in fields_set:
-            changes.add("gender", group.gender, gender)
-            group.gender = gender
+        if "genders" in fields_set:
+            changes.add(
+                "genders", group.gender_list, decode_genders(encode_genders(genders))
+            )
+            group.genders = encode_genders(genders)
 
         if is_inverted_band(decode_age(group.min_age), decode_age(group.max_age)):
             raise InvalidStateException(INVERTED_BAND_MESSAGE)
@@ -451,7 +459,7 @@ class GroupService:
         new_kind = _compute_kind(
             group.min_age,
             group.max_age,
-            group.gender,
+            group.gender_list,
             requested_semi_auto,
         )
 

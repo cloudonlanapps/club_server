@@ -7,6 +7,7 @@ notifications every verb sends are here. The per-type rules live in
 ``event_types.py`` is the only place a type is compared.
 """
 
+from collections.abc import Sequence
 from typing import Iterable
 
 from sqlalchemy import select
@@ -17,6 +18,7 @@ from ..db.models.event import Event
 from ..db.models.event_schedule import EventSchedule
 from ..db.models.user import User, UserStatus
 from ..db.models.venue import Venue
+from ..genders import decode_genders, encode_genders
 from ..exceptions import (
     EventNotFoundException,
     HardDeleteNeedsSoftDeleteException,
@@ -265,7 +267,7 @@ class EventService:
         coach_names: list[str] | None = None,
         rrule: str | None = None,
         default_organizer: str | None = None,
-        gender: str | None = None,
+        genders: Sequence[str] | None = None,
         min_age: Age | None = None,
         max_age: Age | None = None,
         strict_age: bool = False,
@@ -323,7 +325,7 @@ class EventService:
             start_time=start_time,
             end_time=end_time,
             rrule=rrule,
-            gender=gender,
+            genders=encode_genders(genders),
             min_age=encode_age(min_age),
             max_age=encode_age(max_age),
             strict_age=strict_age,
@@ -356,7 +358,7 @@ class EventService:
         title: str | None = None,
         description: str | None = None,
         visibility: str | None = None,
-        gender: str | None = None,
+        genders: Sequence[str] | None = None,
         min_age: Age | None = None,
         max_age: Age | None = None,
         strict_age: bool | None = None,
@@ -397,9 +399,11 @@ class EventService:
         if visibility is not None:
             changes.add("visibility", event.visibility, visibility)
             event.visibility = visibility
-        if "gender" in fields_set:
-            changes.add("gender", event.gender, gender)
-            event.gender = gender
+        if "genders" in fields_set:
+            changes.add(
+                "genders", event.gender_list, decode_genders(encode_genders(genders))
+            )
+            event.genders = encode_genders(genders)
         apply_age_band(event, changes, fields_set, min_age, max_age, strict_age)
         if is_featured is not None:
             changes.add("is_featured", event.is_featured, is_featured)
@@ -453,7 +457,7 @@ class EventService:
         visibility: str | None = None,
         organizer_name: str | None = None,
         coach_names: list[str] | None = None,
-        gender: str | None = None,
+        genders: Sequence[str] | None = None,
         min_age: Age | None = None,
         max_age: Age | None = None,
         strict_age: bool | None = None,
@@ -507,9 +511,11 @@ class EventService:
             if old_coaches != coach_names:
                 changes.add("coach_names", old_coaches, coach_names)
             event.set_coaches(coach_names)
-        if "gender" in fields_set:
-            changes.add("gender", event.gender, gender)
-            event.gender = gender
+        if "genders" in fields_set:
+            changes.add(
+                "genders", event.gender_list, decode_genders(encode_genders(genders))
+            )
+            event.genders = encode_genders(genders)
         apply_age_band(event, changes, fields_set, min_age, max_age, strict_age)
         if is_featured is not None:
             changes.add("is_featured", event.is_featured, is_featured)
