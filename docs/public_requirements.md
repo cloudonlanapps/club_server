@@ -125,9 +125,12 @@ an "I'm interested" registration from someone who is not a user. Spam
 defence is part of the design, and the two kinds share one mechanism.
 
 - **R23** [✅] Anyone can submit an inquiry of kind `contact` or
-  `interest` with a name, an email, an optional phone, a message and
-  optional extra fields. The answer is 202 with no body, and the record is
-  never echoed back. The client's address is kept only as a salted hash.
+  `interest` with a name, an email, an optional phone, an optional
+  message and optional extra fields. Whether a form needs a message is
+  the client's to decide: an inquiry without one is stored with none
+  (#41); an empty message is refused (R26). The answer is 202 with no
+  body, and the record is never echoed back. The client's address is
+  kept only as a salted hash.
 - **R24** [X] The form carries a server-issued fill-time token. A forged,
   malformed, missing or expired (over an hour old) token → 422
   `INVALID_FORM_TOKEN`: that is a broken form, not a bot. A submission
@@ -137,8 +140,8 @@ defence is part of the design, and the two kinds share one mechanism.
   same address and email within ten minutes, is accepted (202) and stored
   nowhere: a bot should not learn it was caught.
 - **R26** [X] An unknown kind, an invalid email, an empty or over-long
-  name (200), a message over 2000 characters, non-object extras, or an
-  unknown field → 422.
+  name (200), an empty message or one over 2000 characters, non-object
+  extras, or an unknown field → 422.
 - **R27** [✅] A stored inquiry is emailed to the club's inquiry address
   from `club_info` when one is set, and always raises one
   `inquiry.received` notification for every admin. No mail goes to the

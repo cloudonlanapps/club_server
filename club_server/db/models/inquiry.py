@@ -25,7 +25,7 @@ class Inquiry(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
     extra: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     # Salted hash of the client address, for dedupe; never the raw address.
     source_hash: Mapped[str] = mapped_column(String(64), nullable=False)
