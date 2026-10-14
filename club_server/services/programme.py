@@ -30,7 +30,7 @@ from .conflict_gates import (
 )
 from .event import EventService
 from .rrule import parse_rrule_with_exdates, validate_rrule
-from .schedule import is_slot_of_current_schedule
+from .schedule import event_slots, is_slot_of_current_schedule
 from .schedule_writes import (
     CANCELLATION_LEAD_TIME_MS,
     decode_sessions,
@@ -89,6 +89,24 @@ def validate_cutoff(event: Event, cutoff_ms: int, now_ms: int) -> None:
         raise EffectiveTimeNotSessionBoundaryException()
     if cutoff_ms < now_ms + CANCELLATION_LEAD_TIME_MS:
         raise CutoffTooSoonException()
+
+
+def split_boundary(event: Event, cutoff_ms: int, start_time: int | None) -> int:
+    """R24e: where a split closes the current schedule and opens the next.
+
+    The cutoff, unless the split sets a start before it that is inside the
+    current schedule's period with no occurrence of the event between it and
+    the cutoff. Then it is that start, so the new schedule's occurrence on
+    the cutoff's day is not lost between the two, and no occurrence of the
+    old one moves.
+    """
+    if start_time is None or start_time >= cutoff_ms:
+        return cutoff_ms
+    if start_time <= event.current_schedule.effective_from:
+        return cutoff_ms
+    if event_slots(event, start_time, cutoff_ms):
+        return cutoff_ms
+    return start_time
 
 
 class ProgrammeService(EventService):
@@ -196,7 +214,10 @@ class ProgrammeService(EventService):
         expected_version: int,
         actor: str | None = None,
     ) -> tuple[Event, ChangeLog]:
-        """R23–R24a: close the current schedule at the cutoff and open the next.
+        """R23–R24e: close the current schedule at the cutoff and open the next.
+
+        A new start before the cutoff moves that boundary back to it
+        (``split_boundary``, R24e).
 
         The programme, its id, its enrollments, attendance, overrides and
         credit are untouched (R24d). The new schedule inherits whatever the
@@ -207,6 +228,9 @@ class ProgrammeService(EventService):
         self.check_version(event, expected_version)
         now = now_utc_ms()
         validate_cutoff(event, cutoff_ms, now)
+        boundary = split_boundary(event, cutoff_ms, start_time)
+        if boundary < now + CANCELLATION_LEAD_TIME_MS:
+            raise CutoffTooSoonException()
         current = event.current_schedule
 
         new_venue = venue_id if venue_id is not None else current.venue_id
@@ -258,7 +282,7 @@ class ProgrammeService(EventService):
                 start_time=new_start,
                 end_time=new_end,
                 rrule=new_rrule,
-                effective_from=cutoff_ms,
+                effective_from=boundary,
                 effective_until=None,
                 organizer_name=new_organizer,
                 coach_names=tuple(new_coaches),
@@ -272,10 +296,10 @@ class ProgrammeService(EventService):
         )
 
         audience = await self.list_change_audience(event)
-        current.effective_until = cutoff_ms
+        current.effective_until = boundary
         current.updated_at = now
         successor = EventSchedule(
-            effective_from=cutoff_ms,
+            effective_from=boundary,
             effective_until=None,
             start_time=new_start,
             end_time=new_end,
@@ -296,7 +320,7 @@ class ProgrammeService(EventService):
             audience,
             {
                 **self._event_facts(event),
-                "cutoffTimeUtc": cutoff_ms,
+                "cutoffTimeUtc": boundary,
                 "changes": changes.to_audit_dict(),
             },
         )
