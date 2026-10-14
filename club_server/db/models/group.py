@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ...age_eligibility import EligibilityWindow, age_window, decode_age
 from ...club_calendar import club_today
 from ...db.base import Base
+from ...genders import decode_genders
 
 if TYPE_CHECKING:
     from .user import User
@@ -20,7 +21,8 @@ class Group(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     kind: Mapped[str] = mapped_column(Text, default="manual", nullable=False)
-    gender: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # The gender criterion (eligibility R31): a JSON list, NULL for none.
+    genders: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Age band (#16): JSON ``{years, months, days}`` per bound, NULL for none.
     # The window of birth dates is worked out from these on a reference day.
     min_age: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -43,6 +45,11 @@ class Group(Base):
             bool(self.strict_age),
             reference_day_utc,
         )
+
+    @property
+    def gender_list(self) -> list[str]:
+        """The genders the group admits; empty for no gender criterion."""
+        return decode_genders(self.genders)
 
     @property
     def eligibility_window(self) -> EligibilityWindow:

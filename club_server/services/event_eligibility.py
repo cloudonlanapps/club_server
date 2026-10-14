@@ -1,6 +1,6 @@
 """Event eligibility: gender, and an age band counted on a reference day (#16).
 
-An event's criteria are ``gender`` and the age band (``min_age``,
+An event's criteria are its ``genders`` (#25) and the age band (``min_age``,
 ``max_age``, ``strict_age``) on the ``events`` table; an event with none
 accepts any user. The band becomes a window of birth dates on the event's
 reference day — the day a camp or one-off starts, a programme's next live
@@ -33,6 +33,7 @@ from ..db.models.enrollment import Enrollment, EnrollmentStatus
 from ..db.models.event import Event
 from ..db.models.occurrence_override import OccurrenceOverride
 from ..db.models.user import User
+from ..genders import admits_gender
 from ..exceptions import InvalidSessionsException, InvalidStateException
 from ..schemas.common import ChangeLog
 from ..schemas.event import EventResponse, Session
@@ -60,7 +61,9 @@ Overrides = dict[int, tuple[str, int | None]]
 
 
 def event_has_eligibility_criteria(event: Event) -> bool:
-    return any(v is not None for v in (event.gender, event.min_age, event.max_age))
+    return bool(event.gender_list) or any(
+        v is not None for v in (event.min_age, event.max_age)
+    )
 
 
 def validate_age_band(min_age: Age | None, max_age: Age | None) -> None:
@@ -186,9 +189,7 @@ def is_user_eligible_for_event(
     user with no ``date_of_birth`` is ineligible for any event with an age
     bound. Both ends of the window are inclusive (R8).
     """
-    if event.gender is not None and (
-        user.gender is None or user.gender != event.gender
-    ):
+    if not admits_gender(event.gender_list, user.gender):
         return False
     return window.admits(user.date_of_birth)
 

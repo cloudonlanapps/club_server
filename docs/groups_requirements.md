@@ -16,7 +16,8 @@ Convention:
 Vocabulary:
 
 - A group has one of three **kinds**: `manual`, `semi_auto`, `auto`.
-- **Criteria** = any of `minAge`, `maxAge`, `gender`. The two ages are an
+- **Criteria** = any of `minAge`, `maxAge`, a non-empty `genders`
+  (eligibility R31, R35). The two ages are an
   age band ([eligibility](eligibility_requirements.md) R1); the group
   reports the window of birth dates it comes to today as `dobOnOrAfterUtc`
   and `dobOnOrBeforeUtc`.
@@ -36,7 +37,7 @@ Vocabulary:
 - **R2** [✅] admin can create an `auto` group (criteria, `semiAuto` omitted or false).
 - **R3** [✅] admin can create a `semi_auto` group (criteria + `semiAuto: true`).
 - **R4** [✅] admin can update name and description on any group.
-- **R5** [✅] admin can update `minAge`, `maxAge`, `strictAge`, `gender`, and `semiAuto`; `kind` is re-derived.
+- **R5** [✅] admin can update `minAge`, `maxAge`, `strictAge`, `genders`, and `semiAuto`; `kind` is re-derived.
 - **R5a** [✅] an update that omits `semiAuto` keeps the group's current mode: a `semi_auto` group whose criteria change stays `semi_auto`.
 - **R6** [✅] admin can convert an empty manual group to `auto` or `semi_auto`.
 - **R7** [✅] admin can convert `semi_auto` or `auto` back to `manual` by clearing all criteria; existing members are kept.
@@ -141,7 +142,7 @@ anyone born before midnight of the following day.
 - **R72** [X] user born the day before `dobOnOrAfterUtc` is excluded.
 - **R73** [X] user born the day after `dobOnOrBeforeUtc` is excluded.
 - **R74** [X] user with no DOB is excluded whenever any DOB bound is set.
-- **R75** [X] gender filter is applied for both `auto` and `semi_auto`.
+- **R75** [X] the gender filter (eligibility R32) is applied for both `auto` and `semi_auto`.
 - **R76** [X] users who are not active (any status other than active, e.g. awaiting approval) are excluded.
 - **R77** [X] soft-deleted users are excluded.
 - **R78** [X] super-admins are excluded.

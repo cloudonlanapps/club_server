@@ -15,6 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...db.base import Base
+from ...genders import decode_genders
 from ...utils import now_utc_ms
 from .event_schedule import EventSchedule
 
@@ -55,7 +56,8 @@ class Event(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     type: Mapped[str] = mapped_column(Text, nullable=False)
     visibility: Mapped[str] = mapped_column(Text, nullable=False)
-    gender: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # The gender criterion (eligibility R31): a JSON list, NULL for none.
+    genders: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Age band (#16): JSON ``{years, months, days}`` per bound, NULL for none.
     # The window of birth dates is worked out from these on a reference day.
     min_age: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -135,6 +137,11 @@ class Event(Base):
         self.version = (self.version or 0) + 1
         self.updated_at = now if now is not None else now_utc_ms()
         self.updated_by = actor
+
+    @property
+    def gender_list(self) -> list[str]:
+        """The genders the event admits; empty for no gender criterion."""
+        return decode_genders(self.genders)
 
     @property
     def current_schedule(self) -> EventSchedule:

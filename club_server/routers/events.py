@@ -580,7 +580,7 @@ async def correct_event(
             title=data.title,
             description=data.description,
             visibility=data.visibility,
-            gender=data.gender,
+            genders=data.genders,
             min_age=data.min_age,
             max_age=data.max_age,
             strict_age=data.strict_age,

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
+from ..genders import single_gender
 from ..dependencies import (
     get_db,
     require_admin,
@@ -120,7 +121,8 @@ async def get_group(
         description=group.description,
         kind=group.kind,
         **age_band_fields(group),
-        gender=group.gender,
+        gender=single_gender(group.gender_list),
+        genders=group.gender_list,
         members=members,
         ineligible_member_count=await group_service.ineligible_member_count(group),
         created_at_utc=group.created_at,
@@ -146,7 +148,7 @@ async def create_group(
             min_age=data.min_age,
             max_age=data.max_age,
             strict_age=data.strict_age,
-            gender=data.gender,
+            genders=data.genders,
             semi_auto=data.semi_auto,
         )
 
@@ -184,7 +186,7 @@ async def update_group(
         "description",
         "min_age",
         "max_age",
-        "gender",
+        "genders",
         "semi_auto",
     ):
         if schema_field in data.model_fields_set:
@@ -198,7 +200,7 @@ async def update_group(
             min_age=data.min_age,
             max_age=data.max_age,
             strict_age=data.strict_age,
-            gender=data.gender,
+            genders=data.genders,
             semi_auto=data.semi_auto,
             fields_set=fields_set,
         )

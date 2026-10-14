@@ -289,7 +289,7 @@ async def test_loop_reports_a_semi_auto_member_who_no_longer_matches(
 
     _ = await create_admin_user(db_session)
     _ = await create_member_user(db_session, "amy", gender="male")
-    group = Group(name="Girls", kind="semi_auto", gender="female", created_at=0)
+    group = Group(name="Girls", kind="semi_auto", genders='["female"]', created_at=0)
     db_session.add(group)
     await db_session.flush()
     group_id = group.id
@@ -319,7 +319,7 @@ async def test_loop_reports_a_programme_member_who_no_longer_matches(
         db_session, start=start, end=start + 60 * 60 * 1000, title="Girls skate"
     )
     _ = await db_session.execute(
-        update(Event).where(Event.id == event_id).values(gender="female")
+        update(Event).where(Event.id == event_id).values(genders='["female"]')
     )
     await _enroll(db_session, event_id, "amy")
     await db_session.commit()

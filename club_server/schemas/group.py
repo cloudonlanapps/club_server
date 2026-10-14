@@ -1,8 +1,10 @@
 from typing import ClassVar
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from ..age_eligibility import Age, decode_age
 from ..db.models.group import Group
+from ..db.models.user import Gender
+from ..genders import resolve_gender_write, single_gender
 from .common import CamelCaseModel
 
 
@@ -14,8 +16,11 @@ class GroupCreate(CamelCaseModel):
     min_age: Age | None = None
     max_age: Age | None = None
     strict_age: bool = False
-    gender: str | None = None
+    gender: Gender | None = None
+    genders: list[Gender] | None = None
     semi_auto: bool = False
+
+    _genders = model_validator(mode="after")(resolve_gender_write)
 
 
 class GroupUpdate(CamelCaseModel):
@@ -26,8 +31,11 @@ class GroupUpdate(CamelCaseModel):
     min_age: Age | None = None
     max_age: Age | None = None
     strict_age: bool | None = None
-    gender: str | None = None
+    gender: Gender | None = None
+    genders: list[Gender] | None = None
     semi_auto: bool | None = None
+
+    _genders = model_validator(mode="after")(resolve_gender_write)
 
 
 class GroupMemberInfo(CamelCaseModel):
@@ -80,6 +88,7 @@ class GroupResponse(CamelCaseModel):
     dob_on_or_before_utc: int | None = None
     eligibility_reference_day_utc: int
     gender: str | None = None
+    genders: list[str] = []
     member_count: int
     # Stored members who no longer meet the group's criteria (groups R83).
     ineligible_member_count: int = 0
@@ -106,7 +115,8 @@ class GroupResponse(CamelCaseModel):
             description=group.description,
             kind=group.kind,
             **age_band_fields(group),
-            gender=group.gender,
+            gender=single_gender(group.gender_list),
+            genders=group.gender_list,
             member_count=member_count,
             ineligible_member_count=ineligible_member_count,
             created_at_utc=group.created_at,
@@ -131,6 +141,7 @@ class GroupDetailResponse(CamelCaseModel):
     dob_on_or_before_utc: int | None = None
     eligibility_reference_day_utc: int
     gender: str | None = None
+    genders: list[str] = []
     members: list[GroupMemberInfo]
     # Stored members who no longer meet the group's criteria (groups R83).
     ineligible_member_count: int = 0
