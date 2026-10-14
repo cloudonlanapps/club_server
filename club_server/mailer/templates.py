@@ -183,10 +183,13 @@ def inquiry_received(
     name: str,
     email: str,
     phone: str | None,
-    message: str,
+    message: str | None,
     extra: dict | None,
 ) -> tuple[str, str, str]:
-    """T5 — a contact-form or interest submission from the public website (#407)."""
+    """T5 — a contact-form or interest submission from the public website (#407).
+
+    An inquiry without a message has no message paragraph (#41).
+    """
     label = "contact request" if kind == "contact" else "interest registration"
     subject = f"New {label} for {club_short_name}: {name}"
     extras = "".join(
@@ -199,12 +202,14 @@ def inquiry_received(
         f"<p><strong>Name:</strong> {escape(name)}<br>"
         f"<strong>Email:</strong> {escape(email)}<br>"
         f"<strong>Phone:</strong> {escape(phone or '-')}</p>"
-        f"<p>{escape(message)}</p>" + (f"<ul>{extras}</ul>" if extras else ""),
+        + (f"<p>{escape(message)}</p>" if message else "")
+        + (f"<ul>{extras}</ul>" if extras else ""),
     )
     text = (
         f"A new {label} arrived from the website.\n\n"
         f"Name: {name}\nEmail: {email}\nPhone: {phone or '-'}\n\n"
-        f"{message}\n" + "".join(f"{k}: {v}\n" for k, v in (extra or {}).items())
+        + (f"{message}\n" if message else "")
+        + "".join(f"{k}: {v}\n" for k, v in (extra or {}).items())
     )
     return subject, html, text
 
