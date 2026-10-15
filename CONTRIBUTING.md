@@ -66,8 +66,9 @@ deployment's conf. So:
 
 | change | `VERSION` |
 |---|---|
-| anything that does not change the settings a deployment must supply | **patch** |
-| a new setting, a renamed setting, or optional becoming required | **minor** or **major** |
+| a release | **major** |
+| a new setting, a renamed setting, or optional becoming required | **minor** |
+| a quick fix after a release or a settings change, adding no setting | **patch** |
 
 **A patch release may not introduce a setting.** Only the minor/major path
 reconfigures a live deployment, so a setting shipped under a patch reaches
@@ -75,9 +76,11 @@ nobody: every existing environment keeps running without it, showing no error.
 `CREDIT_SYSTEM_ENABLED` is the worked example — absent, the server answers 503,
 which is documented behaviour and looks exactly like nothing being wrong.
 
-`VERSION` is a config-schema version, not a release version. It moves when the
-deployment contract moves, and not otherwise. Release tags (`IHM_RELEASE_*`)
-mark commits; they do not change it.
+`VERSION` is both the release version and the deployment config-schema
+version. A release moves the major, so every environment re-asks for its
+settings once per release; between releases a settings change moves the minor.
+A release is tagged `RELEASE_VERSION_<major>_<minor>_<patch>` in club_server,
+club_client, club_sdk and club_cli, which take the same major at each release.
 
 It is also the server's only version number. `GET /`, `openapi.json` and the
 package metadata in `pyproject.toml` all read it, so do not add a second one.

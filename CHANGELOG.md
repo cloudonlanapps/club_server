@@ -140,6 +140,7 @@ everything in this section is what an SDK update has to absorb.
 - `VERSION` goes to 0.7.1, a patch: the credit follow-ups (#445, #446, #447, #448, #449, #451) add no deployment setting.
 - `VERSION` goes to 0.8.0: `DEFAULT_COUNTRY_CODE` is a new deployment setting (#15).
 - `VERSION` goes to 0.9.0: `CLUB_TIMEZONE` is a new deployment setting (#16).
+- `VERSION` goes to 1.0.0 and is now the release version as well as the config-schema version: a release moves the major, a settings change the minor, a quick fix the patch. No setting changed since 0.9.0, but the major move re-asks every deployment for its settings once. Releases are tagged `RELEASE_VERSION_<major>_<minor>_<patch>` (#46).
 
 ### Capabilities
 
