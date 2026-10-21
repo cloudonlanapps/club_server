@@ -29,6 +29,7 @@ from .conflict_gates import (
     check_conflicts,
 )
 from .event import EventService
+from .occurrence_reminders import delete_occurrence_reminders
 from .rrule import parse_rrule_with_exdates, validate_rrule
 from .schedule import event_slots, is_slot_of_current_schedule, schedule_slots
 from .schedule_writes import (
@@ -151,6 +152,7 @@ class ProgrammeService(EventService):
             await marked_occurrences_at_or_after(self.db, event.id, cutoff_ms),
             actor,
         )
+        _ = await delete_occurrence_reminders(self.db, event.id, from_time=cutoff_ms)
         await self.notify(
             "event.terminated",
             audience,
@@ -189,6 +191,10 @@ class ProgrammeService(EventService):
         event.touch(actor, now)
         event.current_schedule.updated_at = now
         await self.db.flush()
+        if cutoff_ms is not None and cutoff_ms < before:
+            _ = await delete_occurrence_reminders(
+                self.db, event.id, from_time=cutoff_ms
+            )
         await self.notify(
             "event.extended",
             audience,

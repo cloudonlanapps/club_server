@@ -52,6 +52,7 @@ from .conflict_gates import (
 )
 from .event_types import EventVerb, offers
 from .lifecycle import occurrence_is_cancelled
+from .occurrence_reminders import delete_occurrence_reminders
 from .occurrence_version import (
     SCHEDULED_OVERRIDE_STATUS,
     UNCHANGED_OCCURRENCE_VERSION,
@@ -605,6 +606,11 @@ class OccurrenceService:
         from .register_clearing import clear_cancelled_registers
 
         _ = await clear_cancelled_registers(self.db, event, [slot.time], actor)
+        # Reminders sent before the cancel go with it (#49, notifications
+        # R87a, R93a); a restore lets the next scan send them again.
+        _ = await delete_occurrence_reminders(
+            self.db, event.id, occurrence_time=slot.time
+        )
 
         if not override_used:
             await self._notifications.notify_for_event(

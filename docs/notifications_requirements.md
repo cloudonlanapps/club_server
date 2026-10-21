@@ -314,6 +314,13 @@ The matching notice about an enrolled programme member,
   however often the scan runs.
 - **R87** [X] An occurrence that is cancelled, by itself or by the event's
   cutoff, is not reminded; the other occurrences still are.
+- **R87a** [X] When an occurrence stops being live its reminders already
+  sent go with it: cancelling one occurrence (which includes dropping a
+  one-off) deletes that occurrence's `event.upcoming_reminder` and
+  `attendance.pending_mark_reminder` rows for every recipient; cancelling
+  a camp series, terminating a programme or bringing its cutoff earlier
+  deletes those of every occurrence at or after the cutoff; deleting an
+  event deletes all of its own. Other occurrences' reminders stay (#49).
 
 ## Attendance notifications
 
@@ -329,6 +336,10 @@ The matching notice about an enrolled programme member,
   `attendance.pending_mark_reminder`, once per occurrence.
 - **R93** [X] An occurrence with any attendance recorded, or that was
   cancelled, produces no pending-mark reminder.
+- **R93a** [X] A pending-mark reminder already sent for an occurrence is
+  deleted when the occurrence is cancelled, retrospectively included
+  (R87a). Restoring it sends nothing at once; the next scan reminds again
+  if the session is still inside the seven-day window (#49).
 - **R94** [✅] Once a day the scheduler warns a member whose current run
   of absences reaches three with `attendance.absence_streak_warning`.
 - **R95** [✅] The warning is sent once per streak: a growing streak, or a
