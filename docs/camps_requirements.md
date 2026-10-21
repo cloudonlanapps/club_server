@@ -105,6 +105,12 @@ Vocabulary:
   R5d.
 - **R5d** [✅] An admin or organizer can undo a series cancellation,
   clearing the cutoff and returning the camp to scheduled.
+- **R5e** [✅] A camp already cancelled can be cancelled again from an
+  **earlier** occurrence start, which moves the cutoff earlier under
+  R5c's rules, clears the registers of the newly cut occurrences and
+  notifies as a first cancellation does. A cutoff at or after the current
+  one is refused with 400 `EVENT_ALREADY_CANCELLED`: moving the end later
+  is undo (R5d), not a cancellation (#51).
 - **R6** [✅] An admin can soft-delete a camp.
 - **R7** [✅] An admin can restore a soft-deleted camp.
 - **R7a** [X] Restoring a camp that is not deleted → 422

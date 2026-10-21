@@ -127,6 +127,7 @@ everything in this section is what an SDK update has to absorb.
 ### Bug fixes: occurrences, reminders and attendance
 
 - Close the attendance edit window 15 days after the occurrence's effective end (its rescheduled end when it was moved) instead of 15 days after its start: marking, clearing and deciding leave answer 422 `EDIT_WINDOW_CLOSED` only after `end + 15 days`. A super-admin still has no limit (#52).
+- Accept `POST /v1/events/by_id/{event_id}/cancel` on a camp already cancelled when `effectiveDateTimeUtc` is an occurrence start earlier than the current cutoff: the cutoff moves earlier under the usual rules, the newly cut occurrences' registers are cleared and members get `event.cancelled` again. A time at or after the current cutoff still answers 400 `EVENT_ALREADY_CANCELLED` (#51).
 
 ### Security: users and access
 
