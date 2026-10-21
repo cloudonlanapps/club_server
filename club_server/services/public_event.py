@@ -17,9 +17,8 @@ from ..schemas.public_event import PublicEventResponse
 from ..schemas.user import PublicProfileResponse
 from ..schemas.venue import PublicVenueResponse
 from ..utils import generate_event_public_id, generate_venue_public_id, now_utc_ms
-from .event_eligibility import event_window
+from .event_eligibility import event_lifecycle, event_window
 from .event_listing import _still_running_at
-from .lifecycle import is_past
 from .media import can_view_media
 from .public_venue import resolve_public_venue_image
 from .staff_listing import StaffListingService, roles_of
@@ -108,7 +107,7 @@ class PublicEventService:
         return PublicEventResponse.build(
             event,
             await event_window(self.db, event, now_ms),
-            is_past=await is_past(self.db, event, now_ms),
+            lifecycle=await event_lifecycle(self.db, event, now_ms),
             cover=cover,
             gallery=gallery,
             venue=await self._venue_projection(event.venue_id),

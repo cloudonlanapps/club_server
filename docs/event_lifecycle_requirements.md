@@ -234,6 +234,26 @@ Applied; kept as the record of what changed and why.
 
 ---
 
+## What an event response reports
+
+- **L24** [✅] Every event response carries the server's own answers to
+  the two lifecycle questions, worked out at the moment of the response
+  (#53):
+
+  - `hasEnded` — L7: no live occurrence remains at or after now. The
+    join-side guard (L12) refuses on it.
+  - `isPast` — every occurrence of the series has finished, cancelled or
+    not. The exit-side guards (enrollment R57, camp R61, R68) treat a
+    change after it as a retrospective correction.
+
+  They differ for an event that stopped early: a programme past its
+  cutoff, or a camp whose remaining days are all cancelled, has ended but
+  is not past. An open-ended programme is neither, however long it has
+  run. A client holding an event across the moment its last occurrence
+  ends sees the old value until it reads the event again.
+
+---
+
 ## Concurrent edits
 
 Two people saving the same event must not silently overwrite each other,

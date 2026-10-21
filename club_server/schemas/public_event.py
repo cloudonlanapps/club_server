@@ -13,7 +13,7 @@ from ..age_eligibility import Age, EligibilityWindow
 from ..db.models.event import Event
 from ..utils import generate_event_public_id, generate_venue_public_id
 from .common import CamelCaseModel
-from .event import EventResponse, Session
+from .event import EventLifecycle, EventResponse, Session
 from .media import MediaRef
 from .user import PublicProfileResponse
 from .venue import PublicVenueResponse
@@ -80,14 +80,14 @@ class PublicEventResponse(CamelCaseModel):
         event: Event,
         window: EligibilityWindow,
         *,
-        is_past: bool,
+        lifecycle: EventLifecycle,
         cover: MediaRef | None,
         gallery: list[MediaRef],
         venue: PublicVenueResponse,
         coaches: list[PublicProfileResponse],
     ) -> "PublicEventResponse":
         """Project an event with its pre-resolved public companions."""
-        base = EventResponse.from_model(event, window)
+        base = EventResponse.from_model(event, window, lifecycle)
         return cls(
             public_id=generate_event_public_id(event.id),
             title=base.title,
@@ -108,7 +108,7 @@ class PublicEventResponse(CamelCaseModel):
             dob_on_or_before_utc=base.dob_on_or_before_utc,
             eligibility_reference_day_utc=base.eligibility_reference_day_utc,
             is_featured=base.is_featured,
-            is_past=is_past,
+            is_past=lifecycle.is_past,
             cover=cover,
             gallery=gallery,
             venue=venue,

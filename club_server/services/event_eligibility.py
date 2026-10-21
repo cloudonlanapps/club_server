@@ -36,10 +36,10 @@ from ..db.models.user import User
 from ..genders import admits_gender
 from ..exceptions import InvalidSessionsException, InvalidStateException
 from ..schemas.common import ChangeLog
-from ..schemas.event import EventResponse, Session
+from ..schemas.event import EventLifecycle, EventResponse, Session
 from ..utils import MS_PER_DAY, now_utc_ms
 from .event_types import is_programme
-from .lifecycle import CANCELLED_OVERRIDE_STATUS
+from .lifecycle import CANCELLED_OVERRIDE_STATUS, has_ended, is_past
 from .schedule import event_slots
 
 # How far ahead a programme is searched for its next live occurrence. A
@@ -210,17 +210,33 @@ def still_meets_criteria(
     return is_user_eligible_for_event(user, event, window)
 
 
+async def event_lifecycle(
+    db: AsyncSession, event: Event, now_ms: int
+) -> EventLifecycle:
+    """The event's lifecycle answers at ``now_ms`` (lifecycle L24)."""
+    return EventLifecycle(
+        is_past=await is_past(db, event, now_ms),
+        has_ended=await has_ended(db, event, now_ms),
+    )
+
+
 async def event_response(db: AsyncSession, event: Event) -> EventResponse:
-    """An event as the API returns it, with its window worked out for today."""
-    return EventResponse.from_model(event, await event_window(db, event))
+    """An event as the API returns it, with its window and lifecycle worked
+    out for now."""
+    return (await event_responses(db, [event]))[0]
 
 
 async def event_responses(
     db: AsyncSession, events: Sequence[Event]
 ) -> list[EventResponse]:
-    """``event_response`` for a page of events, with one override lookup."""
-    windows = await event_windows(db, events)
-    return [EventResponse.from_model(e, windows[e.id]) for e in events]
+    """``event_response`` for a page of events, with one override lookup for
+    the windows."""
+    now = now_utc_ms()
+    windows = await event_windows(db, events, now)
+    return [
+        EventResponse.from_model(e, windows[e.id], await event_lifecycle(db, e, now))
+        for e in events
+    ]
 
 
 def validate_sessions_against_window(

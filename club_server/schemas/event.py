@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from pydantic import ConfigDict, Field, model_validator
@@ -15,6 +16,14 @@ if TYPE_CHECKING:
     from ..services.conflict_gates import Finding
 
 VisibilityT = Literal["public", "private"]
+
+
+@dataclass(frozen=True)
+class EventLifecycle:
+    """The two lifecycle answers an event response reports (lifecycle L24)."""
+
+    is_past: bool
+    has_ended: bool
 
 
 def _reject_until_time_utc(data: Any) -> Any:
@@ -145,6 +154,10 @@ class EventResponse(CamelCaseModel):
     start_time_utc: int
     end_time_utc: int
     until_time_utc: int | None
+    # Lifecycle L24, as of the response: every occurrence has finished
+    # (exit side), and no live occurrence remains ahead (join side, L7).
+    is_past: bool
+    has_ended: bool
     gender: str | None = None
     genders: list[str] = []
     # The age band (eligibility R1), and what it comes to on the event's
@@ -173,8 +186,11 @@ class EventResponse(CamelCaseModel):
     )
 
     @classmethod
-    def from_model(cls, event: Event, window: EligibilityWindow) -> "EventResponse":
-        """Create response from Event model and its window of birth dates."""
+    def from_model(
+        cls, event: Event, window: EligibilityWindow, lifecycle: EventLifecycle
+    ) -> "EventResponse":
+        """Create response from Event model, its window of birth dates and
+        its lifecycle answers."""
         import json
 
         current = event.current_schedule
@@ -191,6 +207,8 @@ class EventResponse(CamelCaseModel):
             start_time_utc=current.start_time,
             end_time_utc=current.end_time,
             until_time_utc=current.effective_until,
+            is_past=lifecycle.is_past,
+            has_ended=lifecycle.has_ended,
             gender=single_gender(event.gender_list),
             genders=event.gender_list,
             min_age=decode_age(event.min_age),

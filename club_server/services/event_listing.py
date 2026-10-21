@@ -205,7 +205,7 @@ class EventListingService:
             ]
         page = events[offset : offset + limit]
         return PaginatedResponse(
-            items=[EventResponse.from_model(e, windows[e.id]) for e in page],
+            items=await event_responses(self.db, page),
             total=len(events),
             offset=offset,
             limit=limit,
