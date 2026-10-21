@@ -340,6 +340,10 @@ The matching notice about an enrolled programme member,
   deleted when the occurrence is cancelled, retrospectively included
   (R87a). Restoring it sends nothing at once; the next scan reminds again
   if the session is still inside the seven-day window (#49).
+- **R93b** [X] Marking attendance for an occurrence deletes its
+  pending-mark reminder for every staff recipient, not only the one who
+  marked; other occurrences' reminders stay. If its marks are later
+  cleared, the next scan reminds again (#50).
 - **R94** [✅] Once a day the scheduler warns a member whose current run
   of absences reaches three with `attendance.absence_streak_warning`.
 - **R95** [✅] The warning is sent once per streak: a growing streak, or a
