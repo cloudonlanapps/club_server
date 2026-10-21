@@ -19,7 +19,7 @@ Convention:
 
 Vocabulary:
 
-- A camp's **eligibility criteria** = any of `gender`, `minAge`,
+- A camp's **eligibility criteria** = any of `genders`, `minAge`,
   `maxAge` set on the camp itself, mirroring the convention adopted for
   groups in #11. The two ages are an age band
   ([eligibility](eligibility_requirements.md) R1), reported as the window
@@ -124,7 +124,7 @@ Vocabulary:
 - **R12** [✅] An admin can list deleted camps via a dedicated "deleted"
   view.
 - **R13** [✅] An admin can set structured eligibility on a camp:
-  `gender`, `minAge`, `maxAge`, `strictAge`. Both ends of the window the
+  `genders`, `minAge`, `maxAge`, `strictAge`. Both ends of the window the
   band comes to are inclusive at the day level.
 - **R14** [✅] An admin can set `isFeatured`, `galleryUris`, and an
   ordered `sessions` timetable directly on the camp. `isFeatured` and the
@@ -262,13 +262,13 @@ Vocabulary:
 ## Eligibility (camps, post-#18)
 
 - **R40** [✅] Camp eligibility mirrors group eligibility: a user is
-  eligible iff their `gender` matches (when set) and their date of
+  eligible iff their gender is in the camp's `genders` (when set) and their date of
   birth falls within `[dobOnOrAfterUtc, dobOnOrBeforeUtc]` inclusive
   (when set) — the window its age band comes to on its start day.
 - **R41** [X] A user with no recorded date of birth is ineligible for
   any camp that has either age bound set.
 - **R42** [X] A user with no recorded gender is ineligible for any
-  camp that has `gender` set.
+  camp that has `genders` set.
 - **R43** [✅] Tightening eligibility on a camp does **not** auto-
   remove already-enrolled users (grandfathering).
 - **R44** [X] The legacy free-text eligibility / eligibility-note

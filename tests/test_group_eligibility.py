@@ -207,7 +207,7 @@ async def test_eligible_endpoint_for_auto_returns_422(
     admin_token = await create_admin_user(db_session)
     g = await client.post(
         "/v1/groups",
-        json={"name": "A", "gender": "male"},
+        json={"name": "A", "genders": ["male"]},
         headers=auth(admin_token),
     )
     gid = g.json()["id"]

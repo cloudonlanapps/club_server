@@ -122,7 +122,7 @@ async def _create_event(
         "endTimeUtc": start_utc + duration_hours * 3600 * 1000,
     }
     if gender is not None:
-        body["gender"] = gender
+        body["genders"] = [gender]
     if dob_on_or_after_utc is not None:
         body["dobOnOrAfterUtc"] = dob_on_or_after_utc
     if dob_on_or_before_utc is not None:
@@ -162,7 +162,7 @@ async def test_create_event_with_eligibility_and_media_round_trips(
         is_featured=True,
         gallery_uris=["https://example/g1.jpg", "https://example/g2.jpg"],
     )
-    assert event["gender"] == "male"
+    assert event["genders"] == ["male"]
     assert event["dobOnOrAfterUtc"] == DOB_2010
     assert event["dobOnOrBeforeUtc"] == DOB_2014
     assert event["isFeatured"] is True

@@ -313,7 +313,7 @@ async def test_should_reach_eligibility_fields_through_correction(
         client,
         admin,
         programme["id"],
-        gender="female",
+        genders=["female"],
         **with_event_band(
             {"dobOnOrAfterUtc": dob_after, "dobOnOrBeforeUtc": dob_before},
             programme["startTimeUtc"],
@@ -322,7 +322,7 @@ async def test_should_reach_eligibility_fields_through_correction(
 
     assert response.status_code == 200, response.text
     fetched = await get_event(client, admin, programme["id"])
-    assert fetched["gender"] == "female"
+    assert fetched["genders"] == ["female"]
     assert fetched["dobOnOrAfterUtc"] == dob_after
     assert fetched["dobOnOrBeforeUtc"] == dob_before
 

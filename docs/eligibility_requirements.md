@@ -140,12 +140,14 @@ removed automatically.
   gender is in the list; a member with no gender recorded does not. This
   is the rule for enrolment, an event's and a semi-auto group's eligible
   users, an auto group's members and the no-longer-eligible marks alike.
-- **R33** [X] A value that is not a gender, a value repeated in the list,
-  or a write that sends both `genders` and `gender` → 422, and nothing is
-  changed.
-- **R34** [✅] For one release the single `gender` stays on the API. On a
-  write it is a list of one, and `null` clears the criterion; on a read it
-  is the one value when the list holds exactly one, else `null`.
+- **R33** [X] A value that is not a gender, or a value repeated in the
+  list → 422, and nothing is changed.
+- **R34** [X] The single `gender` criterion is not on the API. Release
+  1.0.0 carried it beside `genders` for one release; from #54 an event or
+  group write that sends it → 422 naming the field, and nothing is
+  changed, and no event or group response carries it. It could not say
+  "more than one gender" on a read, and `null` on a write wiped a list
+  of several. A member's own `gender` is a different field and stays.
 - **R35** [✅] A group whose `genders` is empty has no gender criterion,
   so a group with no age bound either is manual (groups R5).
 

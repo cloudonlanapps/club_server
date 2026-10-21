@@ -7,7 +7,7 @@ from ..age_eligibility import Age, EligibilityWindow, decode_age
 from ..db.models.event import Event
 from ..db.models.event_schedule import EventSchedule
 from ..db.models.user import Gender
-from ..genders import resolve_gender_write, single_gender
+from ..genders import reject_repeated_genders
 from .common import CamelCaseModel, to_camel
 from .event_marketing import BasicMarketingFields
 from .user import PublicProfileResponse
@@ -51,7 +51,7 @@ def _event_service_kwargs(model: CamelCaseModel) -> dict[str, object]:
     return {
         rename.get(name, name): getattr(model, name)
         for name in type(model).model_fields
-        if name not in ("version", "gender")
+        if name != "version"
     }
 
 
@@ -80,7 +80,6 @@ class EventCreate(BasicMarketingFields):
     start_time_utc: int
     end_time_utc: int
     rrule: str | None = None
-    gender: Gender | None = None
     genders: list[Gender] | None = None
     min_age: Age | None = None
     max_age: Age | None = None
@@ -90,7 +89,7 @@ class EventCreate(BasicMarketingFields):
     sessions: list[Session] | None = None
 
     _reject_until = model_validator(mode="before")(_reject_until_time_utc)
-    _genders = model_validator(mode="after")(resolve_gender_write)
+    _genders = model_validator(mode="after")(reject_repeated_genders)
 
     def to_service_kwargs(self) -> dict[str, object]:
         return _event_service_kwargs(self)
@@ -116,7 +115,6 @@ class EventUpdate(BasicMarketingFields):
     visibility: VisibilityT | None = None
     organizer_name: str | None = None
     coach_names: list[str] | None = None
-    gender: Gender | None = None
     genders: list[Gender] | None = None
     min_age: Age | None = None
     max_age: Age | None = None
@@ -126,7 +124,7 @@ class EventUpdate(BasicMarketingFields):
     sessions: list[Session] | None = None
 
     _reject_until = model_validator(mode="before")(_reject_until_time_utc)
-    _genders = model_validator(mode="after")(resolve_gender_write)
+    _genders = model_validator(mode="after")(reject_repeated_genders)
 
     def to_service_kwargs(self) -> dict[str, object]:
         return _event_service_kwargs(self)
@@ -158,7 +156,6 @@ class EventResponse(CamelCaseModel):
     # (exit side), and no live occurrence remains ahead (join side, L7).
     is_past: bool
     has_ended: bool
-    gender: str | None = None
     genders: list[str] = []
     # The age band (eligibility R1), and what it comes to on the event's
     # reference day (R12): the window of birth dates, both ends inclusive.
@@ -209,7 +206,6 @@ class EventResponse(CamelCaseModel):
             until_time_utc=current.effective_until,
             is_past=lifecycle.is_past,
             has_ended=lifecycle.has_ended,
-            gender=single_gender(event.gender_list),
             genders=event.gender_list,
             min_age=decode_age(event.min_age),
             max_age=decode_age(event.max_age),
@@ -373,7 +369,6 @@ class EventCorrectionRequest(BasicMarketingFields):
     title: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = None
     visibility: VisibilityT | None = None
-    gender: Gender | None = None
     genders: list[Gender] | None = None
     min_age: Age | None = None
     max_age: Age | None = None
@@ -383,7 +378,7 @@ class EventCorrectionRequest(BasicMarketingFields):
     sessions: list[Session] | None = None
     schedule_id: int | None = None
 
-    _genders = model_validator(mode="after")(resolve_gender_write)
+    _genders = model_validator(mode="after")(reject_repeated_genders)
 
     @model_validator(mode="after")
     def _schedule_id_needs_sessions(self) -> "EventCorrectionRequest":

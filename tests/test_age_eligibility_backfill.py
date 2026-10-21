@@ -73,7 +73,7 @@ async def test_should_report_the_dates_a_group_stored_before_the_migration(
 ):
     admin = await create_admin_user(db_session)
     created = await client.post(
-        "/v1/groups", json={"name": "U16", "gender": "male"}, headers=auth(admin)
+        "/v1/groups", json={"name": "U16", "genders": ["male"]}, headers=auth(admin)
     )
     assert created.status_code == 201, created.text
     group_id = created.json()["id"]

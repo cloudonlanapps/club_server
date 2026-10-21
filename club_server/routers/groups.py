@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
-from ..genders import single_gender
 from ..dependencies import (
     get_db,
     require_admin,
@@ -121,7 +120,6 @@ async def get_group(
         description=group.description,
         kind=group.kind,
         **age_band_fields(group),
-        gender=single_gender(group.gender_list),
         genders=group.gender_list,
         members=members,
         ineligible_member_count=await group_service.ineligible_member_count(group),

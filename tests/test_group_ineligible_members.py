@@ -132,7 +132,7 @@ async def test_should_flag_a_member_whose_gender_no_longer_matches(
 ):
     admin = await create_admin_user(db_session)
     _ = await create_member_user(db_session, "amy", gender="female")
-    group_id = await create_group(client, admin, gender="female", semiAuto=True)
+    group_id = await create_group(client, admin, genders=["female"], semiAuto=True)
     await add(client, admin, group_id, "amy")
 
     _ = await db_session.execute(

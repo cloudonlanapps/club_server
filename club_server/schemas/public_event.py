@@ -54,7 +54,6 @@ class PublicEventResponse(CamelCaseModel):
     end_time_utc: int
     until_time_utc: int | None
     sessions: list[Session] | None
-    gender: str | None
     genders: list[str]
     min_age: Age | None
     max_age: Age | None
@@ -99,7 +98,6 @@ class PublicEventResponse(CamelCaseModel):
             end_time_utc=base.end_time_utc,
             until_time_utc=base.until_time_utc,
             sessions=base.sessions,
-            gender=base.gender,
             genders=base.genders,
             min_age=base.min_age,
             max_age=base.max_age,
