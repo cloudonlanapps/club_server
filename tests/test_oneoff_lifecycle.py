@@ -401,7 +401,7 @@ async def test_should_reject_correction_and_split_when_event_is_a_oneoff(
 
 @pytest.mark.requirement("oneoff:R17")
 @pytest.mark.asyncio
-async def test_should_treat_drop_and_occurrence_cancel_as_one_operation(
+async def test_should_record_drop_as_its_occurrence_cancelled(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -409,8 +409,14 @@ async def test_should_treat_drop_and_occurrence_cancel_as_one_operation(
     start = at(days=2)
     oneoff = await create_oneoff(client, admin, venue, start=start)
 
-    cancelled = await cancel_occurrence(client, admin, oneoff["id"], start)
-    assert cancelled.status_code == 204, cancelled.text
+    dropped = await drop(client, admin, oneoff["id"])
+    assert dropped.status_code == 200, dropped.text
+    assert (await _occurrence(client, admin, oneoff["id"], start))[
+        "status"
+    ] == "cancelled"
+    refused = await cancel_occurrence(client, admin, oneoff["id"], start)
+    assert refused.status_code == 422, refused.text
+    assert refused.json()["detail"]["code"] == "INVALID_STATE"
     again = await drop(client, admin, oneoff["id"])
     assert again.status_code == 422, again.text
     assert again.json()["detail"]["code"] == "CANCELLED_OCCURRENCE"
