@@ -99,7 +99,12 @@ class CampService(EventService):
         expected_version: int,
         actor: str | None = None,
     ) -> tuple[Event, bool]:
-        """R5, R5a: set the cutoff. The camp runs normally up to it (L6, L9).
+        """R5, R5a, R5e: set the cutoff, or move it earlier. The camp runs
+        normally up to it (L6, L9).
+
+        A camp already cancelled may be cancelled again from an earlier
+        occurrence start (R5e), under the same rules; a cutoff at or after
+        the current one is refused, since moving the end later is undo (R5d).
 
         Enrollment rows are not mutated: enrollment answers a different
         question and must survive a cancel so a later undo stays intact.
@@ -109,7 +114,7 @@ class CampService(EventService):
         """
         event = await self.get_live_event(event_id)
         self.check_version(event, expected_version)
-        if event.cutoff is not None:
+        if event.cutoff is not None and effective_time >= event.cutoff:
             raise EventAlreadyCancelledException(event_id)
         override_used = validate_camp_cancellation_time(
             event, effective_time, is_super_admin=is_super_admin
