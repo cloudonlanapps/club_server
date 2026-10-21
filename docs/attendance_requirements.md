@@ -47,9 +47,12 @@ Convention:
   that event, and nothing more (R7–R7b).
 - **Staff** = users with the `admin` or `coach` role, or super-admin.
 - **Effective start** = the occurrence's override start where one
-  exists, otherwise its slot. Every window below is measured from it,
-  never from the slot (R15b).
-- **Edit window** = a 15-day upper bound after the effective start
+  exists, otherwise its slot. The open and leave windows below are
+  measured from it, never from the slot (R15b).
+- **Effective end** = the occurrence's override end where one exists,
+  otherwise its slot plus the schedule's duration. The edit window is
+  measured from it (R15b).
+- **Edit window** = a 15-day upper bound after the effective end
   during which non-super-admin staff may write attendance.
 - **Open window (lower bound)** = a 30-minute lead before the effective
   start, before which **no** caller may write attendance (R12).
@@ -136,9 +139,11 @@ Convention:
   register opens relative to where it was moved to. No role bypasses
   this, super-admin included (R11).
 - **R13** [✅] Mark-attendance later than 15 days after the occurrence's
-  **effective start** → 422 `EDIT_WINDOW_CLOSED`. Super-admin bypasses
+  **effective end** → 422 `EDIT_WINDOW_CLOSED`. Super-admin bypasses
   (R11). The boundary is inclusive: a write at exactly
-  `effective start + 15 days` is allowed.
+  `effective end + 15 days` is allowed. The end, not the start: a
+  session's register stays editable for 15 whole days after it finishes,
+  however long it ran (#52).
 - **R14** [✅] Approve-leave / reject-leave on the staff side are also
   gated by the same 15-day edit window (R13).
 - **R15** [✅] Declare-leave (member-side) later than 2 hours before the
@@ -151,11 +156,13 @@ Convention:
   opens 30 minutes before the occurrence (R12). Anything reasoning about how
   early an attendance row can exist must use this bound, not R12's. See
   programme R24c, where assuming otherwise produced a wrong requirement.
-- **R15b** All three windows are measured from the **effective start**.
-  One clock, not two. This matters because a reschedule may only postpone
-  (programme R19a), so an override always moves the effective start
-  later: measuring the edit window from the slot instead would close it
-  before a postponed occurrence's register had opened.
+- **R15b** All three windows are measured from the occurrence's
+  **effective** times, never from the slot: the open and leave windows
+  from the effective start, the edit window from the effective end. This
+  matters because a reschedule may only postpone (programme R19a), so an
+  override always moves the occurrence later: measuring the edit window
+  from the slot instead would close it before a postponed occurrence's
+  register had opened.
 - **R16** [✅] The 30-minute lead, 2-hour leave-declaration cutoff,
   and 15-day edit window are hard-coded constants. Changing them is a
   code change, not a configuration change.
