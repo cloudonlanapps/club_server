@@ -26,6 +26,7 @@ from .redesign_helpers import (
     create_venue,
     drop,
     notifications_for,
+    reinstate,
     undo_cancel_occurrence,
 )
 
@@ -136,7 +137,7 @@ async def test_should_return_422_when_restoring_a_past_occurrence(
 
 
 @pytest.mark.asyncio
-async def test_should_return_422_when_restoring_a_dropped_oneoff_that_has_started(
+async def test_should_return_422_when_reinstating_a_dropped_oneoff_that_has_started(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -150,10 +151,10 @@ async def test_should_return_422_when_restoring_a_dropped_oneoff_that_has_starte
     await _move_start(db_session, oneoff["id"], started)
     await _move_cancelled_override(db_session, oneoff["id"], started)
 
-    response = await undo_cancel_occurrence(client, regular, oneoff["id"], started)
+    response = await reinstate(client, regular, oneoff["id"])
 
     assert response.status_code == 422, response.text
-    assert response.json()["detail"]["code"] == "PAST_OCCURRENCE"
+    assert response.json()["detail"]["code"] == "INVALID_STATE"
     assert await _status_of(client, admin, oneoff["id"], started) == "cancelled"
 
 

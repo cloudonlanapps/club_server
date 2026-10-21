@@ -291,14 +291,16 @@ async def test_cancel_occurrence(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
     venue_id = await create_venue(client, token)
 
-    start_ms = future_time_ms(24)
+    # Whole seconds: a camp's rule only produces second-aligned starts.
+    start_ms = future_time_ms(24) // 1000 * 1000
     end_ms = future_time_ms(25)
 
     create_response = await client.post(
         "/v1/events",
         json={
             "title": "Test Event",
-            "type": "oneOff",
+            "type": "camp",
+            "rrule": "FREQ=DAILY;COUNT=1",
             "venueId": venue_id,
             "startTimeUtc": start_ms,
             "endTimeUtc": end_ms,
@@ -335,14 +337,16 @@ async def test_cancel_already_cancelled_occurrence_fails(
     token = await create_admin_user(db_session)
     venue_id = await create_venue(client, token)
 
-    start_ms = future_time_ms(24)
+    # Whole seconds: a camp's rule only produces second-aligned starts.
+    start_ms = future_time_ms(24) // 1000 * 1000
     end_ms = future_time_ms(25)
 
     create_response = await client.post(
         "/v1/events",
         json={
             "title": "Test Event",
-            "type": "oneOff",
+            "type": "camp",
+            "rrule": "FREQ=DAILY;COUNT=1",
             "venueId": venue_id,
             "startTimeUtc": start_ms,
             "endTimeUtc": end_ms,
@@ -853,15 +857,17 @@ async def test_undo_cancel_occurrence(client: AsyncClient, db_session: AsyncSess
     """Test that undo-cancel restores a cancelled occurrence."""
     token = await create_admin_user(db_session)
     venue_id = await create_venue(client, token)
-    start_time = future_time_ms(24)
+    # Whole seconds: a camp's rule only produces second-aligned starts.
+    start_time = future_time_ms(24) // 1000 * 1000
 
     end_time = future_time_ms(25)
 
     event_response = await client.post(
         "/v1/events",
         json={
-            "title": "Test OneOff",
-            "type": "oneOff",
+            "title": "Test Camp",
+            "type": "camp",
+            "rrule": "FREQ=DAILY;COUNT=1",
             "venueId": venue_id,
             "startTimeUtc": start_time,
             "endTimeUtc": end_time,

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..db.models.event import Event
 from ..db.models.user import User
 from ..utils import get_client_ip
 from ..dependencies import (
@@ -47,9 +48,27 @@ from ..exceptions import (
 from ..services.audit import AuditService
 from ..services.audit_actions import AuditAction
 from ..services.attendance import AttendanceService
+from ..services.event_types import EventVerb, offers
 from ..services.occurrence import OccurrenceService
 
 router = APIRouter(tags=["Occurrences"])
+
+
+def refuse_oneoff(event: Event, route: str) -> None:
+    """422 ``INVALID_STATE`` for a one-off, naming ``route`` (one-off R8a, #48).
+
+    A one-off is called off with ``/drop`` and brought back with
+    ``/reinstate``; the per-occurrence cancel routes are for camps and
+    programmes.
+    """
+    if offers(event, EventVerb.drop):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "INVALID_STATE",
+                "message": f"A one-off is not cancelled per occurrence; use {route}",
+            },
+        )
 
 
 def stale_occurrence_error(exc: StaleOccurrenceVersionException) -> HTTPException:
@@ -264,6 +283,7 @@ async def cancel_occurrence(
     try:
         event = await occurrence_service.get_event_or_raise(event_id)
         require_organizer_or_admin(event.organizer_name, current_user)
+        refuse_oneoff(event, "/drop")
 
         override_used = await occurrence_service.cancel_occurrence(
             event_id,
@@ -334,6 +354,7 @@ async def undo_cancel_occurrence(
     try:
         event = await occurrence_service.get_event_or_raise(event_id)
         require_organizer_or_admin(event.organizer_name, current_user)
+        refuse_oneoff(event, "/reinstate")
 
         override_used = await occurrence_service.restore_occurrence(
             event_id,

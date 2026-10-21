@@ -69,6 +69,12 @@ it does not.
   time. A one-off has no series, and a series end time carrying the
   meaning "this is cancelled" is an overload that makes the value mean
   two different things across event types.
+- **R8a** [X] The per-occurrence routes
+  `POST …/occurrences/{t}/cancel` and `…/undo-cancel` refuse a one-off
+  with 422 `INVALID_STATE`, naming `/drop` or `/reinstate`. Dropping and
+  reinstating are the only way a one-off is called off and brought back,
+  so R5, R7 and the reinstate conflict advisory apply every time, and the
+  audit log names one action for each (#48).
 - **R9** [✅] An admin can soft-delete a one-off, and restore it.
 - **R10** [X] A regular admin cannot hard-delete a one-off → 403.
 - **R11** [✅] A super-admin can hard-delete a soft-deleted one-off.
@@ -149,11 +155,11 @@ it does not.
   only against a start in the past; `new_start_time` is otherwise
   unbounded, so a one-off three weeks out can be moved to yesterday.
   Tracked as #375.
-- **R17** [GAP] Dropping the event and cancelling its occurrence are the
-  same operation under two names, and both are offered: *drop* reads
-  naturally for something with a single occasion, while occurrence-cancel
-  keeps the surface uniform across event types. They resolve to one
-  implementation, so they cannot drift apart or disagree about state.
+- **R17** [GAP] Dropping the event records its single occurrence as
+  cancelled (R8), through the same implementation that cancels a camp's
+  or programme's occurrence, so the two cannot disagree about state. Only
+  *drop* is offered for a one-off: the per-occurrence cancel and
+  undo-cancel routes refuse it (R8a, #48).
 - **R18** [✅] An admin / coach / organizer can mark attendance for the
   occurrence.
 - **R19** [GAP] Attendance mutations on a dropped one-off are rejected,
