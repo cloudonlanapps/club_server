@@ -43,6 +43,7 @@ from .event_eligibility import apply_age_band, validate_age_band
 from .event_marketing_basic import apply_basic_marketing
 from .event_types import validate_rrule_for
 from .notification import NotificationEvent, NotificationService
+from .occurrence_reminders import delete_occurrence_reminders
 from .schedule import first_slot
 from .schedule_writes import (
     decode_sessions,
@@ -568,6 +569,7 @@ class EventService:
         event.deleted_at = deleted_at
         event.touch(actor, deleted_at)
         await self.db.flush()
+        _ = await delete_occurrence_reminders(self.db, event.id)
         await self.notify(
             "event.deleted",
             recipients,

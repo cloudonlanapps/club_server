@@ -21,6 +21,7 @@ from ..utils import now_utc_ms
 from .event import EventService
 from .in_place_reschedule import reschedule_in_place
 from .register_clearing import clear_cancelled_registers, marked_occurrences_at_or_after
+from .occurrence_reminders import delete_occurrence_reminders
 from .rrule import parse_rrule_with_exdates
 from .schedule import is_slot_of_current_schedule
 from .schedule_writes import CANCELLATION_LEAD_TIME_MS
@@ -130,6 +131,9 @@ class CampService(EventService):
             event,
             await marked_occurrences_at_or_after(self.db, event.id, effective_time),
             actor,
+        )
+        _ = await delete_occurrence_reminders(
+            self.db, event.id, from_time=effective_time
         )
         if not override_used:
             await self.notify(
