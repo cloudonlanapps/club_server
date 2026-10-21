@@ -142,6 +142,10 @@ everything in this section is what an SDK update has to absorb.
 - Answer 409 `DUPLICATE_EMAIL` instead of 500 when `PATCH /v1/users/by_id/{username}` or `PATCH /v1/users/by_id/{username}/reapply` sets an email another active user holds (#464).
 - Refuse a refresh token on every access-token path with 401 `INVALID_TOKEN` (it is accepted only by `POST /v1/auth/refresh`), and refuse any access or refresh token issued before the user's latest password change or admin reset (401 `INVALID_TOKEN`, or `INVALID_REFRESH_TOKEN` on `/auth/refresh`). Tokens now carry `iat`; tokens issued before this release keep working until they expire unless the password changes. Adds `users.password_changed_at` (migration `k1f2a3b4c5d6`) (#461).
 
+### Event lifecycle on responses
+
+- `EventResponse` carries `isPast` and `hasEnded`, worked out when the response is built: `hasEnded` is true when no live occurrence remains at or after now (the rule join-side flows refuse on), and `isPast` when every occurrence has finished, cancelled or not (the rule exit-side flows treat as a retrospective correction). A programme past its cutoff or a camp whose remaining days are all cancelled has ended but is not past; an open-ended programme is neither (#53).
+
 ### Version
 
 - `GET /` and `openapi.json` (`info.version`) report the `VERSION` file instead of a hardcoded `1.0.0`, and `pyproject.toml` reads its version from the same file, replacing `0.1.0`. `VERSION` is the server's only version number.
