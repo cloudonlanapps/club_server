@@ -32,6 +32,10 @@ from ..services.eligibility import (
 )
 from ..services.lifecycle import is_occurrence_cancelled
 from ..services.notification import NotificationEvent, NotificationService
+from ..services.occurrence_reminders import (
+    PENDING_MARK_REMINDER,
+    delete_occurrence_reminders,
+)
 from ..services.schedule import duration_of, schedule_for_slot
 from ..utils import now_utc_ms
 
@@ -298,6 +302,14 @@ class AttendanceService:
             self.db.add(record)
 
         await self.db.flush()
+        # The session has a register now; the reminder to mark it is
+        # stale in every staff inbox (#50, notifications R93b).
+        _ = await delete_occurrence_reminders(
+            self.db,
+            event_id,
+            occurrence_time=occurrence_time_utc,
+            types=(PENDING_MARK_REMINDER,),
+        )
 
         trial_ended = await self._credit.reconcile(
             event_id, occurrence_time_utc, membername, actor
