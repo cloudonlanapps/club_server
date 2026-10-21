@@ -32,7 +32,7 @@ from ..services.eligibility import (
 )
 from ..services.lifecycle import is_occurrence_cancelled
 from ..services.notification import NotificationEvent, NotificationService
-from ..services.schedule import schedule_for_slot
+from ..services.schedule import duration_of, schedule_for_slot
 from ..utils import now_utc_ms
 
 
@@ -117,14 +117,43 @@ class AttendanceService:
             return override.new_start_time
         return occurrence_time_utc
 
+    async def get_effective_end(self, event_id: int, occurrence_time_utc: int) -> int:
+        """The occurrence's end: the override's new end, else the slot's end.
+
+        An override that moved the start without recording an end keeps the
+        slot's duration from its new start.
+        """
+        override = (
+            await self.db.execute(
+                select(OccurrenceOverride).where(
+                    OccurrenceOverride.event_id == event_id,
+                    OccurrenceOverride.occurrence_time == occurrence_time_utc,
+                )
+            )
+        ).scalar_one_or_none()
+        if override is not None and override.new_end_time is not None:
+            return override.new_end_time
+        start = (
+            override.new_start_time
+            if override is not None and override.new_start_time is not None
+            else occurrence_time_utc
+        )
+        event = (
+            await self.db.execute(select(Event).where(Event.id == event_id))
+        ).scalar_one_or_none()
+        schedule = (
+            schedule_for_slot(event, occurrence_time_utc) if event is not None else None
+        )
+        return start + (duration_of(schedule) if schedule is not None else 0)
+
     async def check_edit_window(
         self, event_id: int, occurrence_time_utc: int, is_super_admin: bool
     ) -> None:
-        """Check if attendance can be edited within the 15-day window."""
+        """Refuse a write later than 15 days after the occurrence's effective end."""
         if is_super_admin:
             return
-        effective_start = await self.get_effective_start(event_id, occurrence_time_utc)
-        window_end = effective_start + ATTENDANCE_EDIT_WINDOW_MS
+        effective_end = await self.get_effective_end(event_id, occurrence_time_utc)
+        window_end = effective_end + ATTENDANCE_EDIT_WINDOW_MS
         if now_utc_ms() > window_end:
             raise EditWindowClosedException()
 

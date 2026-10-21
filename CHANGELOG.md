@@ -124,6 +124,10 @@ everything in this section is what an SDK update has to absorb.
 - List the media links of a soft-deleted event on `GET /v1/events/by_id/{event_id}/media`, `…/media/{tag}` and `…/media/{tag}/{media_uuid}`, as a soft-deleted group's or venue's already were; they answered 404 `EVENT_NOT_FOUND`. Every link row — on the user, event, group, venue and evaluation link listings, `GET /v1/media/by_id/{uuid}/links` and `GET /v1/media/links` — carries a new boolean `ownerDeleted`, true while its owner is soft-deleted. Adding, changing or removing a link on a soft-deleted event, group or venue answers 422 `OWNER_DELETED` until the owner is restored (#517).
 - Answer `POST /v1/media` with 422 `MEDIA_CONVERSION_FAILED` when an image or PDF uploaded without `preserveOriginal` cannot be converted, including a PDF whose first page cannot be rendered; no media item is created and the staged files are removed. A converter failure answered 500 `INTERNAL_ERROR`, and a `%PDF` header over garbage was stored as `completed` with no poster (#521).
 
+### Bug fixes: occurrences, reminders and attendance
+
+- Close the attendance edit window 15 days after the occurrence's effective end (its rescheduled end when it was moved) instead of 15 days after its start: marking, clearing and deciding leave answer 422 `EDIT_WINDOW_CLOSED` only after `end + 15 days`. A super-admin still has no limit (#52).
+
 ### Security: users and access
 
 - Refuse `PATCH /v1/users/by_id/{username}` on a super-admin target unless the caller is a super admin, with 403 `SUPER_ADMIN_PROTECTION` (#458).
