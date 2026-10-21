@@ -664,7 +664,7 @@ async def test_create_auto_group_with_criteria(
                 "name": "Boys 2010-2014",
                 "dobOnOrAfterUtc": DOB_2010,
                 "dobOnOrBeforeUtc": DOB_2014,
-                "gender": "male",
+                "genders": ["male"],
             }
         ),
         headers={"Authorization": f"Bearer {token}"},
@@ -672,7 +672,7 @@ async def test_create_auto_group_with_criteria(
     assert response.status_code == 201
     data = response.json()
     assert data["kind"] == "auto"
-    assert data["gender"] == "male"
+    assert data["genders"] == ["male"]
     assert data["dobOnOrAfterUtc"] == DOB_2010
     assert data["dobOnOrBeforeUtc"] == DOB_2014
 
@@ -727,7 +727,7 @@ async def test_auto_group_rejects_add_member(
 
     create_response = await client.post(
         "/v1/groups",
-        json={"name": "Auto Group", "gender": "male"},
+        json={"name": "Auto Group", "genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -774,7 +774,7 @@ async def test_auto_group_rejects_remove_member(
 
     create_response = await client.post(
         "/v1/groups",
-        json={"name": "Auto Group", "gender": "female"},
+        json={"name": "Auto Group", "genders": ["female"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -801,7 +801,7 @@ async def test_auto_group_dynamic_members_by_gender(
 
     create_response = await client.post(
         "/v1/groups",
-        json={"name": "Males Only", "gender": "male"},
+        json={"name": "Males Only", "genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -904,7 +904,7 @@ async def test_auto_group_dynamic_members_combined(
                 "name": "Boys 2010-2014",
                 "dobOnOrAfterUtc": DOB_2010,
                 "dobOnOrBeforeUtc": DOB_2014,
-                "gender": "male",
+                "genders": ["male"],
             }
         ),
         headers={"Authorization": f"Bearer {token}"},
@@ -954,7 +954,7 @@ async def test_auto_group_excludes_non_active_users(
 
     create_response = await client.post(
         "/v1/groups",
-        json={"name": "Males", "gender": "male"},
+        json={"name": "Males", "genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_response.json()["id"]
@@ -981,7 +981,7 @@ async def test_auto_group_member_count_in_list(
 
     await client.post(
         "/v1/groups",
-        json={"name": "Males", "gender": "male"},
+        json={"name": "Males", "genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -1134,7 +1134,7 @@ async def test_update_manual_group_with_members_to_auto_rejected_gender(
 
     response = await client.patch(
         f"/v1/groups/by_id/{group_id}",
-        json={"gender": "male"},
+        json={"genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
@@ -1145,7 +1145,7 @@ async def test_update_manual_group_with_members_to_auto_rejected_gender(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert get_resp.json()["kind"] == "manual"
-    assert get_resp.json()["gender"] is None
+    assert get_resp.json()["genders"] == []
 
 
 @pytest.mark.requirement("groups:R8")
@@ -1195,7 +1195,7 @@ async def test_update_manual_group_no_members_to_auto_allowed(
 
     response = await client.patch(
         f"/v1/groups/by_id/{group_id}",
-        json={"gender": "male"},
+        json={"genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1211,7 +1211,7 @@ async def test_update_auto_group_criteria_change_allowed(
 
     create_resp = await client.post(
         "/v1/groups",
-        json={"name": "Auto Group", "gender": "male"},
+        json={"name": "Auto Group", "genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_resp.json()["id"]
@@ -1281,7 +1281,7 @@ async def test_update_manual_group_remove_members_then_set_criteria(
 
     response = await client.patch(
         f"/v1/groups/by_id/{group_id}",
-        json={"gender": "female"},
+        json={"genders": ["female"]},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200

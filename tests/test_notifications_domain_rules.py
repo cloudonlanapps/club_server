@@ -30,7 +30,7 @@ from .redesign_helpers import (
 async def _auto_group(client: AsyncClient, admin: str) -> int:
     """An auto group whose criteria amy (female) matches."""
     created = await client.post(
-        "/v1/groups", json={"name": "Girls", "gender": "female"}, headers=auth(admin)
+        "/v1/groups", json={"name": "Girls", "genders": ["female"]}, headers=auth(admin)
     )
     assert created.status_code == 201, created.text
     assert created.json()["kind"] == "auto"

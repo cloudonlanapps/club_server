@@ -808,7 +808,7 @@ async def test_list_user_occurrences_excludes_ineligible_public_event(
             "venueId": venue_id,
             "startTimeUtc": start_time,
             "endTimeUtc": end_time,
-            "gender": "female",
+            "genders": ["female"],
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
@@ -866,7 +866,7 @@ async def test_list_user_occurrences_includes_ineligible_public_event_when_enrol
 
     patch = await client.patch(
         f"/v1/events/by_id/{event_id}",
-        json={"gender": "female", "version": 1},
+        json={"genders": ["female"], "version": 1},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert patch.status_code == 200, patch.text

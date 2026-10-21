@@ -88,7 +88,7 @@ async def _create_event(
         "endTimeUtc": future_time(25),
     }
     if gender is not None:
-        body["gender"] = gender
+        body["genders"] = [gender]
     if dob_on_or_after_utc is not None:
         body["dobOnOrAfterUtc"] = dob_on_or_after_utc
     if dob_on_or_before_utc is not None:

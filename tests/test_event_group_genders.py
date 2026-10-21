@@ -1,10 +1,9 @@
 """An event's and a group's eligibility take several genders (#25, #26,
-eligibility R31–R35).
+eligibility R31–R33, R35).
 
 A criterion is a list of genders: a member passes when their gender is in
 it, and an empty list is no criterion at all. The old single ``gender`` is
-kept for a release as a list of one on writes, and as the one value on
-reads when the list has exactly one.
+gone from the API (R34, #54); ``test_single_gender_removed.py`` covers that.
 """
 
 import pytest
@@ -74,7 +73,6 @@ async def test_should_store_and_return_genders_when_event_is_created_with_a_list
     event = await create_oneoff(client, admin, venue, genders=THREE)
 
     assert event["genders"] == THREE
-    assert event["gender"] is None
     assert (await get_event(client, admin, event["id"]))["genders"] == THREE
 
 
@@ -115,7 +113,6 @@ async def test_should_clear_the_criterion_when_event_genders_is_empty_or_null(
     for response in (emptied, nulled):
         assert response.status_code == 200, response.text
         assert response.json()["genders"] == []
-        assert response.json()["gender"] is None
         eligible = await _event_eligible(client, admin, response.json()["id"])
         assert {"boy", "girl", "oth", "pnts", "nogender"} <= eligible
 
@@ -147,44 +144,6 @@ async def test_should_reject_event_genders_when_a_value_is_unknown_or_repeated(
         assert updated.status_code == 422, (bad, updated.text)
 
     assert (await get_event(client, admin, event["id"]))["genders"] == []
-
-
-@pytest.mark.requirement("eligibility:R33")
-@pytest.mark.asyncio
-async def test_should_reject_an_event_write_that_sends_both_gender_and_genders(
-    client: AsyncClient, db_session: AsyncSession
-):
-    admin = await create_admin_user(db_session)
-    venue = await create_venue(client, admin)
-    event = await create_oneoff(client, admin, venue)
-
-    response = await _update_event(
-        client, admin, event["id"], gender="male", genders=["male", "other"]
-    )
-
-    assert response.status_code == 422, response.text
-    assert (await get_event(client, admin, event["id"]))["genders"] == []
-
-
-@pytest.mark.requirement("eligibility:R34")
-@pytest.mark.asyncio
-async def test_should_read_the_old_gender_as_a_list_of_one_when_event_is_written(
-    client: AsyncClient, db_session: AsyncSession
-):
-    admin = await create_admin_user(db_session)
-    await _members(client, admin, db_session)
-    venue = await create_venue(client, admin)
-
-    event = await create_oneoff(client, admin, venue, gender="female")
-
-    assert event["genders"] == ["female"]
-    assert event["gender"] == "female"
-    assert await _event_eligible(client, admin, event["id"]) >= {"girl"}
-    assert "boy" not in await _event_eligible(client, admin, event["id"])
-    cleared = await _update_event(client, admin, event["id"], gender=None)
-    assert cleared.status_code == 200, cleared.text
-    assert cleared.json()["genders"] == []
-    assert cleared.json()["gender"] is None
 
 
 @pytest.mark.requirement("eligibility:R31")
@@ -232,7 +191,6 @@ async def test_should_hold_only_listed_genders_when_auto_group_has_genders(
 
     assert created.status_code == 201, created.text
     assert created.json()["genders"] == THREE
-    assert created.json()["gender"] is None
     assert created.json()["kind"] == "auto"
     members = await client.get(
         f"/v1/groups/by_id/{created.json()['id']}/members", headers=auth(admin)
@@ -310,22 +268,3 @@ async def test_should_reject_group_genders_when_a_value_is_unknown_or_repeated(
             headers=auth(admin),
         )
         assert updated.status_code == 422, (bad, updated.text)
-
-
-@pytest.mark.requirement("eligibility:R34")
-@pytest.mark.asyncio
-async def test_should_read_the_old_gender_as_a_list_of_one_when_group_is_written(
-    client: AsyncClient, db_session: AsyncSession
-):
-    admin = await create_admin_user(db_session)
-
-    created = await _create_group(client, admin, name="Girls", gender="female")
-
-    assert created.status_code == 201, created.text
-    assert created.json()["genders"] == ["female"]
-    assert created.json()["gender"] == "female"
-    detail = await client.get(
-        f"/v1/groups/by_id/{created.json()['id']}", headers=auth(admin)
-    )
-    assert detail.json()["genders"] == ["female"]
-    assert detail.json()["gender"] == "female"

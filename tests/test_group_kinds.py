@@ -325,7 +325,9 @@ async def test_gender_filter_applied_for_auto_and_semi_auto(
     await _approve_user(client, token, "female1", db_session, gender="female")
 
     auto = await client.post(
-        "/v1/groups", json={"name": "AutoMales", "gender": "male"}, headers=auth(token)
+        "/v1/groups",
+        json={"name": "AutoMales", "genders": ["male"]},
+        headers=auth(token),
     )
     auto_id = auto.json()["id"]
     members = await client.get(
@@ -336,7 +338,7 @@ async def test_gender_filter_applied_for_auto_and_semi_auto(
 
     semi = await client.post(
         "/v1/groups",
-        json={"name": "SemiMales", "gender": "male", "semiAuto": True},
+        json={"name": "SemiMales", "genders": ["male"], "semiAuto": True},
         headers=auth(token),
     )
     semi_id = semi.json()["id"]
@@ -360,7 +362,7 @@ async def test_manual_to_auto_blocked_when_members_exist(
     await client.post(f"/v1/groups/by_id/{gid}/members/byname/m1", headers=auth(token))
 
     response = await client.patch(
-        f"/v1/groups/by_id/{gid}", json={"gender": "male"}, headers=auth(token)
+        f"/v1/groups/by_id/{gid}", json={"genders": ["male"]}, headers=auth(token)
     )
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "MEMBERS_EXIST"
@@ -464,7 +466,7 @@ async def test_semi_auto_to_manual_keeps_members(
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
         json=with_group_band(
-            {"dobOnOrAfterUtc": None, "dobOnOrBeforeUtc": None, "gender": None}
+            {"dobOnOrAfterUtc": None, "dobOnOrBeforeUtc": None, "genders": None}
         ),
         headers=auth(token),
     )
@@ -742,7 +744,7 @@ async def test_soft_deleted_user_excluded_from_auto_group(
     await db_session.commit()
 
     g = await client.post(
-        "/v1/groups", json={"name": "Males", "gender": "male"}, headers=auth(token)
+        "/v1/groups", json={"name": "Males", "genders": ["male"]}, headers=auth(token)
     )
     gid = g.json()["id"]
     members = await client.get(f"/v1/groups/by_id/{gid}/members", headers=auth(token))
@@ -771,7 +773,7 @@ async def test_super_admin_excluded_from_auto_group(
     await db_session.commit()
 
     g = await client.post(
-        "/v1/groups", json={"name": "Males", "gender": "male"}, headers=auth(token)
+        "/v1/groups", json={"name": "Males", "genders": ["male"]}, headers=auth(token)
     )
     gid = g.json()["id"]
     members = await client.get(f"/v1/groups/by_id/{gid}/members", headers=auth(token))
@@ -974,7 +976,7 @@ async def test_issue_93_semi_auto_to_manual_succeeds_without_eligibility_check(
             {
                 "dobOnOrAfterUtc": None,
                 "dobOnOrBeforeUtc": None,
-                "gender": None,
+                "genders": None,
                 "semiAuto": False,
             }
         ),

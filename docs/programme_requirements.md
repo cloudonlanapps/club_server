@@ -402,7 +402,7 @@ Conflating the two is the root of several defects recorded below.
   |---|---|---|
   | `title`, `description`, `visibility` | the programme | correction |
   | `isFeatured`, `galleryUris` | the programme (presentation, R22a) | correction |
-  | `gender`, `minAge`, `maxAge`, `strictAge` | the programme | correction |
+  | `genders`, `minAge`, `maxAge`, `strictAge` | the programme | correction |
   | `venueId`, `organizerName`, `coachNames` | the schedule | split |
   | `startTimeUtc`, `endTimeUtc`, `rrule` | the schedule | split |
   | `sessions` | the schedule | split, or correction of one schedule (R22c) |

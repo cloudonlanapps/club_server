@@ -214,7 +214,7 @@ async def test_should_read_public_event_by_public_id_and_404_otherwise(
             {"name": "Warm-up", "periodMinutes": 15},
             {"name": "Ice", "periodMinutes": 45},
         ],
-        gender="female",
+        genders=["female"],
         dobOnOrAfterUtc=946684800000,
     )
     private = await _event(client, admin, venue_id, visibility="private")
@@ -228,7 +228,7 @@ async def test_should_read_public_event_by_public_id_and_404_otherwise(
         {"name": "Warm-up", "periodMinutes": 15},
         {"name": "Ice", "periodMinutes": 45},
     ]
-    assert body["gender"] == "female"
+    assert body["genders"] == ["female"]
     assert body["dobOnOrAfterUtc"] == 946684800000
     assert body["isPast"] is False
     assert "id" not in body and "coachNames" not in body

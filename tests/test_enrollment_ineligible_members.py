@@ -133,7 +133,7 @@ async def test_should_tell_a_member_their_own_enrolment_no_longer_matches(
     admin = await create_admin_user(db_session)
     venue = await create_venue(client, admin)
     amy = await create_member_user(db_session, "amy", gender="female")
-    camp = await create_camp(client, admin, venue, gender="female")
+    camp = await create_camp(client, admin, venue, genders=["female"])
     assigned = await assign(client, admin, camp["id"], "amy")
     assert assigned.status_code == 204, assigned.text
     url = f"/v1/myevents/by_id/amy/{camp['id']}/enrollments"
@@ -213,7 +213,7 @@ async def test_should_notify_admins_when_a_members_gender_no_longer_matches(
     venue = await create_venue(client, admin)
     _ = await create_member_user(db_session, "amy", gender="female")
     programme = await create_programme(
-        client, admin, venue, rrule=EVERY_DAY, gender="female"
+        client, admin, venue, rrule=EVERY_DAY, genders=["female"]
     )
     assigned = await assign(client, admin, programme["id"], "amy")
     assert assigned.status_code == 204, assigned.text

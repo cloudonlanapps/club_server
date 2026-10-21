@@ -430,7 +430,7 @@ async def test_should_reject_trial_when_member_is_ineligible(
     admin = await create_admin_user(db_session)
     _ = await create_member_user(db_session, "skater", gender="male")
     venue = await create_venue(client, admin)
-    programme = await create_programme(client, admin, venue, gender="female")
+    programme = await create_programme(client, admin, venue, genders=["female"])
 
     response = await client.post(
         f"/v1/events/by_id/{programme['id']}/enrollments/assign-trial",
