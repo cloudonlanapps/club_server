@@ -173,13 +173,23 @@ async def restore_template(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
 ) -> EvaluationTemplateResponse:
-    """Restore a soft-deleted template."""
+    """Restore a soft-deleted template, renamed if its name was taken (R49b)."""
     try:
-        template = await EvaluationTemplateService(db).restore_template(template_id)
+        template, old_name = await EvaluationTemplateService(db).restore_template(
+            template_id
+        )
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
+    details = (
+        None if old_name is None else {"name": {"old": old_name, "new": template.name}}
+    )
     await audit_template(
-        db, request, current_user, AuditAction.RESTORE_EVALUATION_TEMPLATE, template_id
+        db,
+        request,
+        current_user,
+        AuditAction.RESTORE_EVALUATION_TEMPLATE,
+        template_id,
+        details,
     )
     return await EvaluationTemplateService(db).response(template)
 

@@ -151,11 +151,11 @@ class EvaluationTemplateService:
             raise EvaluationOriginMismatchException(origin.id)
         return origin.id
 
-    async def refuse_taken_name(self, name: str, own_id: int | None = None) -> None:
-        """A live template's name is unique, ignoring case and outer spaces (R49a).
+    async def name_is_taken(self, name: str, own_id: int | None = None) -> bool:
+        """Whether a live template holds ``name``, ignoring case and outer spaces.
 
         ``own_id`` is the template being renamed or restored, which does not
-        collide with itself.
+        collide with itself (R49a).
         """
         query = select(EvaluationTemplate.id).where(
             EvaluationTemplate.deleted_at.is_(None),
@@ -165,7 +165,11 @@ class EvaluationTemplateService:
         if own_id is not None:
             query = query.where(EvaluationTemplate.id != own_id)
         taken = await self.db.execute(query.limit(1))
-        if taken.scalar_one_or_none() is not None:
+        return taken.scalar_one_or_none() is not None
+
+    async def refuse_taken_name(self, name: str, own_id: int | None = None) -> None:
+        """A live template's name is unique (R49a)."""
+        if await self.name_is_taken(name, own_id):
             raise EvaluationTemplateNameTakenException(name.strip())
 
     async def create_template(
@@ -268,17 +272,36 @@ class EvaluationTemplateService:
         await self.db.refresh(template)
         return template
 
-    async def restore_template(self, template_id: int) -> EvaluationTemplate:
-        """Restore a soft-deleted template."""
+    async def restore_template(
+        self, template_id: int
+    ) -> tuple[EvaluationTemplate, str | None]:
+        """Restore a soft-deleted template, renaming it if its name was taken.
+
+        A live template holding the name sends it to the first free
+        ``<name> -- Restored #n`` (R49b). Returns the template and, when it
+        was renamed, the name it had.
+        """
         template = await self.get_or_raise(template_id, include_deleted=True)
         if template.deleted_at is None:
             raise NothingToRestoreException("Template", template_id)
-        await self.refuse_taken_name(template.name, own_id=template_id)
+        old_name: str | None = None
+        if await self.name_is_taken(template.name, own_id=template_id):
+            old_name = template.name
+            template.name = await self._free_restored_name(template)
         template.deleted_at = None
         template.updated_at = now_utc_ms()
         await self.db.flush()
         await self.db.refresh(template)
-        return template
+        return template, old_name
+
+    async def _free_restored_name(self, template: EvaluationTemplate) -> str:
+        """The first ``<name> -- Restored #n`` no live template holds (R49b)."""
+        n = 1
+        while True:
+            candidate = f"{template.name.strip()} -- Restored #{n}"
+            if not await self.name_is_taken(candidate, own_id=template.id):
+                return candidate
+            n += 1
 
     async def hard_delete_template(self, template_id: int) -> None:
         """Hard delete a soft-deleted template. Super-admin only, never while referenced."""
