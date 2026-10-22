@@ -33,6 +33,7 @@ from ..schemas.user import (
 )
 from ..schemas.common import PaginatedResponse
 from ..exceptions import (
+    CannotActOnSelfException,
     CannotBlockSuperAdminException,
     CannotTransferFromNonSuperAdminException,
     CannotTransferToSelfException,
@@ -357,6 +358,14 @@ async def block_user(
                 "message": "Cannot block super admin",
             },
         )
+    except CannotActOnSelfException:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "CANNOT_ACT_ON_SELF",
+                "message": "Cannot block your own account",
+            },
+        )
     except InvalidStateException:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -630,7 +639,9 @@ async def delete_user(
     audit_service = AuditService(db)
 
     try:
-        user = await user_service.delete_user(username)
+        user = await user_service.delete_user(
+            username, actor_username=current_user.username
+        )
 
         await audit_service.log(
             actor_username=current_user.username,
@@ -646,6 +657,14 @@ async def delete_user(
             detail={
                 "code": "SUPER_ADMIN_PROTECTION",
                 "message": "Cannot delete super admin",
+            },
+        )
+    except CannotActOnSelfException:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "CANNOT_ACT_ON_SELF",
+                "message": "Cannot delete your own account",
             },
         )
     except UserAlreadyDeletedException:
@@ -722,7 +741,9 @@ async def mark_user_left(
     audit_service = AuditService(db)
 
     try:
-        user = await user_service.mark_left(username)
+        user = await user_service.mark_left(
+            username, actor_username=current_user.username
+        )
 
         await audit_service.log(
             actor_username=current_user.username,
@@ -746,6 +767,14 @@ async def mark_user_left(
             detail={
                 "code": "ALREADY_LEFT",
                 "message": "User is already marked as left",
+            },
+        )
+    except CannotActOnSelfException:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "CANNOT_ACT_ON_SELF",
+                "message": "Cannot mark your own account as left",
             },
         )
     except UserNotActiveException as e:

@@ -271,3 +271,69 @@ async def test_should_refuse_mark_left_when_target_is_super_admin(
     assert response.status_code == 403, response.text
     assert response.json()["detail"]["code"] == "SUPER_ADMIN_PROTECTION"
     assert (await _profile(client, regular, "admin"))["status"] == "active"
+
+
+@pytest.mark.requirement("users:R28a")
+@pytest.mark.asyncio
+async def test_should_refuse_block_when_admin_targets_themselves(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    regular = await create_regular_admin_user(db_session, "ra")
+    await db_session.commit()
+
+    response = await client.post("/v1/users/by_id/ra/block", headers=auth(regular))
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "CANNOT_ACT_ON_SELF"
+    assert (await _profile(client, admin, "ra"))["status"] == "active"
+
+
+@pytest.mark.requirement("users:R28a")
+@pytest.mark.asyncio
+async def test_should_refuse_mark_left_when_admin_targets_themselves(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    regular = await create_regular_admin_user(db_session, "ra")
+    await db_session.commit()
+
+    response = await client.post("/v1/users/by_id/ra/mark-left", headers=auth(regular))
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "CANNOT_ACT_ON_SELF"
+    assert (await _profile(client, admin, "ra"))["status"] == "active"
+
+
+@pytest.mark.requirement("users:R28a")
+@pytest.mark.asyncio
+async def test_should_refuse_soft_delete_when_admin_targets_themselves(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    regular = await create_regular_admin_user(db_session, "ra")
+    await db_session.commit()
+
+    response = await client.delete("/v1/users/by_id/ra", headers=auth(regular))
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "CANNOT_ACT_ON_SELF"
+    profile = await _profile(client, admin, "ra")
+    assert profile["deletedAtUtc"] is None
+    assert profile["status"] == "active"
+
+
+@pytest.mark.requirement("users:R28a")
+@pytest.mark.asyncio
+async def test_should_block_another_admin_when_admin_is_not_the_target(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    regular = await create_regular_admin_user(db_session, "ra")
+    _ = await create_regular_admin_user(db_session, "rb")
+    await db_session.commit()
+
+    response = await client.post("/v1/users/by_id/rb/block", headers=auth(regular))
+
+    assert response.status_code == 200, response.text
+    assert (await _profile(client, admin, "rb"))["status"] == "blocked"

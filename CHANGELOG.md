@@ -106,6 +106,7 @@ everything in this section is what an SDK update has to absorb.
 - Refuse `POST /v1/credits/accounts` for the super admin with 422 `SUPER_ADMIN_CANNOT_HOLD_CREDIT`; no account is opened. The super admin is a housekeeping account and holds no credit (#519).
 - Revoke the session on `POST /v1/auth/logout`: the access token presented, the refresh token issued with it and every pair `POST /v1/auth/refresh` issued from them answer 401 afterwards (`INVALID_TOKEN`, `INVALID_REFRESH_TOKEN`); the user's other sessions keep working. The request still takes no body. Tokens now carry a session id (`sid`) that refresh preserves; tokens issued before this release carry none and keep working until they expire. Adds `revoked_sessions` (migration `o5d6e7f8a9b0`) (#510).
 - Accept `POST /v1/auth/logout` and `POST /v1/auth/change-password` from any logged-in user, `registered` and `pending` included; they answered 403 `ACCOUNT_NOT_ACTIVE` (#510).
+- Refuse an admin acting on their own account with 422 `CANNOT_ACT_ON_SELF` on `POST /v1/users/by_id/{username}/block`, `POST …/mark-left` and `DELETE /v1/users/by_id/{username}`; the account is unchanged. The super admin acting on their own account still gets 403 `SUPER_ADMIN_PROTECTION` (#62).
 
 ### Bug fixes: notifications and preferences
 
