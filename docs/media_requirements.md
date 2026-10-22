@@ -180,8 +180,8 @@ answered.
   media type and by conversion status.
 - **R36** [X] A member cannot list every media item → 403.
 - **R37** [✅] Any logged-in user can list their own live uploads.
-- **R38** [✅] A media record can be read by its uploader or by an
-  admin.
+- **R38** [✅] A media record can be read by its uploader, an admin or
+  a coach (R40).
 - **R39** [X] Anyone else reading a media record → 404 `MEDIA_NOT_FOUND`.
 - **R40** [✅] An admin or coach reads a record whatever its access
   roles, and a soft-deleted record is still readable.
