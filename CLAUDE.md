@@ -209,6 +209,8 @@ The lifecycle:
 | `status:in-progress` | `status:blocked` | Work is blocked on an external dependency or decision |
 | `status:in-progress` | `status:needs-info` | Waiting for the user/reporter to answer something |
 | `status:blocked` / `status:needs-info` | `status:in-progress` | Block cleared, work resumed |
+| any open `status:*` | `status:deferred` | User parks it for an unknown future; the issue stays **open** |
+| `status:deferred` | `status:triage` / `status:ready` | Picked up again |
 | any `status:*` | (removed) | PR merged and issue auto-closed, or issue manually closed |
 
 Commands — always remove the old label and add the new one in the same call:
@@ -218,10 +220,13 @@ gh issue edit N --remove-label "status:triage"      --add-label "status:ready"
 gh issue edit N --remove-label "status:ready"       --add-label "status:in-progress"
 gh issue edit N --remove-label "status:in-progress" --add-label "status:blocked"
 gh issue edit N --remove-label "status:blocked"     --add-label "status:in-progress"
+gh issue edit N --remove-label "status:triage"      --add-label "status:deferred"
 
 # clear at close (use whichever status was set)
 gh issue edit N --remove-label "status:in-progress"
 ```
+
+A deferred issue is never closed for being deferred: close it only when the work is done or the user drops it.
 
 Label hygiene does **not** require per-call user confirmation — it is required, not optional. Apply transitions at the points called out in the **Standard implementation flow** below. If you notice a stale label on any issue (open or closed), fix it on sight rather than letting it accumulate.
 

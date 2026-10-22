@@ -108,13 +108,18 @@ When an issue is opened it gets `status:triage` automatically. Triage means:
 3. Replace `status:triage` with `status:ready` once it's actionable
 4. Optionally assign to a person
 
+An issue parked for an unknown future gets `status:deferred` in place of its
+other status label. It stays **open** (deferring is not closing), with a
+comment saying why; it moves back to `status:triage` or `status:ready` when
+picked up again.
+
 Labels in use:
 
 | Group | Labels |
 |---|---|
 | Type | `type:bug`, `type:feature`, `type:task` |
 | Priority | `priority:high`, `priority:medium`, `priority:low` |
-| Status | `status:triage`, `status:ready`, `status:in-progress`, `status:blocked`, `status:needs-info` |
+| Status | `status:triage`, `status:ready`, `status:in-progress`, `status:blocked`, `status:needs-info`, `status:deferred` |
 
 ## 3. Branch naming
 
