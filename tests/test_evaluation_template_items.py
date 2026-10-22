@@ -11,6 +11,8 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from club_server.db.models.evaluation_template_item import EvaluationTemplateItem
+
 from .evaluation_helpers import (
     auth,
     choice_item,
@@ -327,6 +329,86 @@ async def test_should_reject_an_inconsistent_item_when_added(
     assert response.status_code == 422
     read = await get_template(client, admin_token, template_id)
     assert read["layout"] == [rating_id, qa_id]
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("evaluation:R12d")
+async def test_should_reject_an_added_rating_when_its_scale_exceeds_ten_values(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """R12d: a rating of 1..100000 is refused on an added item."""
+    admin_token, template_id, rating_id, qa_id = await _two_items(client, db_session)
+
+    response = await client.post(
+        f"{_base(template_id)}/items",
+        json={"item": rating_item("Huge", rateMin=1, rateMax=100000)},
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 422, response.text
+    assert "at most 10 values" in response.text
+    read = await get_template(client, admin_token, template_id)
+    assert read["layout"] == [rating_id, qa_id]
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("evaluation:R12d")
+async def test_should_reject_a_replaced_rating_when_its_scale_exceeds_ten_values(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """R12d: replacing an item checks the limit as adding one does."""
+    admin_token, template_id, rating_id, _ = await _two_items(client, db_session)
+
+    response = await client.put(
+        f"{_base(template_id)}/items/{rating_id}",
+        json=rating_item("Skating", rateMin=0, rateMax=10),
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 422, response.text
+    assert "at most 10 values" in response.text
+    read = await get_template(client, admin_token, template_id)
+    rating = next(i for i in read["items"] if i["id"] == rating_id)
+    assert (rating["rateMin"], rating["rateMax"]) == (1, 5)
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("evaluation:R12d")
+async def test_should_reject_a_template_when_a_rating_has_eleven_levels(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """R12d: eleven labelled levels are refused when a template is created."""
+    admin_token = await create_admin_user(db_session)
+    await db_session.commit()
+    levels = [{"value": v, "text": f"L{v}"} for v in range(1, 12)]
+    item = {"type": "rating", "question": "Effort", "rateValues": levels}
+
+    response = await create_template_response(client, admin_token, layout=[item])
+
+    assert response.status_code == 422, response.text
+    assert "at most 10 values" in response.text
+    listing = await client.get("/v1/evaluations/templates", headers=auth(admin_token))
+    assert listing.status_code == 200, listing.text
+    assert listing.json()["items"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("evaluation:R12d")
+async def test_should_read_a_template_when_a_stored_rating_predates_the_limit(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """R12d: an item stored with an 11-value scale still reads over the API."""
+    admin_token, template_id, rating_id, qa_id = await _two_items(client, db_session)
+    row = await db_session.get(EvaluationTemplateItem, rating_id)
+    assert row is not None
+    row.element = {**row.element, "rateMin": 0, "rateMax": 10}
+    await db_session.commit()
+
+    read = await get_template(client, admin_token, template_id)
+
+    assert read["layout"] == [rating_id, qa_id]
+    rating = next(i for i in read["items"] if i["id"] == rating_id)
+    assert (rating["rateMin"], rating["rateMax"]) == (0, 10)
 
 
 @pytest.mark.asyncio

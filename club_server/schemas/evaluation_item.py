@@ -10,12 +10,13 @@ set on a copy (R12b).
 
 from typing import Annotated, Literal
 
-from pydantic import Field, TypeAdapter, model_validator
+from pydantic import AfterValidator, Field, TypeAdapter, model_validator
 
 from .common import CamelCaseModel
 
 DEFAULT_RATE_MIN = 1
 DEFAULT_RATE_MAX = 5
+MAX_RATE_VALUES = 10
 
 
 def _check_comment_rule(
@@ -185,3 +186,19 @@ EvaluationTemplateItemSchema = Annotated[
 template_item_adapter: TypeAdapter[EvaluationQuestionItem | EvaluationInfoItem] = (
     TypeAdapter(EvaluationTemplateItemSchema)
 )
+
+
+def _check_scale_size(
+    item: EvaluationQuestionItem | EvaluationInfoItem,
+) -> EvaluationQuestionItem | EvaluationInfoItem:
+    """A rating written now holds at most 10 values (R12d)."""
+    if isinstance(item, EvaluationRatingItem) and len(item.scale()) > MAX_RATE_VALUES:
+        raise ValueError(f"a rating scale holds at most {MAX_RATE_VALUES} values")
+    return item
+
+
+EvaluationTemplateItemInput = Annotated[
+    EvaluationTemplateItemSchema, AfterValidator(_check_scale_size)
+]
+"""An item as a write takes it. The scale limit applies to writes only, so an
+item stored before the limit still reads and is still returned (R12d)."""

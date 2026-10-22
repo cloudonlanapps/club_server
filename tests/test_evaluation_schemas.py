@@ -7,8 +7,9 @@ round-trip, defaults, and required-field enforcement.
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
+from club_server.db.models.evaluation_template_item import EvaluationTemplateItem
 from club_server.schemas.evaluation import (
     EvaluationAnswerInput,
     EvaluationCreate,
@@ -18,9 +19,11 @@ from club_server.schemas.evaluation import (
 from club_server.schemas.evaluation_item import (
     EvaluationChoiceItem,
     EvaluationRatingItem,
+    EvaluationTemplateItemInput,
     template_item_adapter,
 )
 from club_server.schemas.evaluation_template import EvaluationTemplateCreate
+from club_server.services.evaluation_items import item_schema
 
 VARIANTS: list[dict[str, Any]] = [
     {"type": "rating", "question": "Skating", "rateMin": 1, "rateMax": 10},
@@ -355,3 +358,65 @@ def test_should_require_an_owner_on_transfer():
     with pytest.raises(ValidationError):
         _ = EvaluationTransferRequest.model_validate({})
     assert EvaluationTransferRequest.model_validate({"owner": "c"}).owner == "c"
+
+
+_input_adapter: TypeAdapter[Any] = TypeAdapter(EvaluationTemplateItemInput)
+
+
+def _levels(n: int) -> list[dict[str, Any]]:
+    return [{"value": v, "text": f"L{v}"} for v in range(1, n + 1)]
+
+
+@pytest.mark.requirement("evaluation:R12d")
+@pytest.mark.parametrize(
+    "raw",
+    [
+        {"rateMin": 1, "rateMax": 11},
+        {"rateMin": 0, "rateMax": 10},
+        {"rateMin": 1, "rateMax": 100000},
+        {"rateType": "stars", "rateMin": 1, "rateMax": 11},
+        {"rateValues": _levels(11)},
+    ],
+    ids=["range_1_11", "range_0_10", "range_huge", "stars_1_11", "eleven_levels"],
+)
+def test_should_reject_a_rating_when_its_scale_exceeds_ten_values(
+    raw: dict[str, Any],
+):
+    """R12d: a range or a set of levels holds at most 10 values on a write."""
+    with pytest.raises(ValidationError, match="at most 10 values"):
+        _ = _input_adapter.validate_python({"type": "rating", "question": "Q", **raw})
+
+
+@pytest.mark.requirement("evaluation:R12d")
+@pytest.mark.parametrize(
+    "raw",
+    [
+        {"rateMin": 1, "rateMax": 10},
+        {"rateMin": 0, "rateMax": 9},
+        {"rateValues": _levels(10)},
+    ],
+    ids=["range_1_10", "range_0_9", "ten_levels"],
+)
+def test_should_accept_a_rating_when_its_scale_has_ten_values(raw: dict[str, Any]):
+    """R12d: exactly 10 values is within the limit."""
+    item = _input_adapter.validate_python({"type": "rating", "question": "Q", **raw})
+
+    assert len(item.scale()) == 10
+
+
+@pytest.mark.requirement("evaluation:R12d")
+def test_should_read_a_stored_rating_when_its_scale_predates_the_limit():
+    """R12d: an item stored before the limit still rebuilds from its row."""
+    row = EvaluationTemplateItem(
+        id=7,
+        type="rating",
+        question="Effort",
+        element={"rateMin": 0, "rateMax": 10},
+        is_private=False,
+        origin_item_id=None,
+    )
+
+    item = item_schema(row)
+
+    assert isinstance(item, EvaluationRatingItem)
+    assert item.scale() == list(range(0, 11))

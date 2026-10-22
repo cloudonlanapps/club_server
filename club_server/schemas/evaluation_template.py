@@ -5,7 +5,11 @@ from typing import Annotated, ClassVar
 from pydantic import ConfigDict, Field, model_validator
 
 from .common import CamelCaseModel
-from .evaluation_item import EvaluationInfoItem, EvaluationTemplateItemSchema
+from .evaluation_item import (
+    EvaluationInfoItem,
+    EvaluationTemplateItemInput,
+    EvaluationTemplateItemSchema,
+)
 
 
 class EvaluationLayoutSection(CamelCaseModel):
@@ -22,11 +26,11 @@ class EvaluationLayoutSectionInput(CamelCaseModel):
     """A titled group of new items, on create."""
 
     section: str = Field(min_length=1)
-    items: list[EvaluationTemplateItemSchema]
+    items: list[EvaluationTemplateItemInput]
 
 
 EvaluationLayoutEntryInput = Annotated[
-    EvaluationTemplateItemSchema | EvaluationLayoutSectionInput,
+    EvaluationTemplateItemInput | EvaluationLayoutSectionInput,
     Field(union_mode="left_to_right"),
 ]
 
@@ -65,7 +69,7 @@ class EvaluationTemplateUpdate(CamelCaseModel):
 class EvaluationTemplateItemAdd(CamelCaseModel):
     """Add one item, appended to the layout or to the named section (R26a)."""
 
-    item: EvaluationTemplateItemSchema
+    item: EvaluationTemplateItemInput
     section: str | None = Field(default=None, min_length=1)
 
 

@@ -17,7 +17,7 @@ from ..dependencies import (
     require_evaluations_enabled,
 )
 from ..schemas.common import PaginatedResponse
-from ..schemas.evaluation_item import EvaluationTemplateItemSchema
+from ..schemas.evaluation_item import EvaluationTemplateItemInput
 from ..schemas.evaluation_template import (
     EvaluationTemplateItemAdd,
     EvaluationTemplateItemHit,
@@ -87,7 +87,7 @@ async def add_item(
 async def replace_item(
     template_id: int,
     item_id: int,
-    payload: EvaluationTemplateItemSchema,
+    payload: EvaluationTemplateItemInput,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],

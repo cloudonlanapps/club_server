@@ -165,6 +165,10 @@ and a coach.
   choice question has at least one choice and unique choice values; the
   answers that require a coach note are answers the question can take,
   and need its comment area shown → 422 otherwise (#535).
+- **R12d** [X] A rating's scale holds at most 10 values — a range's
+  `rateMax - rateMin + 1`, or the number of labelled levels → 422
+  otherwise, on every write of an item (#63). An item stored before the
+  limit keeps its scale and still reads.
 - **R12b** [X] **A copy is the same question as its origin.** An item
   may be added as a copy of an item of any template; it records that
   item's origin, or that item when it has none, so a copy of a copy points
