@@ -436,6 +436,12 @@ Convention:
   and offers no choice of destination. Since accounts are never topped
   up (R20), the only lawful destination is a new one, created by the
   transfer itself. The source account is closed by the same operation.
+
+  Note: a transfer always lands in a **general** account. There is no
+  way to move general credit into an event-bound account, and none is
+  needed: a general account already pays for any programme (R25). If
+  credit should have been bound to a programme, an admin opens an
+  event-bound account for it (R18). Answered 2026-10-22.
 - **R66** [✅] The transfer applies a penalty: a flat number of
   credits subtracted from the balance before it moves. There is no
   ratio, multiplication, or rounding involved.
