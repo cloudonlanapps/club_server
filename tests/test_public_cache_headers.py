@@ -86,3 +86,16 @@ async def test_should_not_cache_health_errors_or_member_reads(
     member = await client.get("/v1/venues", headers=_auth(admin))
     assert member.status_code == 200
     assert "etag" not in member.headers and "cache-control" not in member.headers
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("public:R22")
+async def test_should_never_cache_the_inquiry_form_token(client: AsyncClient):
+    first = await client.get("/v1/public/inquiries/token")
+    assert first.status_code == 200
+    assert first.headers["cache-control"] == "no-store"
+    assert "etag" not in first.headers
+
+    # The rest of the public surface keeps its 5-minute cache.
+    venues = await client.get("/v1/public/venues")
+    assert venues.headers["cache-control"] == "public, max-age=300"

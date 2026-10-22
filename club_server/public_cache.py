@@ -2,8 +2,10 @@
 
 Every ``GET`` under ``/v1/public/`` gets ``Cache-Control: public,
 max-age=300`` and a strong content-derived ``ETag``; a matching
-``If-None-Match`` answers 304 with the same headers. ``/health`` is
-``no-store``. Media downloads live elsewhere and keep their own headers.
+``If-None-Match`` answers 304 with the same headers. ``/health`` and the
+inquiry form token are ``no-store``: a cached token would defeat the
+fill-time check (#67). Media downloads live elsewhere and keep their own
+headers.
 """
 
 import hashlib
@@ -14,6 +16,8 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 PUBLIC_PREFIX = "/v1/public/"
 PUBLIC_MAX_AGE_SECONDS = 300
 HEALTH_PATH = "/health"
+# Never stored anywhere: each visitor needs a freshly issued token (#67).
+NO_STORE_PATHS = frozenset({HEALTH_PATH, PUBLIC_PREFIX + "inquiries/token"})
 
 
 def _etag_for(body: bytes) -> str:
@@ -28,7 +32,7 @@ class PublicCacheMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         response = await call_next(request)
         path = request.url.path
-        if path == HEALTH_PATH:
+        if path in NO_STORE_PATHS:
             response.headers["Cache-Control"] = "no-store"
             return response
         if request.method != "GET" or not path.startswith(PUBLIC_PREFIX):
