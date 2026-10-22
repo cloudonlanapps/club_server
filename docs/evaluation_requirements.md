@@ -404,9 +404,15 @@ lifecycle exists at all.
 - **R49a** [X] A live template's **name is unique**, compared without
   regard to case or surrounding whitespace. Creating a template, or
   renaming one, to a name another live template holds → 422
-  `TEMPLATE_NAME_TAKEN`; so does restoring a deleted template whose name a
-  live one has taken meanwhile. A soft-deleted template holds no name, and
-  a template may be renamed to its own name in another case (#535).
+  `TEMPLATE_NAME_TAKEN`. A soft-deleted template holds no name, and a
+  template may be renamed to its own name in another case (#535).
+- **R49b** [✅] Restoring a deleted template whose name a live one has
+  taken meanwhile **renames** it rather than refusing: it takes the first
+  of `<name> -- Restored #1`, `#2`, … that no live template holds,
+  compared as R49a compares names, and the restore answers with the
+  renamed template. A restore whose name is free keeps it. Renaming is
+  allowed on a template in use (R27), so a frozen template is restored the
+  same way. The restore's audit row records the old and the new name (#71).
 - **R50** [✅] Creating an evaluation names its template, the member,
   and optionally an event and a period. It starts as a **draft** with no
   answers, created by the caller (#535).

@@ -277,22 +277,3 @@ async def test_should_free_the_name_of_a_deleted_template(
 
     assert second.status_code == 201, second.text
     assert await _names(client, admin_token) == ["Camp report"]
-
-
-@pytest.mark.asyncio
-@pytest.mark.requirement("evaluation:R49a")
-async def test_should_refuse_restoring_a_template_whose_name_was_taken(
-    client: AsyncClient, db_session: AsyncSession
-):
-    """R49a: a restore may not bring back a second template of one name."""
-    admin_token, _ = await _staff(client, db_session)
-    first = await create_template(client, admin_token, name="Camp report")
-    deleted = await client.delete(_by_id(first), headers=auth(admin_token))
-    assert deleted.status_code == 200, deleted.text
-    _ = await create_template(client, admin_token, name="camp report")
-
-    response = await client.post(f"{_by_id(first)}/restore", headers=auth(admin_token))
-
-    _name_taken(response)
-    assert await _names(client, admin_token, f"{TEMPLATES}/deleted") == ["Camp report"]
-    assert await _names(client, admin_token) == ["camp report"]
