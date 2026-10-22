@@ -81,6 +81,8 @@ async def _event(
         "endTimeUtc": start + HOUR,
         **({"rrule": "FREQ=WEEKLY;BYDAY=SA"} if event_type == "programme" else {}),
         **({"coachNames": coach_names} if coach_names else {}),
+        # Fixtures share one venue and slot; the clash is not under test (#72).
+        "acceptConflicts": True,
         **extra,
     }
     response = await client.post(

@@ -22,7 +22,6 @@ from .venue import (
     VenueUpdate,
     VenueResponse,
     VenueDeletionResponse,
-    ConflictReport,
 )
 from .event import (
     EventCreate,
@@ -89,7 +88,6 @@ __all__ = [
     "VenueUpdate",
     "VenueResponse",
     "VenueDeletionResponse",
-    "ConflictReport",
     "EventCreate",
     "EventUpdate",
     "EventResponse",

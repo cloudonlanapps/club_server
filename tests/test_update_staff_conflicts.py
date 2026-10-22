@@ -1,10 +1,10 @@
 """Changing a camp's or one-off's organizer or coaches runs the conflict gates (#473).
 
 The generic update (camp R2, one-off R2) runs the gates creation runs when
-it changes who staffs the event. A camp or one-off never blocks on a clash
-(programme R30c, one-off R20), so every finding is reported to the admins as
-an ``event.conflict_detected`` notice, the way creation reports it, and the
-update succeeds.
+it changes who staffs the event. A clash answers 409 until the organizer
+accepts it (#72, programme R31d); an accepted finding is reported to the
+admins as an ``event.conflict_detected`` notice, the way creation reports
+it, and the update succeeds.
 """
 
 import pytest
@@ -36,7 +36,7 @@ async def _patch(client: AsyncClient, token: str, event_id: int, **body: object)
 
 
 @pytest.mark.asyncio
-async def test_should_report_coach_clash_when_camp_coaches_change(
+async def test_should_report_coach_clash_when_accepted_camp_coach_change_is_made(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -60,7 +60,9 @@ async def test_should_report_coach_clash_when_camp_coaches_change(
     )
     assert await _conflict_notices(db_session) == []
 
-    response = await _patch(client, admin, edited["id"], coachNames=["busy"])
+    response = await _patch(
+        client, admin, edited["id"], coachNames=["busy"], acceptConflicts=True
+    )
 
     assert response.status_code == 200, response.text
     assert (await get_event(client, admin, edited["id"]))["coachNames"] == ["busy"]
@@ -73,7 +75,7 @@ async def test_should_report_coach_clash_when_camp_coaches_change(
 
 @pytest.mark.requirement("oneoff:R21")
 @pytest.mark.asyncio
-async def test_should_report_organizer_clash_without_409_when_oneoff_organizer_changes(
+async def test_should_report_organizer_clash_when_accepted_oneoff_organizer_change_is_made(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -88,7 +90,9 @@ async def test_should_report_organizer_clash_without_409_when_oneoff_organizer_c
     )
     assert await _conflict_notices(db_session) == []
 
-    response = await _patch(client, admin, edited["id"], organizerName="org_a")
+    response = await _patch(
+        client, admin, edited["id"], organizerName="org_a", acceptConflicts=True
+    )
 
     assert response.status_code == 200, response.text
     assert (await get_event(client, admin, edited["id"]))["organizerName"] == "org_a"
@@ -152,6 +156,7 @@ async def test_should_not_report_again_when_update_leaves_staff_unchanged(
         start=start,
         organizerName="org_b",
         coachNames=["busy"],
+        acceptConflicts=True,
     )
     assert len(await _conflict_notices(db_session)) == 1
 

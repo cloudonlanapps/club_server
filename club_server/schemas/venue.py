@@ -120,23 +120,6 @@ class PublicVenueResponse(CamelCaseModel):
         )
 
 
-class VenueConflictItem(CamelCaseModel):
-    """Schema for a single venue conflict."""
-
-    event_id: int
-    event_title: str
-    start_time_utc: int
-    end_time_utc: int
-
-
-class ConflictReport(CamelCaseModel):
-    """Schema for conflict check response."""
-
-    has_conflict: bool
-    venue_conflicts: list[VenueConflictItem] = []
-    user_conflicts: list[VenueConflictItem] = []
-
-
 class VenueDeletionResponse(CamelCaseModel):
     """Schema for venue deletion result."""
 

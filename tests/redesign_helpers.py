@@ -362,17 +362,23 @@ async def drop(client: AsyncClient, token: str, event_id: int, **body: object):
 
 
 async def reinstate(
-    client: AsyncClient, token: str, event_id: int, *, version: int | None = None
+    client: AsyncClient,
+    token: str,
+    event_id: int,
+    *,
+    version: int | None = None,
+    **body: object,
 ):
     """POST /reinstate and return the raw response.
 
-    Sends the occurrence's current ``version`` unless the caller supplies one.
+    Sends the occurrence's current ``version`` unless the caller supplies one;
+    any other ``body`` field (``acceptConflicts``) is sent as given.
     """
     if version is None:
         version = await oneoff_occurrence_version(client, token, event_id)
     return await client.post(
         f"/v1/events/by_id/{event_id}/reinstate",
-        json={"version": version},
+        json={"version": version, **body},
         headers=auth(token),
     )
 

@@ -130,9 +130,8 @@ The rules that make a venue more than a row.
 
 - **R20** Venue is the resource the venue gate compares
   (`programme_requirements.md` R31b). A venue owns no conflict rules of
-  its own: whether two events may share it, and whether that blocks or is
-  merely reported, is decided by the event types involved (programme
-  R30, R30c).
+  its own: two events may share it when the organizer accepts the clash
+  (programme R30, R31d).
 
 ## Audit
 
@@ -145,7 +144,7 @@ The rules that make a venue more than a row.
 
 ## See also
 
-- [`programme_requirements.md`](programme_requirements.md) — R30–R31c,
+- [`programme_requirements.md`](programme_requirements.md) — R30–R31d,
   the conflict rules and the gate module.
 - [`camps_requirements.md`](camps_requirements.md) — R27–R39, the
-  flag-don't-block model.
+  conflict checks.

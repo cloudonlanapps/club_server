@@ -549,9 +549,12 @@ Conflating the two is the root of several defects recorded below.
 
 ## Conflicts
 
-- **R30** [GAP] Two programmes may not share a venue at overlapping
-  times. The clash is **blocked** — at creation, and at a split (R23),
-  which is the only other way a programme's schedule changes (R26).
+- **R30** [GAP] Two programmes sharing a venue at overlapping times is a
+  clash. It is **reported, and the organizer decides** (R31d) — at
+  creation, and at a split (R23), which is the only other way a
+  programme's schedule changes (R26). A clash is not always a mistake: one
+  batch warms up off-ice while another is on the ice, and only the
+  organizer knows which it is.
 - **R30a** [GAP] A programme-versus-programme clash is computed from the
   **schedules**, without expanding either. Every schedule of one is
   compared with every schedule of the other; a programme usually has one,
@@ -568,8 +571,9 @@ Conflating the two is the root of several defects recorded below.
 
   Test 3 is not redundant. Two Monday programmes whose ranges overlap only
   from a Thursday to a Saturday satisfy tests 1, 2, 4 and 5 and never
-  share an occurrence — and because R30 *blocks*, omitting it would refuse a
-  legitimate programme. It costs nothing: an overlap of seven days or more
+  share an occurrence — and because R30 answers 409, omitting it would
+  refuse a legitimate programme until the organizer accepted a clash that
+  never happens. It costs nothing: an overlap of seven days or more
   always contains every weekday, so only a shorter overlap is examined,
   and then at most six days are.
 
@@ -587,16 +591,15 @@ Conflating the two is the root of several defects recorded below.
 - **R30b** [GAP] R30a is exact only because R11 admits one recurrence
   shape. Two fortnightly programmes on alternate weeks would share a
   weekday and never meet, so an interval would make the day-set test
-  block pairs that never clash. The constraint lives in R11, where it
+  report pairs that never clash. The constraint lives in R11, where it
   belongs; it is named here because this is what it is for.
-- **R30c** [GAP] A programme is never blocked by a camp or a one-off, in
-  either direction. Such a comparison is bounded on the camp or one-off
-  side by the scheduling horizon (one-off R20a and its configurable
-  bound), which is what
-  keeps it finite when the programme is open-ended. A programme runs for months at one venue; it cannot
-  be prevented, or forced to move, because a short event was scheduled
-  across some of its occurrences. Such a clash is **reported**, not
-  enforced — the same flag-don't-block treatment camps already get.
+- **R30c** [GAP] A clash between a programme and a camp or a one-off, in
+  either direction, is treated exactly as one between two programmes:
+  reported, and accepted by the organizer (R31d). The pairing no longer
+  decides anything on a schedule write (#72). Such a comparison is bounded
+  on the camp or one-off side by the scheduling horizon (one-off R20a and
+  its configurable bound), which is what keeps it finite when the
+  programme is open-ended.
 - **R30d** [GAP] A programme never conflicts with **itself**. Its own
   schedules are contiguous and non-overlapping by construction (R24a), so
   no two of them can produce occurrences at the same time, and a comparison
@@ -610,8 +613,7 @@ Conflating the two is the root of several defects recorded below.
 - **R31a** [GAP] A single occurrence moved by a reschedule (R19) is
   outside R30a: it is an exception to the pattern, so the pattern test
   cannot see it. It is checked individually, against occurrences rather
-  than rules, and reported rather than blocked — it moves one occurrence,
-  not the programme.
+  than rules, and a clash is reported and accepted like any other (R31d).
 - **R31b** [GAP] Conflict detection lives in **one module**, expressed as
   named gates, for every event type. Each gate answers one question about
   one resource:
@@ -624,10 +626,9 @@ Conflating the two is the root of several defects recorded below.
   | **member** | is one person enrolled in two things at once? |
 
   A gate **computes** a finding; it does not decide what happens next.
-  Whether a finding blocks or is merely reported is the caller's policy,
-  applied by event type (R30, R30c) — so the same gate serves the
-  blocking programme path and the reporting camp path without either
-  reimplementing overlap.
+  What a finding does is the caller's policy (R31c, R31d) — so the same
+  gate serves every schedule write and the member gate at enrolment
+  without either reimplementing overlap.
 
   This replaces three separate implementations that today give three
   different answers to the same question: `EventService.check_conflict`
@@ -638,15 +639,32 @@ Conflating the two is the root of several defects recorded below.
   and every gate must use that definition.
 - **R31c** [GAP] The caller names which gates to run, and whether each is
   blocking or advisory. Not every path cares about every resource: a join
-  asks the member gate and nothing else; a creation asks venue and
-  organizer; a coach change asks the coach gate. Declaring this at the
-  call site keeps the policy visible where it is decided, and stops the
-  gate module growing per-caller special cases.
+  asks the member gate and nothing else; a schedule or staff write asks
+  venue, organizer and coach (R31d). Declaring this at the call site keeps
+  the policy visible where it is decided, and stops the gate module
+  growing per-caller special cases.
 
   A gate that is not asked for is not run, and an advisory finding never
-  raises — it is returned alongside the success. This is what allows one
-  module to serve a blocking programme creation (R30) and a reporting
-  camp creation (R30c) without either branch knowing about the other.
+  raises — it is returned to the caller. Blocking is left to the member
+  gate (enrollment R30); a schedule write turns advisory findings into its
+  own 409 (R31d), in one place.
+- **R31d** [GAP] Every write that sets a schedule or its staff — creation
+  of any type, a split, the generic update's organizer or coach change, a
+  one-off's reinstate, a camp's or one-off's in-place reschedule, and the
+  move of one occurrence — runs the venue, organizer and coach gates. Any
+  finding answers **409 `SCHEDULE_CONFLICT`** with the full report —
+  `venueConflicts`, `organizerConflicts` and `coachConflicts`, each
+  clashing event with its overlapping occurrence pairs, the shape
+  `POST /v1/events/check-conflict` returns — and **nothing is written**.
+
+  The same request with **`acceptConflicts: true`** is written, and the
+  admins are notified (`event.conflict_detected`). `acceptConflicts` is an
+  optional boolean on each of those request bodies, defaulting to false.
+  Without a finding the write goes ahead in one call, as before. One
+  implementation decides, so the save and the answer cannot disagree;
+  `check-conflict` remains a read-only preview. The member gate at
+  enrolment (`TIME_CONFLICT`) is a different question and is not governed
+  by this rule.
 
 ## Audit
 
@@ -690,7 +708,7 @@ self-service in full (R69–R80); leave (R87–R90); removed aux-info
 | R3, R4 | Stated as camp prohibitions — they are programme *abilities* |
 | R5 | "Cancel the series" becomes terminate/extend; R1–R9 above replace it |
 | R17–R20 | Daily and bounded; programmes are weekly and may be open-ended (R11–R15) |
-| R27–R39 | The conflict model. Settled by R30–R31c: behaviour follows the *pairing*, not the type. Listed here because the camp rules still need rewriting against it, not because the decision is open. |
+| R27–R39 | The conflict model. Settled by R30–R31d: a schedule write reports every clash and the organizer accepts it, whatever the pairing; at enrolment the member gate follows the *pairing* (enrollment R30). |
 | R56 | Conflict check skipped for camps; programmes block instead |
 | R100–R104 | Sessions timetable. **Settled** by R20: programmes carry one on the same terms, and it lives on the schedule, so changing it is a split. |
 

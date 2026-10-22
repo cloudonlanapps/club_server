@@ -462,9 +462,16 @@ async def test_should_give_every_event_one_schedule_when_created(
     venue = await create_venue(client, admin)
     start = at(days=2)
     programme = await create_programme(client, admin, venue, start=start)
-    camp = await create_camp(client, admin, venue, start=start, count=3)
+    camp = await create_camp(
+        client, admin, venue, start=start, count=3, acceptConflicts=True
+    )
     oneoff = await create_oneoff(
-        client, admin, venue, start=start, end=start + 2 * HOUR_MS
+        client,
+        admin,
+        venue,
+        start=start,
+        end=start + 2 * HOUR_MS,
+        acceptConflicts=True,
     )
 
     programme_schedules = await _schedules(client, admin, programme["id"])

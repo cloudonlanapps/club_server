@@ -214,7 +214,9 @@ async def test_should_refuse_a_date_of_birth_bound_when_updating_or_correcting(
 ):
     admin, venue = await setup(client, db_session)
     camp = await create_camp(client, admin, venue, **BAND)
-    programme = await create_programme(client, admin, venue, start=at(days=3))
+    programme = await create_programme(
+        client, admin, venue, start=at(days=3), acceptConflicts=True
+    )
 
     updated = await client.patch(
         f"/v1/events/by_id/{camp['id']}",

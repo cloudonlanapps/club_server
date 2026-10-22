@@ -18,6 +18,7 @@ from .exceptions import (
     BroadcastNotFoundException,
     EnrollmentNotFoundException,
     EnrollmentStateConflictException,
+    EventConflictException,
     EventMarketingNotFoundException,
     EventNotFoundException,
     GroupNotFoundException,
@@ -126,3 +127,17 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     for exc_class, code in CONFLICT_CODE_MAP.items():
         app.add_exception_handler(exc_class, _make_conflict_handler(code))
+
+    async def _schedule_conflict_handler(
+        _request: Request, exc: EventConflictException
+    ) -> JSONResponse:
+        """409 with the full conflict report, on every schedule write (R31d)."""
+        from .services.schedule_clash import conflict_report
+
+        report = conflict_report(exc.findings).model_dump(by_alias=True)
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"detail": {"code": exc.code, "message": str(exc), **report}},
+        )
+
+    app.add_exception_handler(EventConflictException, _schedule_conflict_handler)

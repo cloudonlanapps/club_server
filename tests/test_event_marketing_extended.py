@@ -65,6 +65,8 @@ async def _event(client: AsyncClient, admin: str, venue_id: int, **extra) -> dic
         "visibility": "public",
         "startTimeUtc": start,
         "endTimeUtc": start + HOUR,
+        # Fixtures share one venue and slot; the clash is not under test (#72).
+        "acceptConflicts": True,
         **extra,
     }
     response = await client.post("/v1/events", json=body, headers=_auth(admin))

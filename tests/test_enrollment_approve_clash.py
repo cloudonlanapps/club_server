@@ -89,6 +89,7 @@ async def test_should_approve_request_when_overlap_is_only_with_a_camp(
         start=start,
         end=start + HOUR_MS,
         rrule=f"FREQ=WEEKLY;BYDAY={weekday_code(start)}",
+        acceptConflicts=True,
     )
     assert (await assign(client, admin, camp["id"], "skater")).status_code == 204
     requested = await request_join(client, member, programme["id"], "skater")

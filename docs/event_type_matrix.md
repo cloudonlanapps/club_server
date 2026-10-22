@@ -12,7 +12,7 @@ differs it differs by type, never by which verb was used.
 
 | Operation | programme | camp | oneOff | Rule |
 |---|---|---|---|---|
-| `POST /events` | ✅ blocks on a programme clash | ✅ reports | ✅ reports | programme R30, R30c; one-off R20 |
+| `POST /events` | ✅ 409 on a clash unless `acceptConflicts` | ✅ same | ✅ same | programme R30, R30c, R31d; one-off R20 |
 | `PATCH /events/by_id/{id}` (metadata) | ✗ `INVALID_EVENT_TYPE` | ✅ | ✅ | programme R25; camp R2; one-off R2 |
 | `PATCH …/correction` | ✅ identity, eligibility, presentation | ✗ | ✗ | programme R21–R22a, R25a; camp R3; one-off R15 |
 | `PATCH …/future` (split) | ✅ scheduling and staffing | ✗ | ✗ | programme R23–R25a; camp R4; one-off R15 |
@@ -59,8 +59,9 @@ so no two paths can disagree about one value (programme R25a).
   attending part of a recurring series without joining it (programme
   R32a); a camp is joined whole and a one-off has one occasion.
 - **Conflict checks accept every type.** The camp-only restriction was v1
-  of #16 and is lifted (camp R31); what differs by pairing is whether a
-  finding blocks or is reported.
+  of #16 and is lifted (camp R31). Every schedule write answers 409 on a
+  finding until the organizer accepts it, whatever the pairing (programme
+  R31d).
 - **The error code for an unsupported verb** is `INVALID_EVENT_TYPE`
   (400) everywhere except the series reschedule, which keeps its historical
   `EVENT_TYPE_NOT_SUPPORTED`. The camp, one-off and programme documents

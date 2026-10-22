@@ -12,6 +12,13 @@ def to_camel(string: str) -> str:
 T = TypeVar("T")
 
 
+ACCEPT_CONFLICTS_DESCRIPTION = (
+    "Save even though the schedule clashes with other events. Without it a "
+    "clash answers 409 SCHEDULE_CONFLICT with the report and nothing is "
+    "written (programme R31d)."
+)
+
+
 class CamelCaseModel(BaseModel):
     """Base model that outputs camelCase JSON keys."""
 

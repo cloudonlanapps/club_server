@@ -29,7 +29,6 @@ from ..exceptions import (
     EffectiveTimeNotSessionBoundaryException,
     EventAlreadyCancelledException,
     EventAlreadyStartedException,
-    EventConflictException,
     EventNotCancelledException,
     InvalidCampRruleException,
     InvalidDateTimeException,
@@ -93,6 +92,7 @@ from ..services.event_types import (
 )
 from ..services.oneoff import OneOffService
 from ..services.programme import ProgrammeService
+from ..services.schedule_clash import SCHEDULE_GATES, conflict_report
 from ..utils import get_client_ip
 
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -184,11 +184,6 @@ def _schedule_error(exc: Exception) -> HTTPException | None:
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "INVALID_STATE", "message": exc.message},
         )
-    if isinstance(exc, EventConflictException):
-        return HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=exc.conflict_report.model_dump(by_alias=True),
-        )
     if isinstance(exc, EffectiveTimeNotSessionBoundaryException):
         return HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -275,7 +270,6 @@ _SCHEDULE_EXCEPTIONS = (
     BeyondSchedulingHorizonException,
     InvalidSessionsException,
     InvalidStateException,
-    EventConflictException,
     EffectiveTimeNotSessionBoundaryException,
     CutoffTooSoonException,
     EffectiveTimeInPastException,
@@ -299,21 +293,6 @@ def _raise_http(exc: Exception) -> None:
 # =============================================================================
 # Conflict reports (any type — camp R31)
 # =============================================================================
-
-
-def _report_from(findings) -> ConflictReportResponse:
-    def items(gate: ConflictGate) -> list[EventConflictItemResponse]:
-        return [
-            EventConflictItemResponse.from_finding(f)
-            for f in findings
-            if f.gate is gate
-        ]
-
-    return ConflictReportResponse(
-        venue_conflicts=items(ConflictGate.venue),
-        organizer_conflicts=items(ConflictGate.organizer),
-        coach_conflicts=items(ConflictGate.coach),
-    )
 
 
 @router.post("/check-conflict", response_model=ConflictReportResponse)
@@ -345,13 +324,9 @@ async def check_conflict(
             coach_names=tuple(data.coach_names or ()),
             exclude_event_id=data.exclude_event_id,
         ),
-        {
-            ConflictGate.venue: GatePolicy.advise,
-            ConflictGate.organizer: GatePolicy.advise,
-            ConflictGate.coach: GatePolicy.advise,
-        },
+        SCHEDULE_GATES,
     )
-    return _report_from(report.findings)
+    return conflict_report(report.findings)
 
 
 @router.post(
@@ -638,6 +613,7 @@ async def update_event_future(
             update_sessions="sessions" in data.model_fields_set,
             expected_version=data.version,
             actor=current_user.username,
+            accept_conflicts=data.accept_conflicts,
         )
     except _SCHEDULE_EXCEPTIONS as e:
         _raise_http(e)
@@ -774,6 +750,7 @@ async def reschedule_event(
             reset_overrides=data.reset_overrides,
             expected_version=data.version,
             actor=current_user.username,
+            accept_conflicts=data.accept_conflicts,
         )
     except _SCHEDULE_EXCEPTIONS as e:
         _raise_http(e)

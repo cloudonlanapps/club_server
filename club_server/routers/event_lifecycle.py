@@ -264,7 +264,10 @@ async def reinstate_event(
     _ = await _gated_event(db, event_id, current_user, EventVerb.reinstate)
     try:
         event = await OneOffService(db).reinstate(
-            event_id, expected_version=data.version, actor=current_user.username
+            event_id,
+            expected_version=data.version,
+            actor=current_user.username,
+            accept_conflicts=data.accept_conflicts,
         )
     except StaleOccurrenceVersionException as e:
         raise stale_occurrence_error(e) from e

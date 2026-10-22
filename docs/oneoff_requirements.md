@@ -180,17 +180,19 @@ occurrences of a series, and a one-off has one.
 
 ## Conflicts
 
-- **R20** [GAP] A one-off follows camp semantics: a clash is
-  **reported, never blocked**, whatever it clashes with — a camp, another
-  one-off, or a programme. This includes the **member** gate: joining a
-  one-off that overlaps something else the member is in succeeds.
+- **R20** [GAP] A one-off's schedule clash is **reported, and the
+  organizer decides**, whatever it clashes with — a camp, another one-off,
+  or a programme: the write answers 409 with the report and is made only
+  with `acceptConflicts` (programme R31d). A one-off is a single occasion,
+  and the club scheduling one on top of something else is a decision it
+  is entitled to make with the facts in front of it.
 
-  `enrollment_requirements.md` R29, R36 and R45 block on member overlap,
-  with the suppression written as camp-only. That carve-out widens to
-  every non-programme pairing: blocking is programme-versus-programme
-  alone (programme R30, R30c). A one-off is a single occasion, and the club
-  scheduling one on top of something else is a decision it is entitled to
-  make with the facts in front of it.
+  The **member** gate is a different question and still reports, never
+  blocks: joining a one-off that overlaps something else the member is in
+  succeeds. `enrollment_requirements.md` R29, R36 and R45 block on member
+  overlap, with the suppression written as camp-only. That carve-out
+  widens to every non-programme pairing: at enrolment, blocking is
+  programme-versus-programme alone (enrollment R30).
 - **R20a** [GAP] A one-off may not be scheduled more than **52 weeks**
   from now, and neither may a camp. This is a hard bound, not a
   convention. It keeps both types finitely expandable, which is what lets
@@ -208,13 +210,16 @@ occurrences of a series, and a one-off has one.
   report, and how far ahead a club plans is a fact about the club. A
   deployment that raises it pays in report size and nothing else.
 - **R21** [GAP] Conflict detection runs on every path that sets a
-  one-off's schedule — creation, reschedule (R16), the generic update
-  (R2), and drop-reinstate (R6) — and reports on each. Reporting on a
-  mutation is not optional merely because it does not block.
+  one-off's schedule or staff — creation, reschedule (R16), the generic
+  update's organizer or coach change (R2), and drop-reinstate (R6). On
+  each, a clash answers 409 `SCHEDULE_CONFLICT` with the full report and
+  writes nothing, unless the request carries `acceptConflicts: true`, when
+  it is written and the admins are told (programme R31d). The same holds
+  for a camp's in-place reschedule.
 - **R21b** [GAP] The generic update may change a one-off's times and
   venue, and when it does it enforces **exactly** the same guards as
   reschedule: postpone-only (R16a), the 30-minute lead (R16b), and
-  conflict reporting (R21). Two ways in, one set of rules.
+  the conflict report (R21). Two ways in, one set of rules.
 
   Today it enforces none of them, so both guards are bypassed by calling
   update instead of reschedule.

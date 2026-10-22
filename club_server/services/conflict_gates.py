@@ -17,9 +17,10 @@ never clashes and a terminated programme counts only up to its cutoff
 (camp R34, enrollment R29b).
 
 **Policy.** ``GatePolicy.block`` blocks only a programme-against-programme
-clash; every other pairing is reported whatever the caller asked, because a
-short event may not prevent or displace a programme and a programme may not
-prevent one (R30, R30c, one-off R20). ``GatePolicy.advise`` never raises.
+clash, and only the member gate asks for it (enrollment R30).
+``GatePolicy.advise`` never raises. A schedule or staff write runs the
+venue, organizer and coach gates through ``schedule_clash``, which reports
+every finding and lets the organizer accept it (#72, programme R31d).
 """
 
 from dataclasses import dataclass, field
@@ -33,7 +34,6 @@ from ..db.models.event import Event
 from ..db.models.event_schedule import EventSchedule
 from ..db.models.occurrence_override import OccurrenceOverride
 from ..exceptions import EventConflictException
-from ..schemas.venue import ConflictReport, VenueConflictItem
 from .event_types import blocks_on_conflict
 from .schedule import duration_of, event_slots, last_slot
 
@@ -318,25 +318,6 @@ def _findings_for_gate(
     return findings
 
 
-def legacy_report(findings: list[Finding]) -> ConflictReport:
-    """The 409 body the create endpoints have always returned."""
-
-    def item(f: Finding) -> VenueConflictItem:
-        _, _, other_start, other_end = f.occurrences[0]
-        return VenueConflictItem(
-            event_id=f.event_id,
-            event_title=f.event_title,
-            start_time_utc=other_start,
-            end_time_utc=other_end,
-        )
-
-    venue = [item(f) for f in findings if f.gate is ConflictGate.venue]
-    people = [item(f) for f in findings if f.gate is not ConflictGate.venue]
-    return ConflictReport(
-        has_conflict=bool(venue or people), venue_conflicts=venue, user_conflicts=people
-    )
-
-
 async def check_conflicts(
     db: AsyncSession,
     target: ScheduleTarget,
@@ -370,7 +351,7 @@ async def check_conflicts(
             )
             (blocking if blocks else advisory).append(finding)
     if blocking:
-        raise EventConflictException(legacy_report(blocking), findings=blocking)
+        raise EventConflictException(findings=blocking)
     return GateReport(findings=advisory)
 
 

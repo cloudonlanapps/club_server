@@ -288,16 +288,17 @@ class InvalidSessionsException(Exception):
 
 
 class EventConflictException(Exception):
-    """Raised when a schedule write is blocked by a clash (programme R30).
+    """Raised when a write meets a clash it may not make (programme R31d).
 
-    ``conflict_report`` is the 409 body; ``findings`` the gate findings that
-    produced it, for callers that need the clashing event ids.
+    ``findings`` are the gate findings; the 409 ``SCHEDULE_CONFLICT`` body
+    is the conflict report built from them.
     """
 
-    def __init__(self, conflict_report: object, findings: list | None = None):
-        self.conflict_report = conflict_report
-        self.findings = findings or []
-        super().__init__("Event has scheduling conflicts")
+    code = "SCHEDULE_CONFLICT"
+
+    def __init__(self, findings: list):
+        self.findings = findings
+        super().__init__("The schedule clashes with other events")
 
 
 class EventAlreadyCancelledException(Exception):

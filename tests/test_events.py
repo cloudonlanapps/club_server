@@ -726,7 +726,7 @@ async def test_create_event_venue_conflict(
     )
     assert response.status_code == 409
     detail = response.json()["detail"]
-    assert detail["hasConflict"] is True
+    assert detail["code"] == "SCHEDULE_CONFLICT"
     assert len(detail["venueConflicts"]) > 0
 
 
@@ -765,8 +765,8 @@ async def test_create_event_coach_conflict(
     )
     assert response.status_code == 409
     detail = response.json()["detail"]
-    assert detail["hasConflict"] is True
-    assert len(detail["userConflicts"]) > 0
+    assert detail["code"] == "SCHEDULE_CONFLICT"
+    assert len(detail["organizerConflicts"]) > 0
 
 
 @pytest.mark.asyncio
