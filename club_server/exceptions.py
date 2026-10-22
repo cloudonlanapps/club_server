@@ -90,6 +90,13 @@ class CannotBlockSuperAdminException(Exception):
         super().__init__("Cannot block super admin")
 
 
+class CannotActOnSelfException(Exception):
+    """Raised when an admin blocks, marks left or deletes their own account."""
+
+    def __init__(self):
+        super().__init__("Cannot perform this action on your own account")
+
+
 class RoleAlreadyAssignedException(Exception):
     """Raised when role is already assigned."""
 

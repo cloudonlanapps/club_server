@@ -148,6 +148,10 @@ Vocabulary:
 - **R28** [X] Marking a user left who already left → 422
   `ALREADY_LEFT`; reactivating a user who did not leave → 422
   `NOT_LEFT`.
+- **R28a** [X] An admin cannot block, mark left or soft-delete their
+  own account → 422 `CANNOT_ACT_ON_SELF`, and the account is unchanged
+  (#62). The super admin acting on their own account gets R59's
+  `SUPER_ADMIN_PROTECTION` instead.
 
 ## Roles
 

@@ -13,6 +13,7 @@ from ..db.models.occurrence_override import OccurrenceOverride
 from ..db.models.media_links import UserMediaLink
 from ..db.models.user import Role, User, UserStatus
 from ..exceptions import (
+    CannotActOnSelfException,
     CannotBlockSuperAdminException,
     CannotTransferFromNonSuperAdminException,
     CannotTransferToSelfException,
@@ -334,6 +335,9 @@ class UserService:
         if user.is_super_admin:
             raise CannotBlockSuperAdminException()
 
+        if actor_username == username:
+            raise CannotActOnSelfException()
+
         if user.status == UserStatus.blocked.value:
             raise InvalidStateException("User is already blocked")
 
@@ -634,8 +638,11 @@ class UserService:
         await self.db.flush()
         return user
 
-    async def delete_user(self, username: str) -> User:
-        """Soft delete a user. A super admin cannot be deleted (#459).
+    async def delete_user(
+        self, username: str, actor_username: str | None = None
+    ) -> User:
+        """Soft delete a user. A super admin cannot be deleted (#459), and
+        an admin cannot delete their own account (#62).
 
         Deleted rows are looked up too, so a second delete is refused as
         already deleted rather than answered as an unknown user (#523).
@@ -644,6 +651,9 @@ class UserService:
 
         if user.is_super_admin:
             raise CannotBlockSuperAdminException()
+
+        if actor_username == username:
+            raise CannotActOnSelfException()
 
         if user.deleted_at is not None:
             raise UserAlreadyDeletedException(username)
@@ -733,8 +743,9 @@ class UserService:
         await self.db.delete(user)
         await self.db.flush()
 
-    async def mark_left(self, username: str) -> User:
-        """Mark an active user as left.
+    async def mark_left(self, username: str, actor_username: str | None = None) -> User:
+        """Mark an active user as left. An admin cannot mark their own
+        account left (#62).
 
         Only ``active`` users can leave (#513): reactivation makes a left
         user ``active``, so marking a registered, pending or blocked user
@@ -747,6 +758,9 @@ class UserService:
 
         if user.is_super_admin:
             raise CannotBlockSuperAdminException()
+
+        if actor_username == username:
+            raise CannotActOnSelfException()
 
         if user.status != UserStatus.active.value:
             raise UserNotActiveException(username)
