@@ -197,7 +197,7 @@ async def test_should_not_mark_private_plain_download_publicly_cacheable(
     )
     assert download.status_code == 200, download.text
     assert "public" not in download.headers["cache-control"]
-    assert download.headers["cache-control"] == "private, max-age=86400"
+    assert download.headers["cache-control"] == "private, no-cache"
 
 
 @pytest.mark.asyncio
@@ -212,7 +212,7 @@ async def test_should_mark_download_private_when_roles_admit_only_coaches(
         f"/v1/media/by_id/{record['uuid']}/download", headers=auth(coach)
     )
     assert download.status_code == 200, download.text
-    assert download.headers["cache-control"] == "private, max-age=86400"
+    assert download.headers["cache-control"] == "private, no-cache"
 
 
 @pytest.mark.asyncio
@@ -237,4 +237,41 @@ async def test_should_mark_pdf_poster_private_when_media_is_not_public(
         headers=auth(alice),
     )
     assert poster.status_code == 200, poster.text
-    assert poster.headers["cache-control"] == "private, max-age=86400"
+    assert poster.headers["cache-control"] == "private, no-cache"
+
+
+@pytest.mark.asyncio
+@pytest.mark.requirement("media:R92")
+async def test_should_check_access_on_every_revalidation_of_restricted_media(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """A browser shared by two users must not hand one user's copy to the other (#66)."""
+    admin = await create_admin_user(db_session)
+    alice = await create_member_user(db_session, "alice")
+    bob = await create_member_user(db_session, "bob")
+    record = await upload(client, alice, access_roles=["self"])
+    url = f"/v1/media/by_id/{record['uuid']}/download"
+
+    first = await client.get(url, headers=auth(admin))
+    assert first.status_code == 200, first.text
+    etag = first.headers["etag"]
+    assert etag.startswith('"')
+
+    # The browser's copy is current: the allowed user gets a bodiless 304
+    # carrying the same cache headers.
+    again = await client.get(url, headers={**auth(admin), "If-None-Match": etag})
+    assert again.status_code == 304
+    assert again.content == b""
+    assert again.headers["etag"] == etag
+    assert again.headers["cache-control"] == "private, no-cache"
+
+    # Whoever is signed in next on that browser is checked before any 304.
+    other = await client.get(url, headers={**auth(bob), "If-None-Match": etag})
+    assert other.status_code == 403
+    anonymous = await client.get(url, headers={"If-None-Match": etag})
+    assert anonymous.status_code == 401
+
+    # A stale tag gets the file again.
+    stale = await client.get(url, headers={**auth(alice), "If-None-Match": '"old"'})
+    assert stale.status_code == 200
+    assert stale.content == png_bytes()

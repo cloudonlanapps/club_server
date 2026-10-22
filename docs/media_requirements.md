@@ -365,9 +365,12 @@ decrypts an item back to plain storage.
 
 - **R92** [✅] A download of a plain item anonymous callers can view is
   marked cacheable by anyone for a day (`public, max-age=86400`). A plain
-  item restricted by its access roles is marked for the requesting browser
-  alone (`private, max-age=86400`), so shared caches never store it
-  (#504).
+  item restricted by its access roles is `private, no-cache`: shared
+  caches never store it (#504), and the browser asks the server before
+  every reuse, so whoever is signed in at the time is checked (#66). A
+  plain download carries an `ETag`; a request whose `If-None-Match` names
+  it answers 304 with no body and the same cache headers, but only after
+  the access check passes (401 or 403 otherwise).
 - **R93** [✅] A download of an encrypted item is marked
   `private, no-store`.
 - **R94** [✅] Every download allows any origin, so a web client on
