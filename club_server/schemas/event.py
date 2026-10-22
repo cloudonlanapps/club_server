@@ -8,7 +8,7 @@ from ..db.models.event import Event
 from ..db.models.event_schedule import EventSchedule
 from ..db.models.user import Gender
 from ..genders import reject_repeated_genders
-from .common import CamelCaseModel, to_camel
+from .common import ACCEPT_CONFLICTS_DESCRIPTION, CamelCaseModel, to_camel
 from .event_marketing import BasicMarketingFields
 from .user import PublicProfileResponse
 
@@ -87,6 +87,7 @@ class EventCreate(BasicMarketingFields):
     is_featured: bool = False
     gallery_uris: list[str] | None = None
     sessions: list[Session] | None = None
+    accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)
 
     _reject_until = model_validator(mode="before")(_reject_until_time_utc)
     _genders = model_validator(mode="after")(reject_repeated_genders)
@@ -122,6 +123,7 @@ class EventUpdate(BasicMarketingFields):
     is_featured: bool | None = None
     gallery_uris: list[str] | None = None
     sessions: list[Session] | None = None
+    accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)
 
     _reject_until = model_validator(mode="before")(_reject_until_time_utc)
     _genders = model_validator(mode="after")(reject_repeated_genders)
@@ -426,10 +428,14 @@ class EventUpdateFutureRequest(CamelCaseModel):
     end_time_utc: int | None = None
     rrule: str | None = None
     sessions: list[Session] | None = None
+    accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)
 
     @model_validator(mode="after")
     def _require_one_schedule_field(self) -> "EventUpdateFutureRequest":
-        if not (self.model_fields_set - {"effective_date_time_utc", "version"}):
+        if not (
+            self.model_fields_set
+            - {"effective_date_time_utc", "version", "accept_conflicts"}
+        ):
             raise ValueError(
                 "At least one of venueId, organizerName, coachNames, startTimeUtc, "
                 "endTimeUtc, rrule, sessions is required"
@@ -459,6 +465,7 @@ class EventRescheduleRequest(CamelCaseModel):
     venue_id: int | None = None
     sessions: list[Session] | None = None
     reset_overrides: bool = False
+    accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)
 
     @model_validator(mode="after")
     def _require_one_schedule_field(self) -> "EventRescheduleRequest":
@@ -525,3 +532,4 @@ class EventReinstateRequest(CamelCaseModel):
     version: int = Field(
         ..., ge=1, description="The occurrence version the client last saw"
     )
+    accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)

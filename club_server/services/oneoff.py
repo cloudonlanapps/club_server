@@ -16,14 +16,10 @@ from ..exceptions import (
 )
 from ..schemas.event import Session
 from ..utils import now_utc_ms
-from .conflict_gates import (
-    ConflictGate,
-    GatePolicy,
-    check_conflicts,
-    target_for_event,
-)
+from .conflict_gates import target_for_event
 from .event import EventService
 from .in_place_reschedule import reschedule_in_place
+from .schedule_clash import gate_schedule_write
 from .schedule_writes import CANCELLATION_LEAD_TIME_MS
 
 
@@ -66,9 +62,18 @@ class OneOffService(EventService):
         return event, override_used
 
     async def reinstate(
-        self, event_id: int, *, expected_version: int, actor: str | None = None
+        self,
+        event_id: int,
+        *,
+        expected_version: int,
+        actor: str | None = None,
+        accept_conflicts: bool = False,
     ) -> Event:
-        """R6, R7: restore the dropped occurrence, only before it has started."""
+        """R6, R7: restore the dropped occurrence, only before it has started.
+
+        A clash refuses the reinstate with its report unless
+        ``accept_conflicts`` (R21, programme R31d).
+        """
         from .occurrence import OccurrenceService
 
         event = await self.get_live_event(event_id)
@@ -84,16 +89,10 @@ class OneOffService(EventService):
             enforce_lead_time=False,
             actor=actor,
         )
-        report = await check_conflicts(
-            self.db,
-            target_for_event(event),
-            {
-                ConflictGate.venue: GatePolicy.advise,
-                ConflictGate.organizer: GatePolicy.advise,
-                ConflictGate.coach: GatePolicy.advise,
-            },
+        findings = await gate_schedule_write(
+            self.db, target_for_event(event), accept_conflicts=accept_conflicts
         )
-        await self.notify_conflicts(event, report.findings)
+        await self.notify_conflicts(event, findings)
         return event
 
     async def reschedule(
@@ -109,6 +108,7 @@ class OneOffService(EventService):
         reset_overrides: bool = False,
         expected_version: int,
         actor: str | None = None,
+        accept_conflicts: bool = False,
     ) -> Event:
         """R2, R16a, R16b, R21b: the same guards as moving the occurrence."""
         event = await self.get_live_event(event_id)
@@ -132,4 +132,5 @@ class OneOffService(EventService):
             update_sessions=update_sessions,
             reset_overrides=reset_overrides,
             actor=actor,
+            accept_conflicts=accept_conflicts,
         )

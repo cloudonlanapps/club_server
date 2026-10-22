@@ -31,20 +31,14 @@ from ..age_eligibility import Age, encode_age
 from ..schemas.common import ChangeLog, UserRoles
 from ..schemas.event import Session
 from ..utils import now_utc_ms
-from .conflict_gates import (
-    ConflictGate,
-    Finding,
-    GatePolicy,
-    ScheduleTarget,
-    check_conflicts,
-    target_for_event,
-)
+from .conflict_gates import Finding, ScheduleTarget, target_for_event
 from .event_eligibility import apply_age_band, validate_age_band
 from .event_marketing_basic import apply_basic_marketing
 from .event_types import validate_rrule_for
 from .notification import NotificationEvent, NotificationService
 from .occurrence_reminders import delete_occurrence_reminders
 from .schedule import first_slot
+from .schedule_clash import gate_schedule_write
 from .schedule_writes import (
     decode_sessions,
     encode_names,
@@ -194,7 +188,7 @@ class EventService:
         *,
         occurrence_time_utc: int | None = None,
     ) -> None:
-        """Tell the admins about advisory findings (programme R30c, one-off R20)."""
+        """Tell the admins about findings the organizer accepted (programme R31d)."""
         seen: dict[int, Finding] = {}
         for finding in findings:
             _ = seen.setdefault(finding.event_id, finding)
@@ -279,12 +273,14 @@ class EventService:
         stamp: str | None = None,
         highlights: list[str] | None = None,
         includes: list[str] | None = None,
+        accept_conflicts: bool = False,
     ) -> Event:
         """Create an event and its first schedule.
 
         Conflict detection runs on the venue, organizer and coach gates
-        (programme R31, one-off R21). A programme-against-programme clash
-        blocks (R30); every other finding is reported to the admins (R30c).
+        (programme R31, one-off R21). A clash refuses the creation with its
+        report unless ``accept_conflicts``; an accepted clash is reported to
+        the admins (R31d).
         """
         await validate_venue(self.db, venue_id)
         await validate_organizer(self.db, organizer_name)
@@ -296,7 +292,7 @@ class EventService:
 
         now = now_utc_ms()
         effective_organizer = organizer_name or default_organizer
-        report = await check_conflicts(
+        findings = await gate_schedule_write(
             self.db,
             ScheduleTarget(
                 event_type=event_type,
@@ -308,11 +304,7 @@ class EventService:
                 organizer_name=effective_organizer,
                 coach_names=tuple(coach_names or ()),
             ),
-            {
-                ConflictGate.venue: GatePolicy.block,
-                ConflictGate.organizer: GatePolicy.block,
-                ConflictGate.coach: GatePolicy.advise,
-            },
+            accept_conflicts=accept_conflicts,
         )
 
         event = Event(
@@ -346,7 +338,7 @@ class EventService:
         self.db.add(event)
         await self.db.flush()
 
-        await self.notify_conflicts(event, report.findings)
+        await self.notify_conflicts(event, findings)
         await self.db.commit()
         return event
 
@@ -472,6 +464,7 @@ class EventService:
         fields_set: set[str] | None = None,
         expected_version: int,
         actor: str | None = None,
+        accept_conflicts: bool = False,
     ) -> tuple[Event, ChangeLog]:
         """Update a camp's or one-off's metadata in place (camp R2). Returns (event, changes).
 
@@ -479,8 +472,9 @@ class EventService:
         any time (camp R105, one-off R22a).
 
         A change of organizer or coaches runs the gates creation runs (#473,
-        one-off R21). A camp or one-off never blocks on a clash (programme
-        R30c, one-off R20), so every finding is reported to the admins.
+        one-off R21): a clash refuses the update with its report unless
+        ``accept_conflicts``, and an accepted one is reported to the admins
+        (programme R31d).
 
         For nullable fields, callers pass ``fields_set`` (the Pydantic
         ``model_fields_set`` of the request body) so this method can
@@ -546,16 +540,10 @@ class EventService:
         event.current_schedule.updated_at = now
         await self.db.flush()
         if (event.organizer_name, event.coach_names_list) != staff_before:
-            report = await check_conflicts(
-                self.db,
-                target_for_event(event),
-                {
-                    ConflictGate.venue: GatePolicy.advise,
-                    ConflictGate.organizer: GatePolicy.advise,
-                    ConflictGate.coach: GatePolicy.advise,
-                },
+            findings = await gate_schedule_write(
+                self.db, target_for_event(event), accept_conflicts=accept_conflicts
             )
-            await self.notify_conflicts(event, report.findings)
+            await self.notify_conflicts(event, findings)
         await self.notify_schedule_change(event, changes)
         return event, changes
 

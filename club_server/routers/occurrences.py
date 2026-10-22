@@ -191,6 +191,7 @@ async def reschedule_occurrence(
             is_super_admin=bool(current_user.is_super_admin),
             expected_version=data.version,
             actor=current_user.username,
+            accept_conflicts=data.accept_conflicts,
         )
 
         await audit_service.log(

@@ -293,10 +293,10 @@ The matching notice about an enrolled programme member,
   with `event.extended`, carrying the previous and new cutoff.
 - **R79** [✅] Changing a programme from a date on notifies the change
   audience with `event.split`, carrying the cutoff and the changes.
-- **R80** [✅] Creating or changing an event in a way that leaves advisory
-  clashes (venue, organizer, coach) notifies every admin with
-  `event.conflict_detected`, listing the clashing events; no clash is
-  silent.
+- **R80** [✅] Creating or changing an event in a way that leaves clashes
+  (venue, organizer, coach) the organizer accepted (`acceptConflicts`,
+  programme R31d) notifies every admin with `event.conflict_detected`,
+  listing the clashing events; no accepted clash is silent.
 - **R81** [✅] Rescheduling one occurrence notifies the change audience
   with `occurrence.rescheduled`, carrying only the fields that changed.
 - **R82** [✅] Cancelling one occurrence, which includes dropping a

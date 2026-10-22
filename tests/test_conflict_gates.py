@@ -1,9 +1,10 @@
 """Conflict detection as one gate module (#384 phase 0).
 
 Programme R30–R31c, one-off R20–R21b, camp R31/R39/R56, enrollment
-R29a/R29b/R30: behaviour follows the pairing, programmes are compared as
-rules, camps and one-offs are bounded by the scheduling horizon, and every
-gate uses one definition of overlap.
+R29a/R29b/R30: a schedule clash is reported and accepted whatever the
+pairing (#72), a member's clash at enrolment follows the pairing,
+programmes are compared as rules, camps and one-offs are bounded by the
+scheduling horizon, and every gate uses one definition of overlap.
 """
 
 import importlib
@@ -327,15 +328,16 @@ async def test_should_reject_interval_so_rule_comparison_stays_exact(
 
 
 # ---------------------------------------------------------------------------
-# R30c, R30d, R31, R31a: what is reported and what is blocked
+# R30c, R30d, R31, R31a: what is reported, and how it is accepted
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.requirement("programme:R30c")
 @pytest.mark.asyncio
-async def test_should_report_not_block_when_programme_and_camp_share_a_slot(
+async def test_should_answer_409_then_report_when_programme_and_camp_share_a_slot(
     client: AsyncClient, db_session: AsyncSession
 ):
+    """Either direction is a clash like any other: 409, then accepted (#72)."""
     admin = await create_admin_user(db_session)
     _ = await create_coach_user(db_session, "other_organizer")
     venue = await create_venue(client, admin)
@@ -349,19 +351,42 @@ async def test_should_report_not_block_when_programme_and_camp_share_a_slot(
         rrule="FREQ=WEEKLY;BYDAY=MO",
     )
 
-    camp = await create_camp(
-        client, admin, venue, start=monday, end=monday + HOUR_MS, count=3
-    )
-    other_venue = await create_venue(client, admin, "Rink B")
-    _ = await create_camp(client, admin, other_venue, start=monday, count=3)
-    second_programme = await create_programme(
+    refused = await create_camp(
         client,
         admin,
-        other_venue,
+        venue,
         start=monday,
         end=monday + HOUR_MS,
-        rrule="FREQ=WEEKLY;BYDAY=MO",
-        organizerName="other_organizer",
+        count=3,
+        expected_status=409,
+    )
+    assert [c["eventId"] for c in refused["detail"]["venueConflicts"]] == [
+        programme["id"]
+    ]
+    camp = await create_camp(
+        client,
+        admin,
+        venue,
+        start=monday,
+        end=monday + HOUR_MS,
+        count=3,
+        acceptConflicts=True,
+    )
+    other_venue = await create_venue(client, admin, "Rink B")
+    _ = await create_camp(
+        client, admin, other_venue, start=monday, count=3, acceptConflicts=True
+    )
+    programme_over_camp = {
+        "start": monday,
+        "end": monday + HOUR_MS,
+        "rrule": "FREQ=WEEKLY;BYDAY=MO",
+        "organizerName": "other_organizer",
+    }
+    _ = await create_programme(
+        client, admin, other_venue, expected_status=409, **programme_over_camp
+    )
+    second_programme = await create_programme(
+        client, admin, other_venue, acceptConflicts=True, **programme_over_camp
     )
 
     notices = await _conflict_notices(db_session)
@@ -443,7 +468,7 @@ async def test_should_block_split_when_new_schedule_clashes_with_another_program
 
 @pytest.mark.requirement("programme:R31a")
 @pytest.mark.asyncio
-async def test_should_report_not_block_when_single_occurrence_is_moved_onto_a_clash(
+async def test_should_report_when_single_occurrence_is_moved_onto_an_accepted_clash(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -470,7 +495,12 @@ async def test_should_report_not_block_when_single_occurrence_is_moved_onto_a_cl
     )
 
     response = await reschedule_occurrence(
-        client, admin, programme["id"], monday + WEEK_MS, newVenueId=other
+        client,
+        admin,
+        programme["id"],
+        monday + WEEK_MS,
+        newVenueId=other,
+        acceptConflicts=True,
     )
 
     assert response.status_code == 204, response.text
@@ -562,7 +592,7 @@ async def test_should_return_advisory_findings_and_raise_only_blocking_ones(
 
 @pytest.mark.requirement("oneoff:R20")
 @pytest.mark.asyncio
-async def test_should_report_not_block_when_oneoff_clashes_with_anything(
+async def test_should_report_accepted_oneoff_clash_and_not_block_member_join(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -580,7 +610,13 @@ async def test_should_report_not_block_when_oneoff_clashes_with_anything(
     assert (await assign(client, admin, programme["id"], "skater")).status_code == 204
 
     oneoff = await create_oneoff(
-        client, admin, venue, start=monday, end=monday + HOUR_MS, visibility="public"
+        client,
+        admin,
+        venue,
+        start=monday,
+        end=monday + HOUR_MS,
+        visibility="public",
+        acceptConflicts=True,
     )
     joined = await client.post(
         f"/v1/myevents/by_id/skater/{oneoff['id']}/enrollments/request",
@@ -669,7 +705,7 @@ async def test_should_apply_configured_horizon_when_deployment_sets_one(
 
 @pytest.mark.requirement("oneoff:R21")
 @pytest.mark.asyncio
-async def test_should_report_clash_when_oneoff_is_rescheduled_or_reinstated_onto_one(
+async def test_should_report_clash_when_oneoff_is_moved_or_reinstated_onto_one_accepted(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -693,6 +729,7 @@ async def test_should_report_clash_when_oneoff_is_rescheduled_or_reinstated_onto
             "version": await version_of(client, admin, oneoff["id"]),
             "startTimeUtc": monday,
             "venueId": venue,
+            "acceptConflicts": True,
         },
         headers=auth(admin),
     )
@@ -700,7 +737,7 @@ async def test_should_report_clash_when_oneoff_is_rescheduled_or_reinstated_onto
     assert len(await _conflict_notices(db_session)) == 1
 
     assert (await drop(client, admin, oneoff["id"])).status_code == 200
-    back = await reinstate(client, admin, oneoff["id"])
+    back = await reinstate(client, admin, oneoff["id"], acceptConflicts=True)
     assert back.status_code == 200, back.text
     assert len(await _conflict_notices(db_session)) == 2
 
@@ -840,6 +877,7 @@ async def test_should_block_join_only_when_clash_is_programme_against_programme(
         start=monday,
         end=monday + HOUR_MS,
         rrule="FREQ=WEEKLY;BYDAY=MO",
+        acceptConflicts=True,
     )
 
     against_camp = await assign(client, admin, programme["id"], "skater")
@@ -881,7 +919,9 @@ async def test_should_assign_to_camp_when_member_has_an_overlapping_programme(
     )
     assert (await assign(client, admin, programme["id"], "skater")).status_code == 204
     other = await create_venue(client, admin, "Rink B")
-    camp = await create_camp(client, admin, other, start=monday, count=3)
+    camp = await create_camp(
+        client, admin, other, start=monday, count=3, acceptConflicts=True
+    )
 
     response = await assign(client, admin, camp["id"], "skater")
 

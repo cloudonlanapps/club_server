@@ -183,6 +183,7 @@ class CampService(EventService):
         reset_overrides: bool = False,
         expected_version: int,
         actor: str | None = None,
+        accept_conflicts: bool = False,
     ) -> Event:
         """R2, R2c: rewrite the camp's one schedule while nothing is recorded."""
         event = await self.get_live_event(event_id)
@@ -202,4 +203,5 @@ class CampService(EventService):
             update_sessions=update_sessions,
             reset_overrides=reset_overrides,
             actor=actor,
+            accept_conflicts=accept_conflicts,
         )

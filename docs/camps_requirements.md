@@ -203,11 +203,12 @@ Vocabulary:
 - **R25** [X] A plain user cannot reach admin-level camp views → 403.
 - **R26** [X] An anonymous caller cannot reach any camp view → 401.
 
-## Conflict checks (camps are flag-don't-block)
+## Conflict checks
 
 - **R27** [✅] Creating a camp at a venue already booked by
-  another event succeeds. The legacy "venue already booked" 409 is
-  suppressed for camps.
+  another event answers 409 `SCHEDULE_CONFLICT` with the report, and
+  succeeds when the request carries `acceptConflicts: true` — the rule
+  every type now follows (programme R31d, #72).
 - **R28** [✅] Joining a camp succeeds even where the member has
   an overlapping enrollment elsewhere: the time-conflict 409 is suppressed
   for camps.
@@ -225,8 +226,9 @@ Vocabulary:
   have time conflicts against an existing camp.
 - **R31** [✅] Both conflict-check operations accept **any** event type.
   The camp-only restriction was v1 of #16 and is lifted: one module with
-  named gates serves every type, and what differs is whether a finding
-  blocks or is reported (programme R30–R31c, one-off R20–R21a).
+  named gates serves every type. Both are previews: the same gates decide
+  a schedule write, where a finding answers 409 until the organizer
+  accepts it (programme R31d, one-off R20–R21a).
 - **R32** [✅] Two occurrences overlap iff
   `start_a < end_b AND end_a > start_b`. This is **the** definition of
   overlap; every gate uses it (programme R31b).
@@ -249,11 +251,10 @@ Vocabulary:
   than by a test (#373).
 - **R37** [X] The legacy per-venue "check conflict" operation is removed
   → 404. As R36.
-- **R38** [X] Programme creation returns 409 on a venue overlap **with
-  another programme**. It does not, and must not, block on an overlap
-  with a camp or a one-off: behaviour follows the *pairing*, not the type
-  (programme R30, R30c). The rule previously did not say which, and read
-  as though any overlap blocked.
+- **R38** [X] Programme creation returns 409 on a venue, organizer or
+  coach overlap with **any** event, and is written when the request
+  carries `acceptConflicts: true` (programme R31d). The pairing no longer
+  decides a schedule write (#72).
 - **R39** [X] Joining a programme with a time-overlapping enrollment
   returns 409 only where the clash is with **another programme**; the
   member gate reports rather than blocks for every other pairing

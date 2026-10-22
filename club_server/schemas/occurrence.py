@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from .common import CamelCaseModel
+from .common import ACCEPT_CONFLICTS_DESCRIPTION, CamelCaseModel
 
 
 class OccurrenceRescheduleRequest(CamelCaseModel):
@@ -16,6 +16,7 @@ class OccurrenceRescheduleRequest(CamelCaseModel):
     new_start_time_utc: int | None = None
     new_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
     new_venue_id: int | None = None
+    accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)
 
 
 class OccurrenceCancelRequest(CamelCaseModel):

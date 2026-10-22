@@ -8,8 +8,9 @@ absent unless the caller asks for them to be reset. A reset clears each row
 rather than deleting it, so no occurrence's version goes backwards
 (lifecycle L23b).
 
-Conflicts are reported, never blocked, on this path (one-off R21): a camp
-or a one-off is finite and the club may decide to run it over something.
+A clash refuses the reschedule with its report unless the request accepts
+it (one-off R21, programme R31d): a camp or a one-off is finite and the
+club may decide to run it over something.
 """
 
 from typing import TYPE_CHECKING
@@ -26,14 +27,10 @@ from ..exceptions import (
 from ..schemas.common import ChangeLog
 from ..schemas.event import Session
 from ..utils import now_utc_ms
-from .conflict_gates import (
-    ConflictGate,
-    GatePolicy,
-    check_conflicts,
-    target_for_event,
-)
+from .conflict_gates import target_for_event
 from .occurrence_version import SCHEDULED_OVERRIDE_STATUS, clear_override
 from .schedule import first_slot
+from .schedule_clash import gate_schedule_write
 from .schedule_writes import (
     decode_sessions,
     encode_sessions,
@@ -59,6 +56,7 @@ async def reschedule_in_place(
     update_sessions: bool,
     reset_overrides: bool,
     actor: str | None = None,
+    accept_conflicts: bool = False,
 ) -> Event:
     """Apply the new schedule fields to the event's single schedule."""
     db = service.db
@@ -137,15 +135,9 @@ async def reschedule_in_place(
     event.touch(actor, now)
     await db.flush()
 
-    report = await check_conflicts(
-        db,
-        target_for_event(event),
-        {
-            ConflictGate.venue: GatePolicy.advise,
-            ConflictGate.organizer: GatePolicy.advise,
-            ConflictGate.coach: GatePolicy.advise,
-        },
+    findings = await gate_schedule_write(
+        db, target_for_event(event), accept_conflicts=accept_conflicts
     )
-    await service.notify_conflicts(event, report.findings)
+    await service.notify_conflicts(event, findings)
     await service.notify_schedule_change(event, changes)
     return event

@@ -44,15 +44,11 @@ from ..services.eligibility import enrollment_covers_occurrence
 from ..services.event import list_event_change_audience
 from ..services.notification import NotificationEvent, NotificationService
 from ..utils import get_display_name, now_utc_ms
-from .conflict_gates import (
-    ConflictGate,
-    GatePolicy,
-    ScheduleTarget,
-    check_conflicts,
-)
+from .conflict_gates import ScheduleTarget
 from .event_types import EventVerb, offers
 from .lifecycle import occurrence_is_cancelled
 from .occurrence_reminders import delete_occurrence_reminders
+from .schedule_clash import gate_schedule_write
 from .occurrence_version import (
     SCHEDULED_OVERRIDE_STATUS,
     UNCHANGED_OCCURRENCE_VERSION,
@@ -407,6 +403,7 @@ class OccurrenceService:
         *,
         expected_version: int,
         actor: str | None = None,
+        accept_conflicts: bool = False,
     ) -> bool:
         """Postpone an occurrence, change its duration, or move its venue.
 
@@ -505,7 +502,7 @@ class OccurrenceService:
             self.db.add(override)
         await self.db.flush()
 
-        await self._report_occurrence_clash(event, slot, override)
+        await self._report_occurrence_clash(event, slot, override, accept_conflicts)
 
         changes: dict[str, object] = {}
         if new_start_time is not None:
@@ -530,14 +527,22 @@ class OccurrenceService:
         return override_used
 
     async def _report_occurrence_clash(
-        self, event: Event, slot: Slot, override: OccurrenceOverride
+        self,
+        event: Event,
+        slot: Slot,
+        override: OccurrenceOverride,
+        accept_conflicts: bool,
     ) -> None:
-        """R31a: a moved occurrence is checked against occurrences and reported."""
+        """R31a: a moved occurrence is checked against occurrences.
+
+        A clash refuses the move with its report unless ``accept_conflicts``;
+        an accepted one is reported to the admins (R31d).
+        """
         from .event import EventService
 
         start = override.new_start_time or slot.time
         end = override.new_end_time or start + duration_of(slot.schedule)
-        report = await check_conflicts(
+        findings = await gate_schedule_write(
             self.db,
             ScheduleTarget(
                 event_type=event.type,
@@ -551,14 +556,10 @@ class OccurrenceService:
                 coach_names=tuple(event.coach_names_list),
                 exclude_event_id=event.id,
             ),
-            {
-                ConflictGate.venue: GatePolicy.advise,
-                ConflictGate.organizer: GatePolicy.advise,
-                ConflictGate.coach: GatePolicy.advise,
-            },
+            accept_conflicts=accept_conflicts,
         )
         await EventService(self.db).notify_conflicts(
-            event, report.findings, occurrence_time_utc=slot.time
+            event, findings, occurrence_time_utc=slot.time
         )
 
     async def cancel_occurrence(

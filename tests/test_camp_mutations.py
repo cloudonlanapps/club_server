@@ -1,9 +1,9 @@
 """Mutation-side tests for Step E of #16.
 
-Camps move to flag-don't-block: venue / organizer / coach / user overlaps
-do not block create or join. Camps still require a tighter RRULE
-(FREQ=DAILY + bounded). Programmes and oneOff events keep the existing
-blocking semantics — regression-guarded here.
+A venue / organizer / coach overlap on camp creation answers 409 with the
+report until the organizer accepts it with ``acceptConflicts`` (#72,
+programme R31d); a user overlap does not block a camp join. Camps still
+require a tighter RRULE (FREQ=DAILY + bounded).
 """
 
 from datetime import datetime, timedelta, timezone
@@ -39,6 +39,7 @@ async def _create_event(
     rrule: str | None = "FREQ=DAILY;COUNT=3",
     organizer_name: str | None = None,
     coach_names: list[str] | None = None,
+    accept_conflicts: bool = False,
 ) -> "tuple[int, int]":
     """Return (status_code, event_id or 0)."""
     body: dict = {
@@ -54,6 +55,8 @@ async def _create_event(
         body["organizerName"] = organizer_name
     if coach_names is not None:
         body["coachNames"] = coach_names
+    if accept_conflicts:
+        body["acceptConflicts"] = True
     r = await client.post(
         "/v1/events",
         json=body,
@@ -93,12 +96,12 @@ async def _register_user(
 
 
 # ---------------------------------------------------------------------------
-# Camp creation: flag-don't-block on overlaps
+# Camp creation: an overlap is reported, and accepted (#72)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_camp_create_with_venue_overlap_succeeds(
+async def test_camp_create_with_venue_overlap_answers_409_until_accepted(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
@@ -112,11 +115,22 @@ async def test_camp_create_with_venue_overlap_succeeds(
     sc2, _, r2 = await _create_event(
         client, token, venue_id=venue_id, title="Camp B", type_="camp"
     )
-    assert sc2 == 201, r2.text
+    assert sc2 == 409, r2.text
+    assert len(r2.json()["detail"]["venueConflicts"]) == 1
+
+    sc3, _, r3 = await _create_event(
+        client,
+        token,
+        venue_id=venue_id,
+        title="Camp B",
+        type_="camp",
+        accept_conflicts=True,
+    )
+    assert sc3 == 201, r3.text
 
 
 @pytest.mark.asyncio
-async def test_camp_create_with_organizer_overlap_succeeds(
+async def test_camp_create_with_organizer_overlap_answers_409_until_accepted(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
@@ -141,11 +155,23 @@ async def test_camp_create_with_organizer_overlap_succeeds(
         type_="camp",
         organizer_name="admin",
     )
-    assert sc2 == 201, r2.text
+    assert sc2 == 409, r2.text
+    assert len(r2.json()["detail"]["organizerConflicts"]) == 1
+
+    sc3, _, r3 = await _create_event(
+        client,
+        token,
+        venue_id=v_b,
+        title="Camp B",
+        type_="camp",
+        organizer_name="admin",
+        accept_conflicts=True,
+    )
+    assert sc3 == 201, r3.text
 
 
 @pytest.mark.asyncio
-async def test_camp_create_with_coach_overlap_succeeds(
+async def test_camp_create_with_coach_overlap_answers_409_until_accepted(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
@@ -171,7 +197,19 @@ async def test_camp_create_with_coach_overlap_succeeds(
         type_="camp",
         coach_names=["bob"],
     )
-    assert sc2 == 201, r2.text
+    assert sc2 == 409, r2.text
+    assert len(r2.json()["detail"]["coachConflicts"]) == 1
+
+    sc3, _, r3 = await _create_event(
+        client,
+        token,
+        venue_id=v_b,
+        title="Camp B",
+        type_="camp",
+        coach_names=["bob"],
+        accept_conflicts=True,
+    )
+    assert sc3 == 201, r3.text
 
 
 # ---------------------------------------------------------------------------
@@ -269,10 +307,16 @@ async def test_camp_join_with_user_overlap_succeeds(
     )
     assert assign.status_code == 204, assign.text
 
-    # Camp at a different venue but overlapping in time
+    # Camp at a different venue but overlapping in time; the organizer
+    # clash with Programme A is accepted (#72).
     v_b = await _create_venue(client, token, "B")
     sc, camp_id, r = await _create_event(
-        client, token, venue_id=v_b, title="Camp B", type_="camp"
+        client,
+        token,
+        venue_id=v_b,
+        title="Camp B",
+        type_="camp",
+        accept_conflicts=True,
     )
     assert sc == 201, r.text
 

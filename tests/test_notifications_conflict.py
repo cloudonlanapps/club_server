@@ -1,4 +1,8 @@
-"""Tests for #73 — admin conflict alerts on camp create."""
+"""Tests for #73 — admin conflict alerts on camp create.
+
+A clash is created only when the organizer accepts it (#72); the alert
+goes out then.
+"""
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -41,6 +45,7 @@ async def _make_camp(
     start: int,
     end: int,
     title: str = "Camp",
+    accept_conflicts: bool = False,
 ) -> int:
     response = await client.post(
         "/v1/events",
@@ -50,6 +55,7 @@ async def _make_camp(
             "venueId": venue_id,
             "startTimeUtc": start,
             "endTimeUtc": end,
+            "acceptConflicts": accept_conflicts,
         },
         headers=auth(token),
     )
@@ -59,7 +65,7 @@ async def _make_camp(
 
 @pytest.mark.requirement("notifications:R80")
 @pytest.mark.asyncio
-async def test_conflicting_camp_creation_notifies_admins(
+async def test_accepted_conflicting_camp_creation_notifies_admins(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
@@ -77,7 +83,13 @@ async def test_conflicting_camp_creation_notifies_admins(
     overlap_start = future_ms(25)
     overlap_end = future_ms(27)
     second_id = await _make_camp(
-        client, admin_token, venue_id, overlap_start, overlap_end, "Second"
+        client,
+        admin_token,
+        venue_id,
+        overlap_start,
+        overlap_end,
+        "Second",
+        accept_conflicts=True,
     )
 
     for admin_name in ("admin", "ra"):

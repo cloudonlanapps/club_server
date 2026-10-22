@@ -22,16 +22,12 @@ from ..schemas.common import ChangeLog
 from .register_clearing import clear_cancelled_registers, marked_occurrences_at_or_after
 from ..schemas.event import Session
 from ..utils import now_utc_ms
-from .conflict_gates import (
-    ConflictGate,
-    GatePolicy,
-    ScheduleTarget,
-    check_conflicts,
-)
+from .conflict_gates import ScheduleTarget
 from .event import EventService
 from .occurrence_reminders import delete_occurrence_reminders
 from .rrule import parse_rrule_with_exdates, validate_rrule
 from .schedule import event_slots, is_slot_of_current_schedule, schedule_slots
+from .schedule_clash import gate_schedule_write
 from .schedule_writes import (
     CANCELLATION_LEAD_TIME_MS,
     decode_sessions,
@@ -222,6 +218,7 @@ class ProgrammeService(EventService):
         update_sessions: bool = False,
         expected_version: int,
         actor: str | None = None,
+        accept_conflicts: bool = False,
     ) -> tuple[Event, ChangeLog]:
         """R23–R24e: close the current schedule at the cutoff and open the next.
 
@@ -234,7 +231,8 @@ class ProgrammeService(EventService):
         The programme, its id, its enrollments, attendance, overrides and
         credit are untouched (R24d). The new schedule inherits whatever the
         request leaves unset, and is conflict-checked before it is written
-        (R31): a clash with another programme blocks.
+        (R31): a clash refuses the split with its report unless
+        ``accept_conflicts``, and an accepted one is reported (R31d).
         """
         event = await self.get_live_event(event_id)
         self.check_version(event, expected_version)
@@ -300,7 +298,7 @@ class ProgrammeService(EventService):
             if old != new:
                 changes.add(name, old, new)
 
-        _ = await check_conflicts(
+        findings = await gate_schedule_write(
             self.db,
             ScheduleTarget(
                 event_type=event.type,
@@ -314,11 +312,7 @@ class ProgrammeService(EventService):
                 coach_names=tuple(new_coaches),
                 exclude_event_id=event.id,
             ),
-            {
-                ConflictGate.venue: GatePolicy.block,
-                ConflictGate.organizer: GatePolicy.block,
-                ConflictGate.coach: GatePolicy.advise,
-            },
+            accept_conflicts=accept_conflicts,
         )
 
         audience = await self.list_change_audience(event)
@@ -356,6 +350,7 @@ class ProgrammeService(EventService):
         event.touch(actor, now)
         await self.db.flush()
 
+        await self.notify_conflicts(event, findings)
         await self.notify(
             "event.split",
             audience,
