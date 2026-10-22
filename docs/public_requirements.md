@@ -115,8 +115,10 @@ of its media slots; the server only stores the map.
   changed content a different one.
 - **R21** [✅] A read whose `If-None-Match` equals the current tag
   answers 304 with no body and the same cache headers.
-- **R22** [X] The health probe is `no-store`; error responses and every
-  logged-in read carry no cache headers.
+- **R22** [X] The health probe and the inquiry form token
+  (`GET /v1/public/inquiries/token`) are `no-store` with no `ETag`, so a
+  cached token never defeats the fill-time check (#67); error responses
+  and every logged-in read carry no cache headers.
 
 ## Inquiries (#407)
 

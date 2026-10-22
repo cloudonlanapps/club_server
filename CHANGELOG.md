@@ -169,6 +169,7 @@ everything in this section is what an SDK update has to absorb.
 ### Cache Headers
 
 - Every `GET` under `/v1/public/` answers with `Cache-Control: public, max-age=300` and a strong content-derived `ETag`; a matching `If-None-Match` returns 304 with no body. `GET /health` is `no-store`. Error responses and authenticated reads carry no cache headers (#297).
+- `GET /v1/public/inquiries/token` is `no-store` with no `ETag`, so a browser or shared cache never hands out an old fill-time token; every other public read keeps `public, max-age=300` (#67).
 
 ### Event Marketing Module
 
