@@ -13,8 +13,16 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from .media_cache import (
+    DOWNLOAD_CORS_HEADERS,
+    ENCRYPTED_DOWNLOAD_CACHE,
+    PRIVATE_DOWNLOAD_CACHE,
+    PUBLIC_DOWNLOAD_CACHE,
+    plain_download_response,
+)
 
 from ..db.models.media import Media
 from ..db.models.user import User
@@ -61,13 +69,6 @@ from ..services.media_links import (
 )
 
 router = APIRouter(prefix="/media", tags=["Media (v2)"])
-
-# A plain download may be kept for a day. Only media anonymous callers may
-# view is marked cacheable by shared caches; anything restricted by its
-# access roles is for the requesting browser alone (#504).
-_PUBLIC_DOWNLOAD_CACHE = "public, max-age=86400"
-_PRIVATE_DOWNLOAD_CACHE = "private, max-age=86400"
-_ENCRYPTED_DOWNLOAD_CACHE = "private, no-store"
 
 
 def _media_404() -> HTTPException:
@@ -546,25 +547,16 @@ async def download_media(
             content=result.content,
             media_type=result.media_type,
             headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-                "Cache-Control": _ENCRYPTED_DOWNLOAD_CACHE,
+                **DOWNLOAD_CORS_HEADERS,
+                "Cache-Control": ENCRYPTED_DOWNLOAD_CACHE,
             },
         )
 
     cache_control = (
-        _PUBLIC_DOWNLOAD_CACHE
-        if can_view_media(media, None)
-        else _PRIVATE_DOWNLOAD_CACHE
+        PUBLIC_DOWNLOAD_CACHE if can_view_media(media, None) else PRIVATE_DOWNLOAD_CACHE
     )
-    return FileResponse(
-        path=str(result.file_path),
-        media_type=result.media_type,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-            "Cache-Control": cache_control,
-        },
+    return plain_download_response(
+        request, result.file_path, result.media_type, cache_control
     )
 
 
