@@ -27,7 +27,7 @@ async def create_user_and_get_token(
         "/v1/auth/login",
         json={"username": username, "password": "testpass123"},
     )
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},
@@ -395,7 +395,7 @@ async def test_list_user_attendance_filters_by_date_range(
     event2_id = event2_resp.json()["id"]
 
     for eid in [event1_id, event2_id]:
-        await client.post(
+        _ = await client.post(
             f"/v1/events/by_id/{eid}/enrollments/assign",
             json={"membernames": ["testuser"]},
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -409,7 +409,7 @@ async def test_list_user_attendance_filters_by_date_range(
     )
 
     for eid, occ_time in [(event1_id, time_in_range), (event2_id, time_out_of_range)]:
-        await client.post(
+        _ = await client.post(
             f"/v1/events/by_id/{eid}/occurrences/{occ_time}/attendance",
             json={"records": [{"membername": "testuser", "status": "present"}]},
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -468,12 +468,12 @@ async def test_list_user_attendance_only_enrolled_events(
     )
     event2_id = event2_resp.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event1_id}/enrollments/assign",
         json={"membernames": ["testuser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event2_id}/enrollments/assign",
         json={"membernames": ["otheruser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -484,12 +484,12 @@ async def test_list_user_attendance_only_enrolled_events(
         db_session, event2_id, ["otheruser"], hours_ago=2
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event1_id}/occurrences/{occ1}/attendance",
         json={"records": [{"membername": "testuser", "status": "present"}]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event2_id}/occurrences/{occ2}/attendance",
         json={"records": [{"membername": "otheruser", "status": "present"}]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1222,12 +1222,12 @@ async def test_admin_list_all_attendance(client: AsyncClient, db_session: AsyncS
     )
     event2_id = event2_resp.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event1_id}/enrollments/assign",
         json={"membernames": ["user1"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event2_id}/enrollments/assign",
         json={"membernames": ["user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1238,12 +1238,12 @@ async def test_admin_list_all_attendance(client: AsyncClient, db_session: AsyncS
         db_session, event2_id, ["user2"], hours_ago=2
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event1_id}/occurrences/{occ1}/attendance",
         json={"records": [{"membername": "user1", "status": "present"}]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event2_id}/occurrences/{occ2}/attendance",
         json={"records": [{"membername": "user2", "status": "late"}]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1317,7 +1317,7 @@ async def test_admin_list_attendance_filters_by_date_range(
     event2_id = event2_resp.json()["id"]
 
     for eid in [event1_id, event2_id]:
-        await client.post(
+        _ = await client.post(
             f"/v1/events/by_id/{eid}/enrollments/assign",
             json={"membernames": ["testuser"]},
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -1330,12 +1330,12 @@ async def test_admin_list_attendance_filters_by_date_range(
         db_session, event2_id, ["testuser"], hours_ago=5 * 24
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event1_id}/occurrences/{time_in_range}/attendance",
         json={"records": [{"membername": "testuser", "status": "present"}]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event2_id}/occurrences/{time_out_of_range}/attendance",
         json={"records": [{"membername": "testuser", "status": "absent"}]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1718,18 +1718,18 @@ async def test_bulk_approve_leave(client: AsyncClient, db_session: AsyncSession)
     )
     event_id = event_response.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user1/{event_id}/occurrences/{start_time}/leave/request",
         json={"reason": "Doctor visit"},
         headers={"Authorization": f"Bearer {user1_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user2/{event_id}/occurrences/{start_time}/leave/request",
         json={"reason": "Family event"},
         headers={"Authorization": f"Bearer {user2_token}"},
@@ -1780,18 +1780,18 @@ async def test_bulk_reject_leave(client: AsyncClient, db_session: AsyncSession):
     )
     event_id = event_response.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user1/{event_id}/occurrences/{start_time}/leave/request",
         json={"reason": "Doctor visit"},
         headers={"Authorization": f"Bearer {user1_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user2/{event_id}/occurrences/{start_time}/leave/request",
         json={"reason": "Family event"},
         headers={"Authorization": f"Bearer {user2_token}"},
@@ -1844,7 +1844,7 @@ async def test_declare_leave_different_occurrences(
     )
     event_id = event_response.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["testuser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1907,7 +1907,7 @@ async def test_multiple_users_declare_leave_same_occurrence(
     )
     event_id = event_response.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1948,7 +1948,7 @@ async def test_declare_leave_with_reason(client: AsyncClient, db_session: AsyncS
         client, admin_token, "testuser"
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/testuser/{event_id}/occurrences/{occurrence_time_utc}/leave/request",
         json={"reason": "Family wedding"},
         headers={"Authorization": f"Bearer {user_token}"},
@@ -3486,7 +3486,6 @@ async def _cancel_event_series(
         await db_session.execute(_sel(Event).where(Event.id == event_id))
     ).scalar_one()
     event.until_time = until_time_utc
-    event.continued_as_event_id = None
     await db_session.commit()
 
 

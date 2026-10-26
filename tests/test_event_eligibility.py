@@ -1,6 +1,7 @@
 """Tests for issue #18: structured event eligibility, sessions timetable,
 and aux-info removal."""
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -16,7 +17,7 @@ DOB_2000 = 946684800000  # 2000-01-01 UTC midnight
 ONE_DAY_MS = 86_400_000
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -34,7 +35,7 @@ async def _create_venue(client: AsyncClient, admin_token: str) -> int:
     return r.json()["id"]
 
 
-async def _register_member(
+async def register_member(
     client: AsyncClient,
     admin_token: str,
     username: str,
@@ -62,7 +63,7 @@ async def _register_member(
         json={"username": username, "password": "testpass123"},
     )
     assert pre.status_code == 200
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     sub = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {pre.json()['accessToken']}"},
@@ -74,7 +75,7 @@ async def _register_member(
     assert appr.status_code in (200, 201, 204)
 
     # Patch dob/gender if different from defaults; supports clearing to None.
-    update: dict = {}
+    update: dict[str, Any] = {}
     if gender != "male":
         update["gender"] = gender
     if date_of_birth != DOB_2000:
@@ -102,18 +103,18 @@ async def _create_event(
     gender: str | None = None,
     dob_on_or_after_utc: int | None = None,
     dob_on_or_before_utc: int | None = None,
-    sessions: list[dict] | None = None,
+    sessions: list[dict[str, Any]] | None = None,
     start_offset_hours: int = 24,
     duration_hours: int = 1,
     is_featured: bool = False,
     gallery_uris: list[str] | None = None,
     expect_status: int = 201,
-) -> dict:
+) -> dict[str, Any]:
     # Derive end from a single start so the window is exactly duration_hours
     # (two separate future_time() calls drift by the elapsed ms between them,
     # which makes the sessions-total equality check flaky).
     start_utc = future_time(start_offset_hours)
-    body: dict = {
+    body: dict[str, Any] = {
         "title": "Camp",
         "type": event_type,
         "venueId": venue_id,
@@ -235,7 +236,7 @@ async def test_invite_ineligible_user_rejected_422(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    _ = await _register_member(
+    _ = await register_member(
         client, admin_token, "u_old", db_session, date_of_birth=DOB_2000
     )
     event = await _create_event(
@@ -256,7 +257,7 @@ async def test_assign_ineligible_user_rejected_422(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    _ = await _register_member(
+    _ = await register_member(
         client, admin_token, "u_old", db_session, date_of_birth=DOB_2000
     )
     event = await _create_event(
@@ -277,7 +278,7 @@ async def test_assign_trial_ineligible_user_rejected_422(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    _ = await _register_member(
+    _ = await register_member(
         client, admin_token, "u_old", db_session, date_of_birth=DOB_2000
     )
     event = await _create_event(
@@ -302,7 +303,7 @@ async def test_self_request_ineligible_rejected_422(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    user_token = await _register_member(
+    user_token = await register_member(
         client, admin_token, "u_old", db_session, date_of_birth=DOB_2000
     )
     event = await _create_event(
@@ -328,7 +329,7 @@ async def test_approve_re_checks_eligibility(
     matches, approval rejects 422 and the enrollment stays `requested`."""
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    user_token = await _register_member(
+    user_token = await register_member(
         client, admin_token, "kid", db_session, date_of_birth=DOB_2014
     )
 
@@ -377,7 +378,7 @@ async def test_user_with_null_dob_ineligible_when_event_has_dob_bound(
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
     # Register member then null out their DOB.
-    _ = await _register_member(
+    _ = await register_member(
         client, admin_token, "anon", db_session, date_of_birth=DOB_2000
     )
     # Use the admin patch endpoint to clear the dob.
@@ -409,7 +410,7 @@ async def test_grandfathering_keeps_existing_enrollment(
     """Tightening eligibility after enrollment does not auto-cancel anyone."""
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    _ = await _register_member(
+    _ = await register_member(
         client, admin_token, "vet", db_session, date_of_birth=DOB_2000
     )
     event = await _create_event(client, admin_token, venue_id)
@@ -453,7 +454,7 @@ async def test_myevents_hides_ineligible_public_event(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    user_token = await _register_member(
+    user_token = await register_member(
         client, admin_token, "stranger", db_session, date_of_birth=DOB_2000
     )
 
@@ -477,7 +478,7 @@ async def test_myevents_keeps_enrolled_event_even_when_ineligible(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    user_token = await _register_member(
+    user_token = await register_member(
         client, admin_token, "vet2", db_session, date_of_birth=DOB_2000
     )
     event = await _create_event(client, admin_token, venue_id, visibility="public")
@@ -556,7 +557,7 @@ async def test_sessions_empty_list_rejected_422(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    body = {
+    body: dict[str, Any] = {
         "title": "Camp",
         "type": "camp",
         "venueId": venue_id,
@@ -684,7 +685,7 @@ async def test_user_with_null_gender_ineligible_when_event_sets_gender(
     """R42 — NULL user gender is ineligible for any event with `gender` set."""
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    _ = await _register_member(
+    _ = await register_member(
         client, admin_token, "anon", db_session, date_of_birth=DOB_2000
     )
     nullify = await client.patch(
@@ -713,7 +714,7 @@ async def test_invite_replacing_terminal_enrollment_re_checks_eligibility(
     pass eligibility against the event's current criteria."""
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    user_token = await _register_member(
+    user_token = await register_member(
         client, admin_token, "kid", db_session, date_of_birth=DOB_2014
     )
     # Open camp; user requests, admin rejects (terminal `rejected` row).

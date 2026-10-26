@@ -6,6 +6,7 @@ so the rule-by-rule files added for ``media_requirements.md`` do not each
 grow another one.
 """
 
+from typing import Any
 import json
 import os
 import shutil
@@ -55,7 +56,7 @@ def pdf_bytes() -> bytes:
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>",
     ]
     out = b"%PDF-1.4\n"
-    offsets = []
+    offsets: list[int] = []
     for number, body in enumerate(objects, start=1):
         offsets.append(len(out))
         out += f"{number} 0 obj\n".encode() + body + b"\nendobj\n"
@@ -98,7 +99,7 @@ async def upload(
     preserve: bool = True,
     encrypt: bool = False,
     expect: int = 201,
-) -> dict:
+) -> dict[str, Any]:
     """Upload one file and return the record, asserting the status."""
     data: dict[str, str] = {"preserveOriginal": "true" if preserve else "false"}
     if access_roles is not None:

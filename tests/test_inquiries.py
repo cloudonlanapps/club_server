@@ -6,6 +6,7 @@ dedupe window. Delivery is one email to the club's inquiry address and
 one admin notification. Retention is a daily purge.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -37,7 +38,7 @@ def _ready_token() -> str:
     return issue_form_token(issued_at_ms=now_utc_ms() - 10_000)
 
 
-def _body(**overrides) -> dict:
+def _body(**overrides: Any) -> dict[str, Any]:
     return {
         "kind": "contact",
         "name": "Pat Visitor",
@@ -187,6 +188,7 @@ async def test_should_email_the_inquiry_address_and_notify_admins(
 
     assert len(ConsoleEmailSender.outbox) == 1
     sent = ConsoleEmailSender.outbox[0]
+    assert sent.text is not None
     assert sent.to == "query@example.com"
     assert "Pat Visitor" in sent.text and "beginner sessions" in sent.text
     assert "pat@example.com" in sent.text
@@ -227,8 +229,8 @@ async def test_should_list_filter_handle_and_delete_inquiries_as_admin(
 ):
     admin = await create_admin_user(db_session)
     await db_session.commit()
-    await client.post("/v1/public/inquiries", json=_body())
-    await client.post(
+    _ = await client.post("/v1/public/inquiries", json=_body())
+    _ = await client.post(
         "/v1/public/inquiries", json=_body(kind="interest", email="kid@example.com")
     )
 
@@ -317,7 +319,7 @@ async def test_should_refuse_the_inbox_to_non_admins(
 async def test_should_purge_handled_after_180_days_and_unhandled_after_365(
     client: AsyncClient, db_session: AsyncSession
 ):
-    await create_admin_user(db_session)
+    _ = await create_admin_user(db_session)
     await db_session.commit()
     for email in ("a@example.com", "b@example.com", "c@example.com", "d@example.com"):
         assert (
@@ -361,7 +363,7 @@ async def test_should_not_write_submissions_to_the_audit_log(
 # ── an inquiry without a message (#41) ─────────────────────────────────────
 
 
-def _body_without_message(**overrides) -> dict:
+def _body_without_message(**overrides: Any) -> dict[str, Any]:
     body = _body(**overrides)
     del body["message"]
     return body
@@ -436,6 +438,7 @@ async def test_should_email_an_inquiry_without_a_message_with_no_message_line(
 
     assert len(ConsoleEmailSender.outbox) == 1
     sent = ConsoleEmailSender.outbox[0]
+    assert sent.text is not None
     assert "Pat Visitor" in sent.text
     assert "ageGroup: U12" in sent.text
     assert "None" not in sent.text and "None" not in sent.html

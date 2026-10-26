@@ -512,7 +512,7 @@ class OccurrenceService:
         if new_venue_id:
             changes["venueId"] = new_venue_id
         if not override_used:
-            await self._notifications.notify_for_event(
+            _ = await self._notifications.notify_for_event(
                 NotificationEvent(
                     type="occurrence.rescheduled",
                     recipients=await list_event_change_audience(self.db, event),
@@ -614,7 +614,7 @@ class OccurrenceService:
         )
 
         if not override_used:
-            await self._notifications.notify_for_event(
+            _ = await self._notifications.notify_for_event(
                 NotificationEvent(
                     type="occurrence.cancelled",
                     recipients=await list_event_change_audience(self.db, event),

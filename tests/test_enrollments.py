@@ -1,3 +1,4 @@
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -32,7 +33,7 @@ async def create_user_and_get_token(
         "/v1/auth/login",
         json={"username": username, "password": "testpass123"},
     )
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},
@@ -967,7 +968,7 @@ async def test_get_enrollment_detail(client: AsyncClient, db_session: AsyncSessi
     event_id = await create_event(client, admin_token)
 
     # Assign user (sets enrolledAtUtc)
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["testuser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1148,7 +1149,7 @@ async def create_event_with_times(
     overlapping events.
     """
     venue_id = await create_venue(client, token)
-    data: dict = {
+    data: dict[str, Any] = {
         "title": title,
         "type": event_type,
         "venueId": venue_id,
@@ -1768,7 +1769,7 @@ async def test_bulk_assign_transitions_invited_to_assigned(
     _ = await create_user_and_get_token(client, admin_token, "user2", db_session)
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/invite",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1802,17 +1803,17 @@ async def test_bulk_approve_withdrawal(client: AsyncClient, db_session: AsyncSes
     )
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user1/{event_id}/enrollments/withdraw",
         json={"reason": "Reason 1"},
         headers={"Authorization": f"Bearer {user1_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user2/{event_id}/enrollments/withdraw",
         json={"reason": "Reason 2"},
         headers={"Authorization": f"Bearer {user2_token}"},
@@ -1846,17 +1847,17 @@ async def test_bulk_reject_withdrawal(client: AsyncClient, db_session: AsyncSess
     )
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user1/{event_id}/enrollments/withdraw",
         json={"reason": "Reason 1"},
         headers={"Authorization": f"Bearer {user1_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user2/{event_id}/enrollments/withdraw",
         json={"reason": "Reason 2"},
         headers={"Authorization": f"Bearer {user2_token}"},
@@ -1886,7 +1887,7 @@ async def test_bulk_remove_enrollments(client: AsyncClient, db_session: AsyncSes
     _ = await create_user_and_get_token(client, admin_token, "user2", db_session)
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1917,7 +1918,7 @@ async def test_bulk_remove_partial(client: AsyncClient, db_session: AsyncSession
     _ = await create_user_and_get_token(client, admin_token, "user3", db_session)
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2", "user3"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -1949,13 +1950,13 @@ async def test_withdrawal_with_reason(client: AsyncClient, db_session: AsyncSess
     )
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["testuser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/testuser/{event_id}/enrollments/withdraw",
         json={"reason": "Moving to another city"},
         headers={"Authorization": f"Bearer {user_token}"},
@@ -1985,7 +1986,7 @@ async def test_multiple_users_request_withdrawal(
     )
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -2037,28 +2038,28 @@ async def test_mixed_approve_and_reject_enrollment_requests(
     event_id = await create_event(client, admin_token)
 
     # Users request enrollment
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user1/{event_id}/enrollments/request",
         headers={"Authorization": f"Bearer {user1_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user2/{event_id}/enrollments/request",
         headers={"Authorization": f"Bearer {user2_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/user3/{event_id}/enrollments/request",
         headers={"Authorization": f"Bearer {user3_token}"},
     )
 
     # Approve user1 and user2
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/approve",
         json={"membernames": ["user1", "user2"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
     # Reject user3
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/reject",
         json={"membernames": ["user3"], "reason": "Capacity full"},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -2085,19 +2086,19 @@ async def test_withdrawal_reason_persists_after_approval(
     )
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["testuser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/testuser/{event_id}/enrollments/withdraw",
         json={"reason": "Relocating abroad"},
         headers={"Authorization": f"Bearer {user_token}"},
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/approve-withdraw",
         json={"membernames": ["testuser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -2124,19 +2125,19 @@ async def test_reject_withdrawal_with_reason(
     )
     event_id = await create_event(client, admin_token)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["testuser"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/testuser/{event_id}/enrollments/withdraw",
         json={"reason": "Want to leave"},
         headers={"Authorization": f"Bearer {user_token}"},
     )
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/reject-withdraw",
         json={"membernames": ["testuser"], "reason": "Commitment required"},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -2729,9 +2730,8 @@ async def _seed_then_cancel(
     # Restore future timestamps (helper moves event to past as its last step).
     event.start_time = future_time_ms(24)
     event.end_time = future_time_ms(25)
-    # Mark cancelled: until_time set, continued_as_event_id NULL.
+    # Mark cancelled: until_time set.
     event.until_time = future_time_ms(0)
-    event.continued_as_event_id = None
     await db_session.flush()
     return event_id
 

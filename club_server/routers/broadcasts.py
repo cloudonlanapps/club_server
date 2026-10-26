@@ -21,21 +21,11 @@ from ..schemas.broadcast import (
     BroadcastResponse,
 )
 from ..schemas.common import PaginatedResponse
-from ..services.audit import AuditService
+from ..services.audit import AuditService, AuditValue
 from ..services.audit_actions import AuditAction
 from ..services.broadcast import BroadcastService
 
 router = APIRouter(prefix="/broadcasts", tags=["broadcasts"])
-
-
-def _not_found(broadcast_id: int) -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail={
-            "code": "BROADCAST_NOT_FOUND",
-            "message": f"Broadcast {broadcast_id} not found",
-        },
-    )
 
 
 def _invalid_audience(exc: InvalidAudienceSelectorException) -> HTTPException:
@@ -73,7 +63,7 @@ async def create_broadcast(
     except InvalidAudienceSelectorException as e:
         raise _invalid_audience(e)
 
-    details: dict[str, object] = {
+    details: dict[str, AuditValue] = {
         "audience": data.audience_selector,
         "recipientCount": recipient_count,
     }

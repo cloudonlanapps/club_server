@@ -1,4 +1,4 @@
-from typing import ClassVar, Literal
+from typing import ClassVar, Literal, TypedDict
 from sqlalchemy import inspect as sa_inspect
 from pydantic import ConfigDict, EmailStr, Field
 
@@ -6,6 +6,48 @@ from ..db.models.user import Gender, Role, User, UserStatus
 from ..utils import generate_public_id, get_display_name
 from .common import Address, CamelCaseModel, UserRoles
 from .media import MediaRef
+
+
+class UserCreateKwargs(TypedDict):
+    """Keyword arguments of ``UserService.create_user``."""
+
+    username: str
+    password_hash: str
+    email: str | None
+    first_name: str | None
+    middle_name: str | None
+    last_name: str | None
+    nickname: str | None
+    phone: str | None
+    date_of_birth: int | None
+    use_name_publicly: bool | None
+    bio: str | None
+    medical_info: str | None
+    emergency_contact: str | None
+    achievements: str | None
+    gender: str | None
+    address: str | None
+    status: UserStatus
+
+
+class UserUpdateKwargs(TypedDict, total=False):
+    """Keyword arguments of ``UserService.update_user``; set fields only."""
+
+    email: str | None
+    first_name: str | None
+    middle_name: str | None
+    last_name: str | None
+    nickname: str | None
+    phone: str | None
+    date_of_birth: int | None
+    bio: str | None
+    achievements: str | None
+    emergency_contact: str | None
+    medical_info: str | None
+    use_name_publicly: bool | None
+    is_public_profile: bool | None
+    gender: str | None
+    address: str | None
 
 
 class UserCreate(CamelCaseModel):
@@ -49,7 +91,7 @@ class UserAdminCreate(CamelCaseModel):
     # authority. Handled by the router, not forwarded to the service.
     is_guest: bool = False
 
-    def to_service_kwargs(self) -> dict[str, object]:
+    def to_service_kwargs(self) -> UserCreateKwargs:
         """Build kwargs for ``UserService.create_user``.
 
         All fields are forwarded (admin-create applies schema defaults rather
@@ -58,20 +100,25 @@ class UserAdminCreate(CamelCaseModel):
         its JSON-string column form, lowers ``gender`` to its enum value, and
         passes ``status`` as ``UserStatus.active``, the only value accepted.
         """
-        rename = {"date_of_birth_utc": "date_of_birth"}
-        kwargs: dict[str, object] = {}
-        for name in type(self).model_fields:
-            if name == "is_guest":
-                continue
-            value = getattr(self, name)
-            if name == "gender":
-                value = value.value if value else None
-            elif name == "address":
-                value = value.model_dump_json() if value else None
-            elif name == "status":
-                value = UserStatus.active
-            kwargs[rename.get(name, name)] = value
-        return kwargs
+        return {
+            "username": self.username,
+            "password_hash": self.password_hash,
+            "email": self.email,
+            "first_name": self.first_name,
+            "middle_name": self.middle_name,
+            "last_name": self.last_name,
+            "nickname": self.nickname,
+            "phone": self.phone,
+            "date_of_birth": self.date_of_birth_utc,
+            "use_name_publicly": self.use_name_publicly,
+            "bio": self.bio,
+            "medical_info": self.medical_info,
+            "emergency_contact": self.emergency_contact,
+            "achievements": self.achievements,
+            "gender": self.gender.value if self.gender else None,
+            "address": self.address.model_dump_json() if self.address else None,
+            "status": UserStatus.active,
+        }
 
 
 class UserUpdate(CamelCaseModel):
@@ -93,7 +140,7 @@ class UserUpdate(CamelCaseModel):
     gender: Gender | None = None
     address: Address | None = None
 
-    def to_service_kwargs(self) -> dict[str, object]:
+    def to_service_kwargs(self) -> UserUpdateKwargs:
         """Build kwargs for ``UserService.update_user``.
 
         Only explicitly-set fields are included so the service's ``UNSET``
@@ -101,15 +148,38 @@ class UserUpdate(CamelCaseModel):
         Renames ``date_of_birth_utc`` → ``date_of_birth`` and serializes
         ``address`` to the JSON-string column format the service expects.
         """
-        rename = {"date_of_birth_utc": "date_of_birth"}
-        kwargs: dict[str, object] = {}
-        for name in self.model_fields_set:
-            if name == "address":
-                kwargs["address"] = (
-                    self.address.model_dump_json() if self.address else None
-                )
-            else:
-                kwargs[rename.get(name, name)] = getattr(self, name)
+        fields_set = self.model_fields_set
+        kwargs: UserUpdateKwargs = {}
+        if "email" in fields_set:
+            kwargs["email"] = self.email
+        if "first_name" in fields_set:
+            kwargs["first_name"] = self.first_name
+        if "middle_name" in fields_set:
+            kwargs["middle_name"] = self.middle_name
+        if "last_name" in fields_set:
+            kwargs["last_name"] = self.last_name
+        if "nickname" in fields_set:
+            kwargs["nickname"] = self.nickname
+        if "phone" in fields_set:
+            kwargs["phone"] = self.phone
+        if "use_name_publicly" in fields_set:
+            kwargs["use_name_publicly"] = self.use_name_publicly
+        if "bio" in fields_set:
+            kwargs["bio"] = self.bio
+        if "date_of_birth_utc" in fields_set:
+            kwargs["date_of_birth"] = self.date_of_birth_utc
+        if "medical_info" in fields_set:
+            kwargs["medical_info"] = self.medical_info
+        if "emergency_contact" in fields_set:
+            kwargs["emergency_contact"] = self.emergency_contact
+        if "achievements" in fields_set:
+            kwargs["achievements"] = self.achievements
+        if "is_public_profile" in fields_set:
+            kwargs["is_public_profile"] = self.is_public_profile
+        if "gender" in fields_set:
+            kwargs["gender"] = self.gender
+        if "address" in fields_set:
+            kwargs["address"] = self.address.model_dump_json() if self.address else None
         return kwargs
 
 

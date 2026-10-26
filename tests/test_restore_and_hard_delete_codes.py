@@ -6,6 +6,7 @@ hard-deleting an item that is not soft-deleted → 422
 the item is left exactly as it was.
 """
 
+from typing import Any
 from collections.abc import Awaitable, Callable
 
 import pytest
@@ -16,7 +17,7 @@ from .evaluation_helpers import create_general_evaluation, create_template
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .media_helpers import (
     auth,
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     upload,
 )
 from .redesign_helpers import create_camp, create_venue
@@ -25,7 +26,7 @@ NOTHING_TO_RESTORE = "NOTHING_TO_RESTORE"
 HARD_DELETE_NEEDS_SOFT_DELETE = "HARD_DELETE_NEEDS_SOFT_DELETE"
 
 
-async def _read(client: AsyncClient, token: str, url: str) -> dict:
+async def _read(client: AsyncClient, token: str, url: str) -> dict[str, Any]:
     response = await client.get(url, headers=auth(token))
     assert response.status_code == 200, response.text
     return response.json()

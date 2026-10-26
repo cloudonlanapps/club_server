@@ -7,7 +7,7 @@ and its members were notified.
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_member_user
@@ -42,7 +42,7 @@ async def _restore(client: AsyncClient, token: str, event_id: int) -> None:
     assert response.json()["deletedAtUtc"] is None
 
 
-def _assert_event_not_found(response) -> None:
+def _assert_event_not_found(response: Response) -> None:
     assert response.status_code == 404, response.text
     assert response.json()["detail"]["code"] == "EVENT_NOT_FOUND"
 
@@ -74,7 +74,7 @@ async def test_should_return_404_when_cancelling_a_deleted_camp(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "skater")
+    _ = await create_member_user(db_session, "skater")
     await db_session.commit()
     venue = await create_venue(client, admin)
     start = at(days=2)

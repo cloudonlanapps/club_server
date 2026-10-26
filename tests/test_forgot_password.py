@@ -9,6 +9,7 @@ Default email provider in tests is the console sender, so sends succeed and the
 generated password is observable via ConsoleEmailSender.outbox.
 """
 
+from typing import Any
 import json
 import re
 
@@ -59,7 +60,7 @@ def _password_from_outbox() -> str:
     return match.group(1)
 
 
-async def _reset_action_details(db_session: AsyncSession) -> dict:
+async def _reset_action_details(db_session: AsyncSession) -> dict[str, Any]:
     db_session.expire_all()
     rows = (
         (
@@ -144,14 +145,14 @@ async def test_response_uniform_for_known_and_unknown(
 @pytest.mark.requirement("auth:R31")
 @pytest.mark.asyncio
 async def test_send_failure_keeps_old_password(
-    client: AsyncClient, db_session: AsyncSession, monkeypatch
+    client: AsyncClient, db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
 ):
     """If the email cannot be delivered we must NOT change the password —
     otherwise the user is locked out with a password they never received."""
     await _create_user_with_email(db_session, "pat", "pat@example.com", "oldpass123")
 
     class _FailingSender:
-        name = "failing"
+        name: str = "failing"
 
         async def send(self, _message: EmailMessage) -> SendResult:
             return SendResult(success=False, provider="failing", error="boom")

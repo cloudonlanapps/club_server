@@ -97,7 +97,7 @@ async def test_should_reopen_closed_account_when_cancellation_refunds_into_it(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, start, code = await _charged_then_departed(client, admin_token, "alice")
 
     cancelled = await client.post(
@@ -140,7 +140,7 @@ async def test_should_reopen_closed_account_when_cleared_attendance_refunds_into
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, start, code = await _charged_then_departed(client, admin_token, "alice")
 
     cleared = await client.delete(
@@ -175,7 +175,7 @@ async def test_should_not_audit_a_reopen_when_refund_lands_in_open_account(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     code = str(account["accountId"])
     venue = await client.post(

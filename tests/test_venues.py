@@ -294,7 +294,7 @@ async def test_soft_delete_venue_after_events_soft_deleted(
     event_id = event_response.json()["id"]
 
     # Soft delete the event first
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -321,7 +321,7 @@ async def test_restore_venue(client: AsyncClient, db_session: AsyncSession):
     venue_id = create_response.json()["id"]
 
     # Soft delete
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -375,7 +375,7 @@ async def test_hard_delete_venue(client: AsyncClient, db_session: AsyncSession):
     venue_id = create_response.json()["id"]
 
     # Soft delete first (required before hard delete)
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -446,13 +446,13 @@ async def test_hard_delete_venue_with_events_fails(
     event_id = event_response.json()["id"]
 
     # Soft delete the event first (venue soft-delete requires no active events)
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
     # Soft delete the venue (succeeds because event is soft-deleted)
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -481,7 +481,7 @@ async def test_soft_deleted_venue_excluded_from_list(
     venue_id = create_response.json()["id"]
 
     # Soft delete via DELETE
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -546,7 +546,7 @@ async def test_soft_delete_venue_blocked_by_occurrence_override(
     event_id = event_response.json()["id"]
 
     # Reschedule occurrence to venue2
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/occurrences/{start_ms}/reschedule",
         json={
             "version": await occurrence_version(client, token, event_id, start_ms),
@@ -604,7 +604,7 @@ async def test_hard_delete_venue_blocked_by_occurrence_override(
     event_id = event_response.json()["id"]
 
     # Reschedule occurrence to venue2
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/occurrences/{start_ms}/reschedule",
         json={
             "version": await occurrence_version(client, token, event_id, start_ms),
@@ -614,13 +614,13 @@ async def test_hard_delete_venue_blocked_by_occurrence_override(
     )
 
     # Soft delete the event so venue2 can be soft-deleted
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
     # Soft delete venue2 succeeds (event is soft-deleted)
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue2_id}",
         headers={"Authorization": f"Bearer {token}"},
     )

@@ -11,6 +11,7 @@ milliseconds, the way ``users.date_of_birth`` is.
 import json
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import ClassVar
 
 from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, ConfigDict, Field
@@ -33,11 +34,11 @@ class Age(BaseModel):
     part by part and "17 months" is written as one year and five months.
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
     years: int = Field(..., ge=0, le=MAX_AGE_YEARS)
-    months: int = Field(0, ge=0, le=MAX_AGE_MONTHS)
-    days: int = Field(0, ge=0, le=MAX_AGE_DAYS)
+    months: int = Field(default=0, ge=0, le=MAX_AGE_MONTHS)
+    days: int = Field(default=0, ge=0, le=MAX_AGE_DAYS)
 
     def as_tuple(self) -> tuple[int, int, int]:
         """Years, months, days — the order two ages are compared in."""

@@ -6,8 +6,9 @@ credit charge) for a session that does not exist. Leave on a soft-deleted
 event answers 404, as marking already did.
 """
 
+from typing import Any
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_member_user
@@ -32,7 +33,7 @@ async def _register(client: AsyncClient, token: str, event_id: int, slot: int):
     return {row["membername"]: row["status"] for row in response.json()}
 
 
-async def _member_records(client: AsyncClient, token: str, member: str) -> list:
+async def _member_records(client: AsyncClient, token: str, member: str) -> list[Any]:
     response = await client.get(
         f"/v1/myevents/by_id/{member}/attendance",
         params={"fromTimeUtc": at(days=-10), "toTimeUtc": at(days=10)},
@@ -63,7 +64,7 @@ async def _request_leave(client: AsyncClient, token: str, event_id: int, slot: i
     )
 
 
-def _assert_invalid_occurrence_time(response) -> None:
+def _assert_invalid_occurrence_time(response: Response) -> None:
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "INVALID_OCCURRENCE_TIME"
 

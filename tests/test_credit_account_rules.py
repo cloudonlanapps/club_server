@@ -4,6 +4,7 @@ Covers credit R3, R10, R24, R28, R60, R76, R77, R83 and the rejected-grant
 half of R85 from ``docs/credit_system_requirements.md``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
@@ -34,7 +35,9 @@ from .redesign_helpers import (
 pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
-async def _accounts_of(client: AsyncClient, token: str, member: str) -> list[dict]:
+async def _accounts_of(
+    client: AsyncClient, token: str, member: str
+) -> list[dict[str, Any]]:
     """The staff search for one member's accounts."""
     response = await client.get(
         "/v1/credits/accounts", params={"membername": member}, headers=auth(token)
@@ -196,7 +199,7 @@ async def test_should_reject_correction_when_reason_is_missing(
     client: AsyncClient,
     db_session: AsyncSession,
     operation: str,
-    body: dict,
+    body: dict[str, Any],
     reason: str | None,
 ):
     admin = await create_admin_user(db_session)

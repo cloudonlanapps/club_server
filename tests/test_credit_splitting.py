@@ -14,6 +14,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from club_server.db.models.event import Event
 from club_server.services import credit_charge
 
 from .credit_helpers import auth, balance_of, create_member, open_account
@@ -26,7 +27,11 @@ pytestmark = pytest.mark.usefixtures("credit_enabled")
 @pytest.fixture
 def session_costs_three(monkeypatch: pytest.MonkeyPatch) -> None:
     """Charge three credits per session instead of one."""
-    monkeypatch.setattr(credit_charge, "session_cost_for", lambda _event: 3)
+
+    def cost_of_three(_event: Event) -> int:
+        return 3
+
+    monkeypatch.setattr(credit_charge, "session_cost_for", cost_of_three)
     return None
 
 
@@ -68,7 +73,7 @@ async def test_should_split_cost_across_accounts_when_one_cannot_cover_it(
 ):
     """R29: the cost is met from accounts in selection order until covered."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     first = await open_account(client, admin_token, "alice", credits=2)
     second = await open_account(client, admin_token, "alice", credits=5)
     event_id, occurrence = await programme_with_member(
@@ -98,7 +103,7 @@ async def test_should_take_nothing_when_accounts_cannot_meet_the_cost(
     never marked for.
     """
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     first = await open_account(client, admin_token, "alice", credits=1)
     second = await open_account(client, admin_token, "alice", credits=1)
     event_id, occurrence = await programme_with_member(
@@ -125,7 +130,7 @@ async def test_should_refund_every_part_when_a_split_charge_is_reversed(
 ):
     """R49: a refund returns to each account in the amount it paid."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     first = await open_account(client, admin_token, "alice", credits=2)
     second = await open_account(client, admin_token, "alice", credits=5)
     event_id, occurrence = await programme_with_member(

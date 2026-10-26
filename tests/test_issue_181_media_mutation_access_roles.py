@@ -11,6 +11,7 @@ Cases per endpoint:
 - super-admin is still allowed.
 """
 
+from typing import Any
 import os
 import shutil
 import struct
@@ -70,7 +71,7 @@ async def _upload_as(
     token: str,
     *,
     access_roles: str,
-) -> dict:
+) -> dict[str, Any]:
     r = await client.post(
         "/v1/media",
         files={"file": ("img.png", _png_bytes(), "image/png")},
@@ -208,7 +209,7 @@ async def test_restore_owner_allowed(
     owner_token = await create_registered_user(db_session, "alice")
     body = await _upload_as(client, owner_token, access_roles='["self"]')
     mid = body["id"]
-    await client.delete(
+    _ = await client.delete(
         f"/v1/media/by_id/{mid}",
         headers={"Authorization": f"Bearer {owner_token}"},
     )
@@ -230,7 +231,7 @@ async def test_restore_super_admin_allowed(
     super_token = await create_admin_user(db_session)
     body = await _upload_as(client, owner_token, access_roles='["self"]')
     mid = body["id"]
-    await client.delete(
+    _ = await client.delete(
         f"/v1/media/by_id/{mid}",
         headers={"Authorization": f"Bearer {owner_token}"},
     )

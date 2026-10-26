@@ -16,6 +16,7 @@ camp, attendance and enrollment documents that the #384 redesign changes.
 
 import re
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -148,7 +149,7 @@ def test_should_expose_requirement_marker_when_registered(
     request: pytest.FixtureRequest,
 ):
     """The marker is registered, so pytest attaches it rather than warning."""
-    marker = request.node.get_closest_marker("requirement")
+    marker = cast(pytest.Item, request.node).get_closest_marker("requirement")
 
     assert marker is not None
     assert marker.args == ("programme:R1",)

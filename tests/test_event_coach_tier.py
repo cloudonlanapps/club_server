@@ -59,7 +59,9 @@ async def _register(client: AsyncClient, token: str, event_id: int, slot: int):
     return {row["membername"]: row["status"] for row in response.json()}
 
 
-async def _request_leave(client: AsyncClient, tokens, event_id: int, slot: int):
+async def _request_leave(
+    client: AsyncClient, tokens: dict[str, str], event_id: int, slot: int
+):
     requested = await client.post(
         f"/v1/myevents/by_id/alice/{event_id}/occurrences/{slot}/leave/request",
         json={"reason": "Away"},

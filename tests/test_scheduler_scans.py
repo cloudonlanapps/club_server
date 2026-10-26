@@ -71,7 +71,7 @@ async def _make_event(
 ) -> Event:
     if venue_id is None:
         venue_id = await _ensure_venue(db_session)
-    kwargs: dict = {
+    kwargs: dict[str, Any] = {
         "title": title,
         "type": "programme",
         "visibility": "public",

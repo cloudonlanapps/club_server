@@ -338,7 +338,7 @@ class EnrollmentService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.opened",
                 recipients=[membername],
@@ -387,7 +387,7 @@ class EnrollmentService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.admin_enrolled",
                 recipients=[membername],
@@ -437,7 +437,7 @@ class EnrollmentService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.admin_enrolled",
                 recipients=[membername],
@@ -481,7 +481,7 @@ class EnrollmentService:
             "enrollment_request", pending_action_id=enrollment.id
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.admin_enrolled",
                 recipients=[membername],
@@ -516,7 +516,7 @@ class EnrollmentService:
             "enrollment_request", pending_action_id=enrollment.id
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.closed",
                 recipients=[membername],
@@ -565,7 +565,7 @@ class EnrollmentService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.cancelled_admin",
                 recipients=[membername],
@@ -610,7 +610,7 @@ class EnrollmentService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.cancelled_admin",
                 recipients=[membername],
@@ -670,7 +670,7 @@ class EnrollmentService:
             "enrollment_opportunity", pending_action_id=enrollment.id
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.rsvp",
                 recipients=await self._list_staff_usernames(),
@@ -704,7 +704,7 @@ class EnrollmentService:
             "enrollment_opportunity", pending_action_id=enrollment.id
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.rsvp",
                 recipients=await self._list_staff_usernames(),
@@ -756,7 +756,7 @@ class EnrollmentService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.rsvp",
                 recipients=await self._list_staff_usernames(),
@@ -796,7 +796,7 @@ class EnrollmentService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="enrollment.cancelled_self",
                 recipients=await self._list_staff_usernames(),

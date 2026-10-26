@@ -51,7 +51,7 @@ def _load_kek() -> bytes:
 def is_configured() -> bool:
     """Return True iff a usable KEK is configured."""
     try:
-        _load_kek()
+        _ = _load_kek()
     except EncryptionNotConfiguredException:
         return False
     return True

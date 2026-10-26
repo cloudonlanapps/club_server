@@ -33,7 +33,7 @@ async def test_should_open_new_general_account_when_balance_transferred(
 ):
     """R65/R65a: a transfer creates the account it moves into."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     source = await open_account(
         client, admin_token, "alice", credits=20, event_id=event_id
@@ -65,7 +65,7 @@ async def test_should_close_source_account_when_balance_transferred(
 ):
     """R65a: the transfer closes the account it drains."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     source = await open_account(
         client, admin_token, "alice", credits=20, event_id=event_id
@@ -95,7 +95,7 @@ async def test_should_transfer_whole_balance_when_penalty_is_zero(
 ):
     """R67: a zero penalty is a valid and expected case."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     source = await open_account(
         client, admin_token, "alice", credits=20, event_id=event_id
@@ -123,7 +123,7 @@ async def test_should_open_no_account_when_penalty_consumes_the_balance(
 ):
     """R68: nothing survives, so nothing is opened."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     source = await open_account(
         client, admin_token, "alice", credits=10, event_id=event_id
@@ -153,7 +153,7 @@ async def test_should_cap_penalty_at_balance_when_penalty_is_larger(
 ):
     """R69: an oversized penalty stops at zero and spills nowhere."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     other = await open_account(client, admin_token, "alice", credits=30)
     source = await open_account(
@@ -186,7 +186,7 @@ async def test_should_give_new_account_its_own_window_when_transferred(
 ):
     """R75: the new account does not inherit the closed one's window."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     new_until = days_from_now(200)
     source = await open_account(
@@ -219,7 +219,7 @@ async def test_should_reject_transfer_when_account_already_closed(
 ):
     """An account is drained once; a second transfer has nothing to move."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     source = await open_account(
         client, admin_token, "alice", credits=10, event_id=event_id
@@ -255,7 +255,7 @@ async def test_should_reject_transfer_when_caller_is_coach(
     """R14: transferring is an admin power."""
     admin_token = await create_admin_user(db_session)
     coach_token = await create_coach_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     source = await open_account(
         client, admin_token, "alice", credits=10, event_id=event_id

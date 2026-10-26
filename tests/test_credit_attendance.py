@@ -75,7 +75,7 @@ async def test_should_deduct_one_credit_when_marked_present(
 ):
     """R44: a chargeable status costs the session's price."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"
@@ -94,7 +94,7 @@ async def test_should_not_deduct_twice_when_status_changes_within_chargeable_set
 ):
     """R46: present -> absent costs nothing further."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"
@@ -117,7 +117,7 @@ async def test_should_refund_when_attendance_cleared(
 ):
     """R47/R49: clearing the record returns the credit to its source."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"
@@ -142,7 +142,7 @@ async def test_should_prefer_event_bound_account_over_general(
 ):
     """R25/R26: a usable event-bound account is never bypassed."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     general = await open_account(client, admin_token, "alice", credits=10)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"
@@ -165,7 +165,7 @@ async def test_should_refuse_mark_when_member_has_no_credit(
 ):
     """R41: a member who cannot pay cannot be marked."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=1)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"
@@ -198,8 +198,8 @@ async def test_should_mark_others_when_one_member_has_no_credit(
 ):
     """R41b: one lapsed package must not fail a whole register."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
-    await create_member(db_session, "bob")
+    _ = await create_member(db_session, "alice")
+    _ = await create_member(db_session, "bob")
     _ = await open_account(client, admin_token, "bob", credits=10)
     alice_account = await open_account(client, admin_token, "alice", credits=1)
     event_id, occurrence = await programme_with_member(
@@ -240,7 +240,7 @@ async def test_should_restore_member_when_new_account_opened(
 ):
     """R42/R43: being blocked is the absence of credit, not a stored state."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=1)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"

@@ -6,6 +6,7 @@ as public profiles (never usernames), the venue as its public projection,
 media as public uuids, and the basic marketing block rides along.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -69,8 +70,8 @@ async def _event(
     visibility: str = "public",
     start_in_hours: int = 48,
     coach_names: list[str] | None = None,
-    **extra,
-) -> dict:
+    **extra: Any,
+) -> dict[str, Any]:
     start = now_utc_ms() + start_in_hours * HOUR
     body = {
         "title": title,
@@ -95,7 +96,7 @@ async def _event(
 async def _move_to_past(db: AsyncSession, event_id: int) -> None:
     """Shift the event's only schedule a week back so every occurrence has ended."""
     now = now_utc_ms()
-    await db.execute(
+    _ = await db.execute(
         update(EventSchedule)
         .where(EventSchedule.event_id == event_id)
         .values(start_time=now - 7 * 24 * HOUR, end_time=now - 7 * 24 * HOUR + HOUR)
@@ -119,7 +120,7 @@ async def _link(
     await db.commit()
 
 
-def _pid(event: dict) -> str:
+def _pid(event: dict[str, Any]) -> str:
     return generate_event_public_id(event["id"])
 
 
@@ -136,7 +137,7 @@ async def test_should_list_public_live_events_without_ids_or_usernames(
     await db_session.commit()
     venue_id = await _venue(client, admin)
     shown = await _event(client, admin, venue_id, coach_names=["suraj"])
-    await _event(client, admin, venue_id, title="Private", visibility="private")
+    _ = await _event(client, admin, venue_id, title="Private", visibility="private")
     gone = await _event(client, admin, venue_id, title="Deleted")
     deleted = await client.delete(
         f"/v1/events/by_id/{gone['id']}", headers=_auth(admin)
@@ -175,7 +176,7 @@ async def test_should_filter_by_type_featured_venue_and_window(
     past = await _event(client, admin, rink, title="Past", event_type="oneOff")
     await _move_to_past(db_session, past["id"])
 
-    async def titles(**params) -> list[str]:
+    async def titles(**params: Any) -> list[str]:
         response = await client.get("/v1/public/events", params=params)
         assert response.status_code == 200, response.text
         return [i["title"] for i in response.json()["items"]]

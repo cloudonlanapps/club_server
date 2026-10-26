@@ -7,6 +7,7 @@ a `summary` map on each row.
 """
 
 import json
+from typing import Any
 
 import pytest
 from httpx import AsyncClient
@@ -22,8 +23,8 @@ from club_server.services.audit_summary import (
 from tests.helpers import create_admin_user
 
 
-def _ctx(**kwargs) -> SummaryContext:
-    base = dict(
+def _ctx(**kwargs: Any) -> SummaryContext:
+    base: dict[str, Any] = dict(
         actor="Asha Patil",
         target="Bob Builder",
         resource_label="U10 Practice",

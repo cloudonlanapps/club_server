@@ -41,13 +41,6 @@ EnsureFn = Callable[[AsyncSession, Any], Awaitable[None]]
 # ---------- helpers ----------
 
 
-def _link_404() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail={"code": "MEDIA_LINK_NOT_FOUND", "message": "Media link not found"},
-    )
-
-
 def _owner_404(code: str, message: str) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -372,7 +365,7 @@ async def _handle_delete_one(
     ip_address: str | None = None,
 ):
     await ensure_fn(db, owner_id)
-    await MediaLinkService(db, owner_type).delete_one(owner_id, tag, media_uuid)
+    _ = await MediaLinkService(db, owner_type).delete_one(owner_id, tag, media_uuid)
     await _audit_delete_one(
         db,
         current_user.username,
@@ -464,7 +457,7 @@ async def user_list_tag(
     username: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     _user_read_guard(username, current_user)
     return await _handle_list_by_tag(
@@ -483,7 +476,7 @@ async def user_get_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     _user_read_guard(username, current_user)
     return await _handle_get_one(
@@ -526,7 +519,7 @@ async def user_patch(
     body: MediaLinkPatch,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     _user_write_guard(username, current_user)
     return await _handle_patch(
@@ -550,7 +543,7 @@ async def user_delete_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     _user_write_guard(username, current_user)
     return await _handle_delete_one(
@@ -572,7 +565,7 @@ async def user_delete_tag(
     username: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     _user_write_guard(username, current_user)
     return await _handle_delete_tag(
@@ -615,7 +608,7 @@ async def event_list_tag(
     event_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_list_by_tag(
         db,
@@ -633,7 +626,7 @@ async def event_get_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_get_one(
         db,
@@ -673,7 +666,7 @@ async def event_patch(
     body: MediaLinkPatch,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_patch(
         db,
@@ -697,7 +690,7 @@ async def event_delete_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_delete_one(
         db,
@@ -717,7 +710,7 @@ async def event_delete_tag(
     event_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_delete_tag(
         db,
@@ -758,7 +751,7 @@ async def group_list_tag(
     group_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_list_by_tag(
         db,
@@ -776,7 +769,7 @@ async def group_get_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_get_one(
         db,
@@ -816,7 +809,7 @@ async def group_patch(
     body: MediaLinkPatch,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_patch(
         db,
@@ -840,7 +833,7 @@ async def group_delete_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_delete_one(
         db,
@@ -860,7 +853,7 @@ async def group_delete_tag(
     group_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_delete_tag(
         db,
@@ -901,7 +894,7 @@ async def venue_list_tag(
     venue_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_list_by_tag(
         db,
@@ -919,7 +912,7 @@ async def venue_get_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_get_one(
         db,
@@ -959,7 +952,7 @@ async def venue_patch(
     body: MediaLinkPatch,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_patch(
         db,
@@ -983,7 +976,7 @@ async def venue_delete_one(
     media_uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_delete_one(
         db,
@@ -1003,7 +996,7 @@ async def venue_delete_tag(
     venue_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_admin_or_coach())],
-    tag: str = Path(..., pattern=TAG_PATH_PATTERN),
+    tag: Annotated[str, Path(pattern=TAG_PATH_PATTERN)],
 ):
     return await _handle_delete_tag(
         db,

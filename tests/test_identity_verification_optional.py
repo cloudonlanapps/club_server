@@ -7,6 +7,7 @@ review, and only then are admins told. Off, registration lands the user in
 way back after an admin's reconsider — checks no document.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -21,7 +22,7 @@ def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _register(client: AsyncClient, username: str = "newbie") -> dict:
+async def _register(client: AsyncClient, username: str = "newbie") -> dict[str, Any]:
     response = await client.post(
         "/v1/auth/register",
         json={
@@ -47,7 +48,7 @@ async def _login(client: AsyncClient, username: str = "newbie") -> str:
     return response.json()["accessToken"]
 
 
-async def _pending_notifications(db_session: AsyncSession, admin: str) -> list:
+async def _pending_notifications(db_session: AsyncSession, admin: str) -> list[Any]:
     db_session.expire_all()
     result = await db_session.execute(
         select(Notification).where(

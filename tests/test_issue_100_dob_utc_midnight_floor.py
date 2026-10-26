@@ -10,6 +10,7 @@ until #16 replaced the bounds with an age band; those tests went with the
 fields (eligibility R11 covers their refusal).
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,7 @@ IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000
 DOB_2014_IST_LOCAL_MIDNIGHT = DOB_2014_UTC_MIDNIGHT - IST_OFFSET_MS
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 

@@ -46,7 +46,7 @@ async def scan_group_eligibility(session: AsyncSession, now: int) -> int:
     for group in groups:
         window = group.window_on(today)
         for member in group.members:
-            if member.user is None or member.user.deleted_at is not None:
+            if member.user.deleted_at is not None:
                 continue
             if is_eligible_for_semi_auto(member.user, group, window):
                 member.ineligible_reported_at = None

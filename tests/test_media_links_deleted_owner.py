@@ -6,14 +6,15 @@ search. They are read-only while the owner is deleted: adding, changing or
 removing one → 422 `OWNER_DELETED`.
 """
 
+from typing import Any
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .media_helpers import (
     auth,
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     upload,
 )
 from .redesign_helpers import create_oneoff, create_venue
@@ -41,7 +42,7 @@ async def _owner(client: AsyncClient, admin: str, owner: str) -> int:
 
 async def _linked_then_deleted(
     client: AsyncClient, db_session: AsyncSession, admin: str, owner: str
-) -> tuple[str, dict]:
+) -> tuple[str, dict[str, Any]]:
     """Link one image to a fresh owner, soft-delete the owner.
 
     Returns the owner's link base url and the linked media record.
@@ -63,7 +64,7 @@ async def _linked_then_deleted(
 
 
 async def _assert_links_unchanged(
-    client: AsyncClient, token: str, base: str, image: dict
+    client: AsyncClient, token: str, base: str, image: dict[str, Any]
 ) -> None:
     listing = await client.get(f"{base}/{TAG}", headers=auth(token))
     assert listing.status_code == 200, listing.text
@@ -73,7 +74,7 @@ async def _assert_links_unchanged(
     assert rows[0]["ownerDeleted"] is True
 
 
-def _assert_owner_deleted(response) -> None:
+def _assert_owner_deleted(response: Response) -> None:
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "OWNER_DELETED"
 

@@ -6,7 +6,7 @@ R15: saving checks required answers and required coach notes.
 R22a: clearing an answer detaches its evidence.
 """
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from httpx import AsyncClient
@@ -24,10 +24,11 @@ from .evaluation_helpers import (
     put_answer,
     qa_item,
     rating_item,
+    require_answer,
 )
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .media_helpers import (
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     upload,
 )
 
@@ -104,7 +105,9 @@ async def test_should_accept_an_answer_of_its_items_kind(
     )
     assert answer is not None
     value = answer[field]
-    assert (sorted(value) if isinstance(value, list) else value) == expected
+    assert (
+        sorted(cast(list[Any], value)) if isinstance(value, list) else value
+    ) == expected
 
 
 REFUSED: list[tuple[str, str, dict[str, Any]]] = [
@@ -204,7 +207,7 @@ async def test_should_detach_evidence_when_an_answer_is_cleared(
         headers=auth(coach_token),
     )
     assert attached.status_code == 201, attached.text
-    before = answer_of(
+    before = require_answer(
         await get_evaluation(client, coach_token, evaluation_id), ids["rating"]
     )
     assert [e["mediaUuid"] for e in before["evidence"]] == [media["uuid"]]

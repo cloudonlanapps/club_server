@@ -1,5 +1,6 @@
 """Helpers for the age-eligibility tests (#16)."""
 
+from typing import Any
 from datetime import date
 
 from club_server.age_eligibility import Age, EligibilityWindow, age_on, age_window
@@ -17,8 +18,8 @@ def day(year: int, month: int, dom: int) -> int:
 
 def window_on(
     reference_day: int,
-    min_age: dict | None = FIVE,
-    max_age: dict | None = EIGHTEEN,
+    min_age: dict[str, Any] | None = FIVE,
+    max_age: dict[str, Any] | None = EIGHTEEN,
     *,
     strict: bool,
 ) -> EligibilityWindow:
@@ -77,7 +78,7 @@ def edge_births(window: EligibilityWindow) -> dict[str, int]:
     }
 
 
-def _with_band(payload: dict, reference_day: int) -> dict:
+def _with_band(payload: dict[str, Any], reference_day: int) -> dict[str, Any]:
     """``payload`` with its two date-of-birth bounds restated as a strict band.
 
     ``dobOnOrAfterUtc`` becomes ``maxAge`` and ``dobOnOrBeforeUtc`` becomes
@@ -97,12 +98,14 @@ def _with_band(payload: dict, reference_day: int) -> dict:
     return out
 
 
-def with_group_band(payload: dict) -> dict:
+def with_group_band(payload: dict[str, Any]) -> dict[str, Any]:
     """A group payload written with date bounds, as the age band it means today."""
     return _with_band(payload, club_today())
 
 
-def with_event_band(payload: dict, start_time_utc: int | None = None) -> dict:
+def with_event_band(
+    payload: dict[str, Any], start_time_utc: int | None = None
+) -> dict[str, Any]:
     """An event payload written with date bounds, as the band it means on the
     event's start day (``startTimeUtc`` in the payload unless given)."""
     start = payload["startTimeUtc"] if start_time_utc is None else start_time_utc

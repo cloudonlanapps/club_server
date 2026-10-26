@@ -7,6 +7,7 @@ this change carry neither ``type`` nor ``iat``; they keep working until they
 expire, unless the user's password has changed since the change shipped.
 """
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -37,7 +38,7 @@ def _mint(username: str, **claims: object) -> str:
     return jwt.encode(body, settings.secret_key, algorithm=settings.algorithm)
 
 
-async def _login(client: AsyncClient, username: str, password: str) -> dict:
+async def _login(client: AsyncClient, username: str, password: str) -> dict[str, Any]:
     response = await client.post(
         "/v1/auth/login", json={"username": username, "password": password}
     )

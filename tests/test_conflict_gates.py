@@ -7,6 +7,7 @@ programmes are compared as rules, camps and one-offs are bounded by the
 scheduling horizon, and every gate uses one definition of overlap.
 """
 
+from typing import Any
 import importlib
 from datetime import datetime, timedelta, timezone
 
@@ -62,7 +63,7 @@ def monday_at(hour: int, *, weeks_ahead: int = 1) -> int:
     return floor_s(int(monday.timestamp() * 1000))
 
 
-async def _conflict_notices(db_session: AsyncSession) -> list:
+async def _conflict_notices(db_session: AsyncSession) -> list[Any]:
     return await notifications_for(db_session, "admin", "event.conflict_detected")
 
 
@@ -376,7 +377,7 @@ async def test_should_answer_409_then_report_when_programme_and_camp_share_a_slo
     _ = await create_camp(
         client, admin, other_venue, start=monday, count=3, acceptConflicts=True
     )
-    programme_over_camp = {
+    programme_over_camp: dict[str, Any] = {
         "start": monday,
         "end": monday + HOUR_MS,
         "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -575,7 +576,7 @@ async def test_should_return_advisory_findings_and_raise_only_blocking_ones(
     assert advisory.findings[0].gate is ConflictGate.venue
 
     with pytest.raises(EventConflictException):
-        await check_conflicts(
+        _ = await check_conflicts(
             db_session, target, {ConflictGate.venue: GatePolicy.block}
         )
 

@@ -3,7 +3,7 @@ caller may write ``UNTIL`` for any type (#388).
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user
@@ -38,7 +38,7 @@ async def _create_programme_with_rule(
     )
 
 
-def _assert_programme_rule_rejected(response) -> None:
+def _assert_programme_rule_rejected(response: Response) -> None:
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "INVALID_RRULE_FOR_PROGRAMME"
 

@@ -1,5 +1,6 @@
 """Age-based eligibility on groups (#16, eligibility_requirements.md)."""
 
+from typing import Any, TypedDict
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,19 +11,21 @@ from .eligibility_helpers import EIGHTEEN, FIVE, edge_births, window_on
 from .helpers import create_admin_user, create_member_user
 from .redesign_helpers import auth
 
-BAND = {"minAge": FIVE, "maxAge": EIGHTEEN}
+Band = TypedDict("Band", {"minAge": dict[str, int], "maxAge": dict[str, int]})
+
+BAND: Band = {"minAge": FIVE, "maxAge": EIGHTEEN}
 
 
 async def create_group(
     client: AsyncClient, token: str, expected_status: int = 201, **body: object
-) -> dict:
+) -> dict[str, Any]:
     payload: dict[str, object] = {"name": "Juniors", **body}
     response = await client.post("/v1/groups", json=payload, headers=auth(token))
     assert response.status_code == expected_status, response.text
     return response.json()
 
 
-async def get_group(client: AsyncClient, token: str, group_id: int) -> dict:
+async def get_group(client: AsyncClient, token: str, group_id: int) -> dict[str, Any]:
     response = await client.get(f"/v1/groups/by_id/{group_id}", headers=auth(token))
     assert response.status_code == 200, response.text
     return response.json()

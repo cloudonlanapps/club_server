@@ -49,7 +49,7 @@ async def _postponed_camp_whose_slot_has_passed(
     """
     admin = await create_admin_user(db_session)
     for member in members:
-        await create_member_user(db_session, member)
+        _ = await create_member_user(db_session, member)
     await db_session.commit()
     venue = await create_venue(client, admin)
     camp = await create_camp(client, admin, venue, count=1)
@@ -90,7 +90,7 @@ async def test_should_accept_a_join_when_the_postponed_occurrence_is_still_ahead
         client, db_session
     )
     regular = await create_regular_admin_user(db_session)
-    await create_member_user(db_session, "late_joiner")
+    _ = await create_member_user(db_session, "late_joiner")
     await db_session.commit()
 
     response = await assign(client, regular, event_id, "late_joiner")

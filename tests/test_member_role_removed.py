@@ -76,11 +76,11 @@ async def test_should_strip_member_from_stored_roles_when_migrating(
     _ = await create_member_user(db_session, "alice")
     _ = await create_member_user(db_session, "bob")
     _ = await create_member_user(db_session, "carol")
-    await db_session.execute(
+    _ = await db_session.execute(
         text("UPDATE users SET roles = :r WHERE username = 'alice'"),
         {"r": json.dumps({"roles": ["member"]})},
     )
-    await db_session.execute(
+    _ = await db_session.execute(
         text("UPDATE users SET roles = :r WHERE username = 'bob'"),
         {"r": json.dumps({"roles": ["coach", "member", "admin"]})},
     )

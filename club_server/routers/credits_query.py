@@ -38,14 +38,14 @@ router = APIRouter(
 async def list_accounts(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     _current_user: Annotated[User, Depends(require_admin_or_coach())],
-    membername: str | None = Query(None),
-    event_id: int | None = Query(None, alias="eventId"),
-    kind: str | None = Query(None),
-    state: str | None = Query(None),
-    is_trial: bool | None = Query(None, alias="isTrial"),
-    expiring_before_utc: int | None = Query(None, alias="expiringBeforeUtc"),
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    membername: Annotated[str | None, Query()] = None,
+    event_id: Annotated[int | None, Query(alias="eventId")] = None,
+    kind: Annotated[str | None, Query()] = None,
+    state: Annotated[str | None, Query()] = None,
+    is_trial: Annotated[bool | None, Query(alias="isTrial")] = None,
+    expiring_before_utc: Annotated[int | None, Query(alias="expiringBeforeUtc")] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> PaginatedResponse[CreditAccountResponse]:
     """Search credit accounts (admin or coach).
 
@@ -111,16 +111,16 @@ async def get_account(
 async def list_entries(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     _current_user: Annotated[User, Depends(require_admin_or_coach())],
-    membername: str | None = Query(None),
-    account_id: str | None = Query(None, alias="accountId"),
-    event_id: int | None = Query(None, alias="eventId"),
-    entry_type: str | None = Query(None, alias="entryType"),
-    occurrence_time_utc: int | None = Query(None, alias="occurrenceTimeUtc"),
-    from_ts: int | None = Query(None, alias="fromTs"),
-    to_ts: int | None = Query(None, alias="toTs"),
-    order: StatementOrder = Query("asc"),
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    membername: Annotated[str | None, Query()] = None,
+    account_id: Annotated[str | None, Query(alias="accountId")] = None,
+    event_id: Annotated[int | None, Query(alias="eventId")] = None,
+    entry_type: Annotated[str | None, Query(alias="entryType")] = None,
+    occurrence_time_utc: Annotated[int | None, Query(alias="occurrenceTimeUtc")] = None,
+    from_ts: Annotated[int | None, Query(alias="fromTs")] = None,
+    to_ts: Annotated[int | None, Query(alias="toTs")] = None,
+    order: Annotated[StatementOrder, Query()] = "asc",
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> PaginatedResponse[CreditEntryResponse]:
     """Read the ledger across accounts (admin or coach).
 

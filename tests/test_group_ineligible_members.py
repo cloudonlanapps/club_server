@@ -6,6 +6,7 @@ own reading of "today" is under test — their date of birth is corrected to
 one outside today's window.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import update
@@ -65,7 +66,7 @@ async def members(client: AsyncClient, token: str, group_id: int) -> dict[str, b
     return {m["membername"]: m["eligible"] for m in response.json()}
 
 
-async def group(client: AsyncClient, token: str, group_id: int) -> dict:
+async def group(client: AsyncClient, token: str, group_id: int) -> dict[str, Any]:
     response = await client.get(f"/v1/groups/by_id/{group_id}", headers=auth(token))
     assert response.status_code == 200, response.text
     return response.json()

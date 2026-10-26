@@ -19,7 +19,7 @@ async def _seed_venues(
     """Two live venues and one soft-deleted; returns admin token and the deleted id."""
     admin = await create_admin_user(db_session)
     headers = {"Authorization": f"Bearer {admin}"}
-    ids = []
+    ids: list[int] = []
     for name in ("Rink A", "Rink B", "Old Rink"):
         response = await client.post("/v1/venues", json={"name": name}, headers=headers)
         assert response.status_code == 201

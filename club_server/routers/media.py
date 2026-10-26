@@ -1,7 +1,8 @@
 """Router for v2 media endpoints (#161). Parallel to ``routers.uploads``."""
 
 import json
-from typing import Annotated
+from pathlib import Path
+from typing import Annotated, Any, cast
 
 from fastapi import (
     APIRouter,
@@ -141,7 +142,7 @@ def _parse_access_roles(raw: str | None) -> list[str] | None:
         raise InvalidAccessRolesException("accessRoles must be a JSON array of strings")
     if not isinstance(decoded, list):
         raise InvalidAccessRolesException("accessRoles must be a JSON array of strings")
-    return decoded
+    return cast(list[str], decoded)
 
 
 @router.get("", response_model=PaginatedResponse[MediaResponse])
@@ -443,7 +444,7 @@ async def _resolve_optional_user(request: Request, db: AsyncSession) -> User | N
     return user
 
 
-def _enforce_download_guard(media, viewer: User | None) -> None:
+def _enforce_download_guard(media: Media, viewer: User | None) -> None:
     if can_view_media(media, viewer):
         return
     if viewer is None:
@@ -556,7 +557,7 @@ async def download_media(
         PUBLIC_DOWNLOAD_CACHE if can_view_media(media, None) else PRIVATE_DOWNLOAD_CACHE
     )
     return plain_download_response(
-        request, result.file_path, result.media_type, cache_control
+        request, cast(Path, result.file_path), result.media_type, cache_control
     )
 
 
@@ -595,7 +596,7 @@ async def cross_owner_search_links(
     )
 
 
-@router.get("/by_id/{uuid}/links", response_model=list[dict])
+@router.get("/by_id/{uuid}/links", response_model=list[dict[str, Any]])
 async def list_media_links(
     uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
@@ -632,7 +633,7 @@ async def soft_delete_media(
             },
         )
 
-    await service.soft_delete(media_id)
+    _ = await service.soft_delete(media_id)
     await audit_service.log(
         actor_username=current_user.username,
         action=AuditAction.SOFT_DELETE_MEDIA_V2,
@@ -684,7 +685,7 @@ async def hard_delete_media(
     audit_service = AuditService(db)
     media = await service.get(media_id, include_deleted=True)
 
-    await service.hard_delete(media_id)
+    _ = await service.hard_delete(media_id)
 
     await audit_service.log(
         actor_username=current_user.username,

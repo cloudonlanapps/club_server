@@ -8,13 +8,15 @@ media.failed with a machine-readable reasonCode on each failure branch.
 import json
 import shutil
 import uuid as uuid_mod
+from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from club_server import worker as worker_mod
 from club_server.config import settings
@@ -75,11 +77,13 @@ async def _seed_video(
     if create_staged_input:
         pending = _pending_dir()
         pending.mkdir(parents=True, exist_ok=True)
-        (pending / f"{uid}_input.mp4").write_bytes(b"fake")
+        _ = (pending / f"{uid}_input.mp4").write_bytes(b"fake")
     return media
 
 
-async def _notifications_for(test_engine, username: str) -> list[Notification]:
+async def _notifications_for(
+    test_engine: AsyncEngine, username: str
+) -> list[Notification]:
     maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         res = await s.execute(
@@ -91,13 +95,13 @@ async def _notifications_for(test_engine, username: str) -> list[Notification]:
 def _success_subprocess():
     """Subprocess mock that materializes the expected output files."""
 
-    async def side_effect(*args, **_kwargs):
+    async def side_effect(*args: str, **_kwargs: Any) -> AsyncMock:
         args_list = list(args)
         output = args_list[args_list.index("--output") + 1]
         prefix = str(Path(output).with_suffix(""))
-        Path(f"{prefix}.mp4").write_bytes(b"fake mp4")
-        Path(f"{prefix}_poster.webp").write_bytes(b"fake poster")
-        Path(f"{prefix}_animated.webp").write_bytes(b"fake animated")
+        _ = Path(f"{prefix}.mp4").write_bytes(b"fake mp4")
+        _ = Path(f"{prefix}_poster.webp").write_bytes(b"fake poster")
+        _ = Path(f"{prefix}_animated.webp").write_bytes(b"fake animated")
         proc = AsyncMock()
         proc.returncode = 0
         proc.communicate = AsyncMock(return_value=(b"", b""))
@@ -107,7 +111,7 @@ def _success_subprocess():
 
 
 def _failure_subprocess(stderr: bytes = b"boom"):
-    async def side_effect(*_args, **_kwargs):
+    async def side_effect(*_args: str, **_kwargs: Any) -> AsyncMock:
         proc = AsyncMock()
         proc.returncode = 1
         proc.communicate = AsyncMock(return_value=(b"", stderr))
@@ -117,7 +121,9 @@ def _failure_subprocess(stderr: bytes = b"boom"):
 
 
 @pytest_asyncio.fixture
-async def env(test_engine, db_session):
+async def env(
+    test_engine: AsyncEngine, db_session: AsyncSession
+) -> AsyncGenerator[AsyncSession, None]:
     await _seed_user(db_session, "uploader")
     await db_session.commit()
     _media_dir().mkdir(parents=True, exist_ok=True)
@@ -131,10 +137,10 @@ async def env(test_engine, db_session):
 @pytest.mark.asyncio
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 async def test_successful_conversion_emits_media_processed(
-    mock_exec,
-    env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     """Happy path emits exactly one media.processed for the uploader."""
     m = await _seed_video(env, create_staged_input=True)
     await env.commit()
@@ -156,10 +162,10 @@ async def test_successful_conversion_emits_media_processed(
 @pytest.mark.asyncio
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 async def test_transcode_failure_emits_media_failed_with_reason(
-    mock_exec,
-    env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     """Subprocess non-zero exit emits media.failed with reasonCode=TRANSCODE_FAILED."""
     m = await _seed_video(env, create_staged_input=True)
     await env.commit()
@@ -180,7 +186,9 @@ async def test_transcode_failure_emits_media_failed_with_reason(
 
 @pytest.mark.requirement("notifications:R108")
 @pytest.mark.asyncio
-async def test_missing_staged_input_emits_media_failed_with_reason(env, test_engine):
+async def test_missing_staged_input_emits_media_failed_with_reason(
+    env: AsyncSession, test_engine: AsyncEngine
+) -> None:
     """Missing staged input emits reasonCode=STAGED_INPUT_MISSING."""
     m = await _seed_video(env, create_staged_input=False)
     await env.commit()
@@ -199,15 +207,15 @@ async def test_missing_staged_input_emits_media_failed_with_reason(env, test_eng
 @pytest.mark.asyncio
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 async def test_unexpected_error_emits_media_failed_with_reason(
-    mock_exec,
-    env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     """Any uncaught exception during conversion emits reasonCode=UNEXPECTED_ERROR."""
     m = await _seed_video(env, create_staged_input=True)
     await env.commit()
 
-    async def boom(*_args, **_kwargs):
+    async def boom(*_args: str, **_kwargs: Any):
         raise RuntimeError("disk on fire")
 
     mock_exec.side_effect = boom
@@ -224,10 +232,10 @@ async def test_unexpected_error_emits_media_failed_with_reason(
 @pytest.mark.asyncio
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 async def test_no_recipient_when_uploader_is_null(
-    mock_exec,
-    env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     """Uploads outlive uploaders (#157) — a null uploaded_by must not emit."""
     m = await _seed_video(env, uploaded_by=None, create_staged_input=True)
     await env.commit()

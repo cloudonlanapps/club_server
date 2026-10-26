@@ -11,6 +11,7 @@ supersedes the interim camp-only 400 `IMMUTABLE_CAMP_FIELD` guard (#112).
 Permitted metadata fields still succeed; `untilTimeUtc` stays rejected (#105).
 """
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -38,7 +39,7 @@ async def create_event(
     client: AsyncClient, token: str, venue_id: int, type_: str
 ) -> int:
     start_ms = future_ms(24)
-    body: dict = {
+    body: dict[str, Any] = {
         "title": "E",
         "type": type_,
         "venueId": venue_id,

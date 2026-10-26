@@ -1,5 +1,5 @@
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +8,8 @@ from ..schemas.common import FieldValue
 from ..utils import now_utc_ms
 from .audit_actions import AuditAction
 
-AuditDetails = Mapping[str, FieldValue | Mapping[str, FieldValue]]
+AuditValue = FieldValue | Mapping[str, FieldValue] | Sequence[Mapping[str, FieldValue]]
+AuditDetails = Mapping[str, AuditValue]
 
 
 class AuditService:

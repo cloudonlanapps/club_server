@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy import distinct, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import InstrumentedAttribute
 
 from ..config import settings
 from ..constants import USER_AVATAR_TAG
@@ -25,7 +26,7 @@ from ..exceptions import (
 )
 from ..db.models.evaluation import EvaluationMediaLink
 from ..schemas.media import MediaRef
-from ..services.media import can_view_media
+from ..services.media import MediaAccess, can_view_media
 from .media_link_owners import (
     deleted_owner_keys,
     is_owner_deleted,
@@ -43,7 +44,15 @@ OWNER_REGISTRY: dict[str, tuple[Any, str]] = {
 }
 
 
-def _link_to_response(link, media: Media, owner_deleted: bool = False) -> dict:
+def _link_to_response(
+    link: UserMediaLink
+    | EventMediaLink
+    | GroupMediaLink
+    | VenueMediaLink
+    | EvaluationMediaLink,
+    media: Media,
+    owner_deleted: bool = False,
+) -> dict[str, Any]:
     """A link row: what the link says, and the media it points at.
 
     The media is the same [MediaRef] every other projection embeds, rather
@@ -67,17 +76,21 @@ class MediaLinkService:
     def __init__(self, db: AsyncSession, owner_type: str):
         if owner_type not in OWNER_REGISTRY:
             raise ValueError(f"Unknown owner_type: {owner_type}")
-        self.db = db
-        self.owner_type = owner_type
+        self.db: AsyncSession = db
+        self.owner_type: str = owner_type
+        self.model: Any
+        self.owner_col_name: str
         self.model, self.owner_col_name = OWNER_REGISTRY[owner_type]
-        self.owner_col = getattr(self.model, self.owner_col_name)
+        self.owner_col: InstrumentedAttribute[Any] = getattr(
+            self.model, self.owner_col_name
+        )
 
     async def list_grouped(
         self,
-        owner_id,
+        owner_id: str | int,
         viewer: User | None,
         media_type: str | None = None,
-    ) -> dict[str, list[dict]]:
+    ) -> dict[str, list[dict[str, Any]]]:
         q = (
             select(self.model, Media)
             .join(Media, Media.uuid == self.model.media_uuid)
@@ -88,7 +101,7 @@ class MediaLinkService:
             q = q.where(Media.media_type == media_type)
         rows = (await self.db.execute(q)).all()
         owner_deleted = await is_owner_deleted(self.db, self.owner_type, owner_id)
-        out: dict[str, list[dict]] = {}
+        out: dict[str, list[dict[str, Any]]] = {}
         for link, media in rows:
             if not can_view_media(media, viewer):
                 continue
@@ -99,11 +112,11 @@ class MediaLinkService:
 
     async def list_by_tag(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         viewer: User | None,
         media_type: str | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         q = (
             select(self.model, Media)
             .join(Media, Media.uuid == self.model.media_uuid)
@@ -122,11 +135,11 @@ class MediaLinkService:
 
     async def get(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         media_uuid: str,
         viewer: User | None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         q = (
             select(self.model, Media)
             .join(Media, Media.uuid == self.model.media_uuid)
@@ -156,7 +169,7 @@ class MediaLinkService:
         owner_deleted = await is_owner_deleted(self.db, self.owner_type, owner_id)
         return _link_to_response(link, media, owner_deleted)
 
-    async def _get_row(self, owner_id, tag: str, media_uuid: str):
+    async def _get_row(self, owner_id: str | int, tag: str, media_uuid: str):
         q = select(self.model).where(
             self.owner_col == owner_id,
             self.model.tag == tag,
@@ -166,12 +179,12 @@ class MediaLinkService:
 
     async def create(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         media_uuid: str,
         metadata: str | None,
         viewer: User,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Link ``media_uuid`` to the owner under ``tag``.
 
         Media the caller may not view is answered as missing, so a link
@@ -310,11 +323,11 @@ class MediaLinkService:
 
     async def update_metadata(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         media_uuid: str,
         metadata: str | None,
-    ) -> tuple[dict, str | None]:
+    ) -> tuple[dict[str, Any], str | None]:
         await refuse_write_when_owner_deleted(self.db, self.owner_type, owner_id)
         link = await self._get_row(owner_id, tag, media_uuid)
         if link is None:
@@ -333,7 +346,9 @@ class MediaLinkService:
         ).scalar_one()
         return _link_to_response(link, media), old
 
-    async def delete_one(self, owner_id, tag: str, media_uuid: str) -> dict:
+    async def delete_one(
+        self, owner_id: str | int, tag: str, media_uuid: str
+    ) -> dict[str, Any]:
         await refuse_write_when_owner_deleted(self.db, self.owner_type, owner_id)
         link = await self._get_row(owner_id, tag, media_uuid)
         if link is None:
@@ -353,7 +368,7 @@ class MediaLinkService:
         await self.db.flush()
         return payload
 
-    async def delete_tag(self, owner_id, tag: str) -> list[str]:
+    async def delete_tag(self, owner_id: str | int, tag: str) -> list[str]:
         await refuse_write_when_owner_deleted(self.db, self.owner_type, owner_id)
         rows = (
             (
@@ -381,7 +396,7 @@ async def get_media_links(
     viewer: User | None = None,
     *,
     enforce_access: bool = True,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Reverse lookup via the ``media_in_use`` view.
 
     When ``enforce_access`` is True (the API-facing default), returns []
@@ -428,7 +443,7 @@ async def search_media_links(
     is_encrypted: bool | None = None,
     offset: int = 0,
     limit: int = 20,
-) -> dict:
+) -> dict[str, Any]:
     """Admin/coach cross-owner search using the view joined to ``media``.
 
     Rows the ``viewer`` cannot satisfy under ``media.access_roles`` are
@@ -476,15 +491,10 @@ async def search_media_links(
 
     # Filter in Python: the predicate spans uploader-identity + caller roles,
     # which is awkward to express in SQL and the link tables are small.
-    class _MediaShim:
-        def __init__(self, access_roles, uploaded_by):
-            self.access_roles = access_roles
-            self.uploaded_by = uploaded_by
-
     visible = [
         r
         for r in rows
-        if can_view_media(_MediaShim(r["access_roles"], r["uploaded_by"]), viewer)
+        if can_view_media(MediaAccess(r["access_roles"], r["uploaded_by"]), viewer)
     ]
     total = len(visible)
     page = visible[offset : offset + limit]
@@ -512,7 +522,7 @@ async def search_media_links(
 async def check_media_in_use(
     db: AsyncSession,
     media_uuid: str,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Return the link list referencing ``media_uuid``. Empty = safe to delete.
 
     Internal: bypasses the per-viewer visibility filter (#167); used by the

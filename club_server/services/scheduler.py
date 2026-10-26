@@ -25,6 +25,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
+from contextlib import AbstractAsyncContextManager
 from typing import Any
 
 from sqlalchemy import delete as sa_delete
@@ -325,7 +327,12 @@ pending-mark and absence-streak scans run on their own internal cadence
 (hourly / daily) gated by timestamps tracked in the loop."""
 
 
-async def _run_scan(session: AsyncSession, name: str, scan, now: int) -> None:
+async def _run_scan(
+    session: AsyncSession,
+    name: str,
+    scan: Callable[[AsyncSession, int], Awaitable[object]],
+    now: int,
+) -> None:
     """Run one scan in its own transaction (#476).
 
     A failing scan is logged and rolled back without touching the others,
@@ -342,7 +349,7 @@ async def _run_scan(session: AsyncSession, name: str, scan, now: int) -> None:
 
 
 async def scheduler_loop(
-    session_factory,
+    session_factory: Callable[[], AbstractAsyncContextManager[AsyncSession]],
     *,
     tick_seconds: int = SCHEDULER_TICK_SECONDS,
 ) -> None:

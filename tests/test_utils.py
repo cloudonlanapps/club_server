@@ -1,11 +1,12 @@
 """Unit tests for club_server.utils.get_display_name."""
 
+from typing import Any
 from unittest.mock import MagicMock
 
 from club_server.utils import get_display_name
 
 
-def _make_user(**kwargs) -> MagicMock:
+def _make_user(**kwargs: Any) -> MagicMock:
     """Create a mock User with given attributes."""
     user = MagicMock()
     user.first_name = kwargs.get("first_name")

@@ -1,5 +1,6 @@
 """Tests for issue #103: GET /events/by_id/{event_id}/eligible endpoint."""
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -14,7 +15,7 @@ DOB_2014 = 1388534400000  # 2014-01-01 UTC midnight
 DOB_2000 = 946684800000  # 2000-01-01 UTC midnight
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -58,7 +59,7 @@ async def _register_member(
     )
     assert login.status_code == 200, login.text
     user_token = login.json()["accessToken"]
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     submit = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {user_token}"},
@@ -78,8 +79,8 @@ async def _create_event(
     gender: str | None = None,
     dob_on_or_after_utc: int | None = None,
     dob_on_or_before_utc: int | None = None,
-) -> dict:
-    body: dict = {
+) -> dict[str, Any]:
+    body: dict[str, Any] = {
         "title": "Camp",
         "type": "camp",
         "venueId": venue_id,
@@ -100,7 +101,7 @@ async def _create_event(
     return r.json()
 
 
-def _usernames(payload: list[dict]) -> set[str]:
+def _usernames(payload: list[dict[str, Any]]) -> set[str]:
     return {u["username"] for u in payload}
 
 

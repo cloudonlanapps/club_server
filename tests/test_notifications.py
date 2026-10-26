@@ -53,7 +53,7 @@ async def create_user_and_get_token(
     )
     _pre_token = _pre_login.json()["accessToken"]
     assert db_session is not None, "create_user_and_get_token requires db_session"
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre_token}"},
@@ -67,8 +67,8 @@ async def create_user_and_get_token(
         json={"username": username, "password": "testpass123"},
     )
 
-    if db_session is not None and clear_lifecycle_notifications:
-        await db_session.execute(
+    if clear_lifecycle_notifications:
+        _ = await db_session.execute(
             delete(Notification).where(
                 Notification.type.in_(
                     [

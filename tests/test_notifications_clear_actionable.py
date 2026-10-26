@@ -6,6 +6,7 @@ Covers every ``pending_action_type`` registered in
 ``PENDING_ACTION_JOINS`` with at least one resolution outcome.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +15,7 @@ from .helpers import attach_identity_document, create_admin_user
 from .test_notifications import create_user_and_get_token
 
 
-async def _admin_inbox(client: AsyncClient, token: str) -> list[dict]:
+async def _admin_inbox(client: AsyncClient, token: str) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/notifications",
         headers={"Authorization": f"Bearer {token}"},
@@ -23,7 +24,7 @@ async def _admin_inbox(client: AsyncClient, token: str) -> list[dict]:
     return response.json()["items"]
 
 
-async def _pending_actions(client: AsyncClient, token: str) -> list[dict]:
+async def _pending_actions(client: AsyncClient, token: str) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/notifications/pending-actions",
         headers={"Authorization": f"Bearer {token}"},
@@ -32,7 +33,7 @@ async def _pending_actions(client: AsyncClient, token: str) -> list[dict]:
     return response.json()["items"]
 
 
-def _ids_of_type(items: list[dict], pending_action_type: str) -> list[int]:
+def _ids_of_type(items: list[dict[str, Any]], pending_action_type: str) -> list[int]:
     return [
         item["id"]
         for item in items
@@ -68,7 +69,7 @@ async def test_user_approval_cleared_when_admin_approves(
         json={"username": "alice", "password": "testpass123"},
     )
     alice_token = login.json()["accessToken"]
-    await attach_identity_document(db_session, "alice")
+    _ = await attach_identity_document(db_session, "alice")
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {alice_token}"},

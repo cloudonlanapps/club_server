@@ -6,6 +6,7 @@ carries the same disposition, and a disposition sent to a deployment that
 does not run on credits is rejected rather than ignored.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,7 +59,7 @@ async def test_should_refuse_removal_when_credit_unresolved(
 ):
     """R71: a member cannot be removed with credit left in a bound account."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, account_id = await enrolled_member(client, admin_token, "alice", 20)
 
     response = await client.post(
@@ -212,7 +213,7 @@ async def test_should_remove_without_disposition_when_member_holds_no_credit(
 ):
     """A member with nothing bound to the programme needs no disposition."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=5)
     _ = await client.post(
@@ -244,7 +245,7 @@ def _window(valid_from: int, valid_until: int) -> dict[str, object]:
     }
 
 
-def _is_schema_validation_error(body: dict) -> bool:
+def _is_schema_validation_error(body: dict[str, Any]) -> bool:
     """FastAPI's request-validation shape, which clients read as VALIDATION_ERROR."""
     return isinstance(body.get("detail"), list) and bool(body["detail"])
 
@@ -254,7 +255,7 @@ async def test_should_reject_removal_when_disposition_window_ends_before_it_star
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, account_id = await enrolled_member(client, admin_token, "alice", 20)
 
     response = await client.post(
@@ -278,7 +279,7 @@ async def test_should_reject_removal_when_disposition_window_has_already_closed(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, account_id = await enrolled_member(client, admin_token, "alice", 20)
 
     response = await client.post(

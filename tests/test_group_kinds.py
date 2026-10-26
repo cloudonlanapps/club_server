@@ -1,5 +1,6 @@
 """Tests for group kind derivation, semi-auto guards, and DOB-bound truncation."""
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ DOB_2014 = 1388534400000  # 2014-01-01 UTC midnight
 ONE_DAY_MS = 86_400_000
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -43,7 +44,7 @@ async def _approve_user(
         json={"username": username, "password": "testpass123"},
     )
     assert pre.status_code == 200, pre.text
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     sub = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {pre.json()['accessToken']}"},
@@ -53,7 +54,7 @@ async def _approve_user(
         f"/v1/users/by_id/{username}/approve", headers=auth(admin_token)
     )
     assert appr.status_code in (200, 201, 204), appr.json()
-    update: dict = {}
+    update: dict[str, Any] = {}
     if gender is not None:
         update["gender"] = gender
     if date_of_birth is not None:
@@ -359,7 +360,9 @@ async def test_manual_to_auto_blocked_when_members_exist(
 
     g = await client.post("/v1/groups", json={"name": "M"}, headers=auth(token))
     gid = g.json()["id"]
-    await client.post(f"/v1/groups/by_id/{gid}/members/byname/m1", headers=auth(token))
+    _ = await client.post(
+        f"/v1/groups/by_id/{gid}/members/byname/m1", headers=auth(token)
+    )
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}", json={"genders": ["male"]}, headers=auth(token)
@@ -380,7 +383,9 @@ async def test_manual_to_semi_auto_succeeds_when_all_members_eligible(
 
     g = await client.post("/v1/groups", json={"name": "M"}, headers=auth(token))
     gid = g.json()["id"]
-    await client.post(f"/v1/groups/by_id/{gid}/members/byname/m1", headers=auth(token))
+    _ = await client.post(
+        f"/v1/groups/by_id/{gid}/members/byname/m1", headers=auth(token)
+    )
 
     response = await client.patch(
         f"/v1/groups/by_id/{gid}",
@@ -412,7 +417,7 @@ async def test_manual_to_semi_auto_blocked_when_some_members_ineligible(
 
     g = await client.post("/v1/groups", json={"name": "M"}, headers=auth(token))
     gid = g.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/bulk",
         json={"membernames": ["ok", "bad"]},
         headers=auth(token),
@@ -627,7 +632,9 @@ async def test_bulk_add_to_semi_auto_partitions_results(
     )
     gid = g.json()["id"]
     # pre-add ok1 so it lands in alreadyMembers
-    await client.post(f"/v1/groups/by_id/{gid}/members/byname/ok1", headers=auth(token))
+    _ = await client.post(
+        f"/v1/groups/by_id/{gid}/members/byname/ok1", headers=auth(token)
+    )
 
     response = await client.post(
         f"/v1/groups/by_id/{gid}/members/bulk",

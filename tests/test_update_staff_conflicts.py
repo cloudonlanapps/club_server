@@ -7,6 +7,7 @@ admins as an ``event.conflict_detected`` notice, the way creation reports
 it, and the update succeeds.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,12 +25,12 @@ from .redesign_helpers import (
 )
 
 
-async def _conflict_notices(db_session: AsyncSession) -> list:
+async def _conflict_notices(db_session: AsyncSession) -> list[Any]:
     return await notifications_for(db_session, "admin", "event.conflict_detected")
 
 
 async def _patch(client: AsyncClient, token: str, event_id: int, **body: object):
-    body.setdefault("version", await version_of(client, token, event_id))
+    _ = body.setdefault("version", await version_of(client, token, event_id))
     return await client.patch(
         f"/v1/events/by_id/{event_id}", json=body, headers=auth(token)
     )

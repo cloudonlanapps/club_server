@@ -250,7 +250,7 @@ class EventListingService:
         result = await self.db.execute(query.order_by(Event.start_time))
         events = list(result.scalars().all())
         if from_time_utc:
-            events = [e for e in events if _still_running_at(e, from_time_utc)]
+            events = [e for e in events if still_running_at(e, from_time_utc)]
         return PaginatedResponse(
             items=await event_responses(self.db, events[offset : offset + limit]),
             total=len(events),
@@ -273,7 +273,7 @@ class EventListingService:
         return event
 
 
-def _still_running_at(event: Event, from_time_utc: int) -> bool:
+def still_running_at(event: Event, from_time_utc: int) -> bool:
     """Whether the event has an occurrence ending at or after ``from_time_utc``."""
     if event.rrule is None:
         return True

@@ -5,6 +5,7 @@ Access, profile, reads and audit are in
 ``test_users_access_requirement_gaps.py``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,11 +24,11 @@ from .helpers import (
 MIDNIGHT_2000 = 946684800000  # 2000-01-01 UTC midnight
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _profile(client: AsyncClient, admin: str, username: str) -> dict:
+async def _profile(client: AsyncClient, admin: str, username: str) -> dict[str, Any]:
     response = await client.get(f"/v1/users/by_id/{username}", headers=auth(admin))
     assert response.status_code == 200, response.text
     return response.json()
@@ -36,7 +37,7 @@ async def _profile(client: AsyncClient, admin: str, username: str) -> dict:
 async def _sent_back(client: AsyncClient, db_session: AsyncSession, admin: str) -> str:
     """``rosa`` sent back to ``registered`` with an active review request."""
     rosa = await create_registered_user(db_session, "rosa")
-    await attach_identity_document(db_session, "rosa")
+    _ = await attach_identity_document(db_session, "rosa")
     submitted = await client.post("/v1/users/me/submit-for-review", headers=auth(rosa))
     assert submitted.status_code == 200, submitted.text
     sent_back = await client.post(

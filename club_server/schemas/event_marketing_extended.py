@@ -8,7 +8,7 @@ in that only staff see the block's version and who wrote it last.
 """
 
 import json
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from pydantic import ConfigDict, Field
 
@@ -96,7 +96,7 @@ class _MarketingFields(CamelCaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
 
     @classmethod
-    def _fields(cls, row: EventMarketing) -> dict:
+    def _fields(cls, row: EventMarketing) -> dict[str, Any]:
         return {
             "duration_text": row.duration_text,
             "schedule_text": row.schedule_text,

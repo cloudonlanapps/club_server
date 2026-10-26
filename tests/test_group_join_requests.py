@@ -1,5 +1,6 @@
 """Tests for the join-request workflow."""
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -24,7 +25,7 @@ DOB_2014 = 1388534400000
 ONE_DAY_MS = 86_400_000
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -181,7 +182,7 @@ async def test_request_for_already_member_returns_409(
     admin_token = await create_admin_user(db_session)
     member_token = await create_member_user(db_session, username="amy")
     gid = await _make_manual(client, admin_token)
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/byname/amy", headers=auth(admin_token)
     )
 
@@ -489,7 +490,7 @@ async def test_audit_log_entries_written_for_create_cancel_approve_reject(
         f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token)
     )
     rid1 = c1.json()["id"]
-    await client.delete(
+    _ = await client.delete(
         f"/v1/mygroups/by_id/amy/requests/{rid1}", headers=auth(member_token)
     )
 
@@ -498,7 +499,7 @@ async def test_audit_log_entries_written_for_create_cancel_approve_reject(
         f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token)
     )
     rid2 = c2.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/requests/{rid2}/reject",
         json={"reason": "x"},
         headers=auth(admin_token),
@@ -509,7 +510,7 @@ async def test_audit_log_entries_written_for_create_cancel_approve_reject(
         f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token)
     )
     rid3 = c3.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/requests/{rid3}/approve", headers=auth(admin_token)
     )
 

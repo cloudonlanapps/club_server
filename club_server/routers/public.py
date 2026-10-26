@@ -44,7 +44,7 @@ async def get_public_profile(
     their curation). Anything else (unknown id, non-coach, opted-out) → 404.
     """
     service = StaffListingService(db)
-    for user in await service._consenting_coaches():
+    for user in await service.consenting_coaches():
         if generate_public_id(user.username) == public_id:
             return await service.public_profile(user)
     raise HTTPException(

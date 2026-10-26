@@ -142,7 +142,15 @@ def _role_names(user: User) -> set[str]:
         return set()
 
 
-def can_view_media(media: Media, viewer: User | None) -> bool:
+@dataclass(frozen=True)
+class MediaAccess:
+    """The two columns ``can_view_media`` reads, for a row read without a ``Media``."""
+
+    access_roles: str
+    uploaded_by: str | None
+
+
+def can_view_media(media: Media | MediaAccess, viewer: User | None) -> bool:
     """Return True iff ``viewer`` may see this media row's content/metadata.
 
     Mirrors the per-file gate used by ``GET /v1/media/by_id/{uuid}/download``
@@ -266,7 +274,7 @@ class MediaService:
 
         tmp_dir = Path(tempfile.mkdtemp(prefix="club_media_"))
         input_path = tmp_dir / f"{uid}_input.{extension}"
-        input_path.write_bytes(content)
+        _ = input_path.write_bytes(content)
 
         try:
             if media_type == "image":
@@ -319,22 +327,22 @@ class MediaService:
 
     async def _handle_image(
         self,
-        uid,
-        filename,
-        extension,
-        mime_type,
-        preserve_original,
-        uploaded_by,
-        input_path,
-        tmp_dir,
-        upload_dir,
-        now,
-        access_roles_json,
-        encrypt,
+        uid: str,
+        filename: str,
+        extension: str,
+        mime_type: str,
+        preserve_original: bool,
+        uploaded_by: str,
+        input_path: Path,
+        tmp_dir: Path,
+        upload_dir: Path,
+        now: int,
+        access_roles_json: str,
+        encrypt: bool,
     ) -> Media:
         if preserve_original:
             staged = tmp_dir / f"{uid}.{extension}"
-            shutil.move(str(input_path), str(staged))
+            _ = shutil.move(str(input_path), str(staged))
             conversion_status = "none"
             dest_name = f"{uid}.{extension}"
         else:
@@ -351,14 +359,14 @@ class MediaService:
             plaintext = staged.read_bytes()
             ciphertext, meta_json = enc.encrypt_payload(plaintext)
             dest = upload_dir / f"{dest_name}.enc"
-            dest.write_bytes(ciphertext)
+            _ = dest.write_bytes(ciphertext)
             encryption_meta = meta_json
             is_encrypted = 1
             encryption_version = enc.ENCRYPTION_VERSION
             file_size = dest.stat().st_size
         else:
             dest = upload_dir / dest_name
-            shutil.move(str(staged), str(dest))
+            _ = shutil.move(str(staged), str(dest))
             file_size = dest.stat().st_size
 
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -393,22 +401,22 @@ class MediaService:
 
     async def _handle_pdf(
         self,
-        uid,
-        filename,
-        extension,
-        mime_type,
-        preserve_original,
-        uploaded_by,
-        input_path,
-        tmp_dir,
-        upload_dir,
-        now,
-        access_roles_json,
-        encrypt,
+        uid: str,
+        filename: str,
+        extension: str,
+        mime_type: str,
+        preserve_original: bool,
+        uploaded_by: str,
+        input_path: Path,
+        tmp_dir: Path,
+        upload_dir: Path,
+        now: int,
+        access_roles_json: str,
+        encrypt: bool,
     ) -> Media:
         if preserve_original:
             staged_pdf = tmp_dir / f"{uid}.pdf"
-            shutil.move(str(input_path), str(staged_pdf))
+            _ = shutil.move(str(input_path), str(staged_pdf))
             poster_src: Path | None = None
             conversion_status = "none"
         else:
@@ -426,20 +434,20 @@ class MediaService:
             pdf_plain = staged_pdf.read_bytes()
             ciphertext, meta_json = enc.encrypt_payload(pdf_plain)
             dest_pdf = upload_dir / f"{uid}.pdf.enc"
-            dest_pdf.write_bytes(ciphertext)
+            _ = dest_pdf.write_bytes(ciphertext)
             if poster_src is not None:
                 poster_cipher = enc.encrypt_poster(poster_src.read_bytes(), meta_json)
-                (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
+                _ = (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
             encryption_meta = meta_json
             is_encrypted = 1
             encryption_version = enc.ENCRYPTION_VERSION
             file_size = dest_pdf.stat().st_size
         else:
             dest_pdf = upload_dir / f"{uid}.pdf"
-            shutil.move(str(staged_pdf), str(dest_pdf))
+            _ = shutil.move(str(staged_pdf), str(dest_pdf))
             file_size = dest_pdf.stat().st_size
             if poster_src is not None:
-                shutil.move(str(poster_src), str(upload_dir / f"{uid}_poster.png"))
+                _ = shutil.move(str(poster_src), str(upload_dir / f"{uid}_poster.png"))
 
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -473,25 +481,25 @@ class MediaService:
 
     async def _handle_video(
         self,
-        uid,
-        filename,
-        extension,
-        mime_type,
-        preserve_original,
-        uploaded_by,
-        input_path,
-        tmp_dir,
-        upload_dir,
-        now,
-        conversion_params_json,
-        access_roles_json,
+        uid: str,
+        filename: str,
+        extension: str,
+        mime_type: str,
+        preserve_original: bool,
+        uploaded_by: str,
+        input_path: Path,
+        tmp_dir: Path,
+        upload_dir: Path,
+        now: int,
+        conversion_params_json: str | None,
+        access_roles_json: str,
     ) -> Media:
         # Stage the uploaded bytes at a stable, worker-discoverable path so the
         # background video worker can find them after the request commits.
         pending_dir = upload_dir / "_pending"
         pending_dir.mkdir(parents=True, exist_ok=True)
         staged_input = pending_dir / f"{uid}_input.{extension}"
-        shutil.move(str(input_path), str(staged_input))
+        _ = shutil.move(str(input_path), str(staged_input))
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
         media = Media(
@@ -642,7 +650,7 @@ class MediaService:
     ) -> tuple[Media, list[str]]:
         normalized = normalize_access_roles(access_roles)
         media = await self.get(media_id)
-        old = json.loads(media.access_roles) if media.access_roles else []
+        old: list[str] = json.loads(media.access_roles) if media.access_roles else []
         media.access_roles = json.dumps(normalized)
         media.updated_at = now_utc_ms()
         await self.db.flush()
@@ -682,7 +690,7 @@ class MediaService:
 
         ciphertext, meta_json = enc.encrypt_payload(main_path.read_bytes())
         enc_main = main_path.with_name(main_path.name + ".enc")
-        enc_main.write_bytes(ciphertext)
+        _ = enc_main.write_bytes(ciphertext)
 
         # PDFs carry a converted poster alongside the document; encrypt it under
         # the same DEK so the poster variant keeps downloading after the flip.
@@ -692,7 +700,7 @@ class MediaService:
             if candidate.exists():
                 plain_poster = candidate
                 poster_cipher = enc.encrypt_poster(candidate.read_bytes(), meta_json)
-                (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
+                _ = (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
 
         # Flip the row (and flush) before removing any plaintext.
         media.is_encrypted = 1

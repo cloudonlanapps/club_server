@@ -170,7 +170,7 @@ async def test_undo_within_grace_unread_deletes_cancellation_no_restored(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     event_id, start = await _create_camp(client, admin)
     await _enroll(client, admin, event_id, "amy")
 
@@ -192,7 +192,7 @@ async def test_undo_after_read_preserves_cancellation_and_fires_restored(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     event_id, start = await _create_camp(client, admin)
     await _enroll(client, admin, event_id, "amy")
 
@@ -215,7 +215,7 @@ async def test_undo_past_grace_window_fires_restored(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     event_id, start = await _create_camp(client, admin)
     await _enroll(client, admin, event_id, "amy")
 
@@ -238,9 +238,9 @@ async def test_undo_audience_includes_coach_and_organizer(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
-    await create_member_user(db_session, "olive")  # organizer
-    await create_coach_user(db_session, "carl")
+    _ = await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "olive")  # organizer
+    _ = await create_coach_user(db_session, "carl")
     event_id, start = await _create_camp(
         client, admin, organizer="olive", coaches=["carl"]
     )
@@ -272,7 +272,7 @@ async def test_occurrence_undo_within_grace_unread_deletes_cancellation(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     event_id, start = await _create_camp(client, admin)
     await _enroll(client, admin, event_id, "amy")
     occ = start + 2 * DAY_MS
@@ -305,7 +305,7 @@ async def test_occurrence_undo_after_read_fires_restored(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     event_id, start = await _create_camp(client, admin)
     await _enroll(client, admin, event_id, "amy")
     occ = start + 2 * DAY_MS

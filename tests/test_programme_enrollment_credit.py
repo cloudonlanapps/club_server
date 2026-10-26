@@ -5,6 +5,7 @@ per-occurrence cancelled predicate, departures that settle at the last
 covered occurrence, and trials bounded by money.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +35,9 @@ from .redesign_helpers import (
 )
 
 
-async def _accounts_of(client: AsyncClient, token: str, member: str) -> list[dict]:
+async def _accounts_of(
+    client: AsyncClient, token: str, member: str
+) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/credits/accounts", params={"membername": member}, headers=auth(token)
     )
@@ -244,7 +247,7 @@ async def test_should_charge_covered_occurrence_then_settle_remainder_when_it_ha
     assert marked.json()["refused"] == []
     assert await balance_of(client, admin, bound) == 9
 
-    await sweep_credit_settlements(db_session, slot + 2 * HOUR_MS + MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, slot + 2 * HOUR_MS + MINUTE_MS)
     await db_session.commit()
 
     assert await balance_of(client, admin, bound) == 0
@@ -263,7 +266,7 @@ async def test_should_record_removing_admin_when_deferred_settlement_applies(
     """R82: the sweep applies the admin's decision, so the admin is its actor."""
     admin, _, slot, bound = await _member_leaving_mid_occurrence(client, db_session)
 
-    await sweep_credit_settlements(db_session, slot + 2 * HOUR_MS + MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, slot + 2 * HOUR_MS + MINUTE_MS)
     await db_session.commit()
 
     general = [
@@ -381,12 +384,12 @@ async def test_should_settle_through_sweep_not_on_read_and_only_once(
     after = slot + 2 * HOUR_MS + MINUTE_MS
 
     still_bound = await balance_of(client, admin, bound)
-    await sweep_credit_settlements(db_session, slot + HOUR_MS)
+    _ = await sweep_credit_settlements(db_session, slot + HOUR_MS)
     await db_session.commit()
     too_early = await balance_of(client, admin, bound)
-    await sweep_credit_settlements(db_session, after)
+    _ = await sweep_credit_settlements(db_session, after)
     await db_session.commit()
-    await sweep_credit_settlements(db_session, after + HOUR_MS)
+    _ = await sweep_credit_settlements(db_session, after + HOUR_MS)
     await db_session.commit()
 
     assert (still_bound, too_early) == (10, 10)

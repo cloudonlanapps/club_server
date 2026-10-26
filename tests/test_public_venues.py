@@ -5,6 +5,8 @@ endpoints under ``/v1/venues`` require a login again. Public venues are
 addressed by an opaque public id, never the integer id.
 """
 
+from typing import Any
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,7 +77,7 @@ async def _link_image(
 async def test_should_refuse_venue_listing_when_anonymous(
     client: AsyncClient, db_session: AsyncSession
 ):
-    await _seed(client, db_session)
+    _ = await _seed(client, db_session)
     await db_session.commit()
 
     response = await client.get("/v1/venues")
@@ -142,7 +144,7 @@ async def test_should_list_public_venues_when_anonymous(
 
     response = await client.get("/v1/public/venues")
     assert response.status_code == 200
-    items = response.json()
+    items: list[dict[str, Any]] = response.json()
     assert isinstance(items, list)
     assert [v["name"] for v in items] == ["Main Rink", "Practice Rink"]
     assert items[0]["publicId"] == generate_venue_public_id(ids[0])

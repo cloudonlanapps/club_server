@@ -51,7 +51,7 @@ class EvaluationPdfCanvas(FPDF):
         self.set_compression(False)
         self.set_auto_page_break(False)
         self.set_margins(0, 0, 0)
-        self.c_margin = 0
+        self.c_margin: float = 0
         for family, style, file in FONT_FILES:
             self.add_font(family, style, str(FONT_DIR / file))
         self._scratch: EvaluationPdfCanvas | None = None
@@ -94,7 +94,7 @@ class EvaluationPdfCanvas(FPDF):
         self.set_char_spacing(tracking)
         self.set_text_color(*rgb(colour))
         self.set_xy(x, y)
-        self.multi_cell(
+        _ = self.multi_cell(
             width,
             size * LEADING,
             text,
@@ -125,7 +125,7 @@ class EvaluationPdfCanvas(FPDF):
         for run in runs:
             self.set_font(PRINT_FONT, UNDERLINE if run.link else REGULAR, size)
             self.set_text_color(*rgb(link_colour if run.link else colour))
-            self.write(line, run.text, link=run.link or "")
+            _ = self.write(line, run.text, link=run.link or "")
         bottom = self.get_y() + line
         self.set_left_margin(left)
         self.set_right_margin(right)
@@ -134,7 +134,13 @@ class EvaluationPdfCanvas(FPDF):
     # Lines, fills and pictures ----------------------------------------
 
     def hline(
-        self, x1: float, x2: float, y: float, *, colour: str = RULE, width=HAIRLINE
+        self,
+        x1: float,
+        x2: float,
+        y: float,
+        *,
+        colour: str = RULE,
+        width: float = HAIRLINE,
     ) -> None:
         """A horizontal rule."""
         self.set_draw_color(*rgb(colour))
@@ -142,7 +148,13 @@ class EvaluationPdfCanvas(FPDF):
         self.line(x1, y, x2, y)
 
     def vline(
-        self, x: float, y1: float, y2: float, *, colour: str = RULE, width=HAIRLINE
+        self,
+        x: float,
+        y1: float,
+        y2: float,
+        *,
+        colour: str = RULE,
+        width: float = HAIRLINE,
     ) -> None:
         """A vertical rule."""
         self.set_draw_color(*rgb(colour))
@@ -164,8 +176,10 @@ class EvaluationPdfCanvas(FPDF):
 
     def svg(self, x: float, y: float, size: float, source: str) -> None:
         """An SVG graphic scaled into a ``size`` square."""
-        self.image(io.BytesIO(source.encode()), x=x, y=y, w=size, h=size)
+        _ = self.image(io.BytesIO(source.encode()), x=x, y=y, w=size, h=size)
 
     def picture(self, x: float, y: float, size: float, data: bytes) -> None:
         """A raster picture fitted, aspect kept, into a ``size`` square."""
-        self.image(io.BytesIO(data), x=x, y=y, w=size, h=size, keep_aspect_ratio=True)
+        _ = self.image(
+            io.BytesIO(data), x=x, y=y, w=size, h=size, keep_aspect_ratio=True
+        )

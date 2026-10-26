@@ -8,7 +8,7 @@ Every action is audited with the acting user.
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_coach_user, create_member_user
@@ -49,7 +49,9 @@ async def _staffed_programme(
     return tokens, event["id"], start
 
 
-async def _invite(client: AsyncClient, tokens, event_id: int, member: str) -> None:
+async def _invite(
+    client: AsyncClient, tokens: dict[str, str], event_id: int, member: str
+) -> None:
     response = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/invite",
         json={"membernames": [member]},
@@ -58,12 +60,16 @@ async def _invite(client: AsyncClient, tokens, event_id: int, member: str) -> No
     assert response.status_code in (200, 204), response.text
 
 
-async def _enroll(client: AsyncClient, tokens, event_id: int, member: str) -> None:
+async def _enroll(
+    client: AsyncClient, tokens: dict[str, str], event_id: int, member: str
+) -> None:
     response = await assign(client, tokens["admin"], event_id, member)
     assert response.status_code in (200, 204), response.text
 
 
-async def _status(client: AsyncClient, tokens, event_id: int, member: str):
+async def _status(
+    client: AsyncClient, tokens: dict[str, str], event_id: int, member: str
+):
     response = await client.get(
         f"/v1/myevents/by_id/{member}/{event_id}/enrollments",
         headers=auth(tokens[member]),
@@ -74,7 +80,9 @@ async def _status(client: AsyncClient, tokens, event_id: int, member: str):
     return response.json()["status"]
 
 
-async def _attendance(client: AsyncClient, tokens, event_id: int, slot: int):
+async def _attendance(
+    client: AsyncClient, tokens: dict[str, str], event_id: int, slot: int
+):
     response = await client.get(
         f"/v1/myevents/by_id/alice/{event_id}/occurrences/{slot}/attendance",
         headers=auth(tokens["alice"]),
@@ -84,7 +92,7 @@ async def _attendance(client: AsyncClient, tokens, event_id: int, slot: int):
     return body["status"] if body else None
 
 
-def _assert_forbidden(response) -> None:
+def _assert_forbidden(response: Response) -> None:
     assert response.status_code == 403, response.text
     assert response.json()["detail"]["code"] == FORBIDDEN
 

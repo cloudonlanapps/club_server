@@ -1,3 +1,4 @@
+from typing import Any
 import json
 
 import pytest
@@ -44,7 +45,7 @@ async def create_active_user(
     await db_session.flush()
 
 
-async def _reset_audit_details(db_session: AsyncSession, target: str) -> dict:
+async def _reset_audit_details(db_session: AsyncSession, target: str) -> dict[str, Any]:
     db_session.expire_all()
     rows = (
         (
@@ -216,7 +217,7 @@ async def test_admin_reset_user_without_email_still_succeeds(
 @pytest.mark.requirement("platform:R9")
 @pytest.mark.asyncio
 async def test_admin_reset_email_failure_is_best_effort(
-    client: AsyncClient, db_session: AsyncSession, monkeypatch
+    client: AsyncClient, db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
 ):
     """A delivery failure must not fail the request — the admin still gets the
     plaintext and the password is still changed; audit records emailSent=False."""
@@ -224,7 +225,7 @@ async def test_admin_reset_email_failure_is_best_effort(
     await create_active_user(db_session, "testuser", email="testuser@example.com")
 
     class _FailingSender:
-        name = "failing"
+        name: str = "failing"
 
         async def send(self, _message: EmailMessage) -> SendResult:
             return SendResult(success=False, provider="failing", error="boom")

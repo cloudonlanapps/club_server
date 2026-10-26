@@ -57,7 +57,7 @@ async def test_should_refund_when_occurrence_cancelled_after_marking(
 ):
     """R48: a cancelled session costs nothing, like approved leave."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     event_id, start = await imminent_programme(client, admin_token, "alice")
 
@@ -125,7 +125,7 @@ async def test_should_not_charge_when_marking_a_member_on_a_cancelled_occurrence
 ):
     """R48: a cancelled occurrence is uncharged, so nothing can be spent on it."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     event_id, start = await imminent_programme(client, admin_token, "alice")
     _ = await client.post(

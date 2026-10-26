@@ -28,7 +28,7 @@ async def create_user_and_get_token(
         json={"username": username, "password": "testpass123"},
     )
     _pre_token = _pre_login.json()["accessToken"]
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre_token}"},
@@ -175,7 +175,7 @@ async def test_admin_can_access_user_events(
     """Test that admin can access any user's events."""
     admin_token = await create_admin_user(db_session)
     _ = await create_user_and_get_token(client, admin_token, "testuser", db_session)
-    await create_event_and_enroll(client, admin_token, "testuser")
+    _ = await create_event_and_enroll(client, admin_token, "testuser")
 
     response = await client.get(
         "/v1/myevents/by_id/testuser",
@@ -193,7 +193,7 @@ async def test_coach_can_access_user_events(
     admin_token = await create_admin_user(db_session)
     coach_token = await create_coach_user(db_session)
     _ = await create_user_and_get_token(client, admin_token, "testuser", db_session)
-    await create_event_and_enroll(client, admin_token, "testuser")
+    _ = await create_event_and_enroll(client, admin_token, "testuser")
 
     response = await client.get(
         "/v1/myevents/by_id/testuser",
@@ -213,7 +213,7 @@ async def test_unauthorized_user_cannot_access_others_events(
         client, admin_token, "user1", db_session
     )
     _ = await create_user_and_get_token(client, admin_token, "user2", db_session)
-    await create_event_and_enroll(client, admin_token, "user2")
+    _ = await create_event_and_enroll(client, admin_token, "user2")
 
     response = await client.get(
         "/v1/myevents/by_id/user2",
@@ -270,7 +270,7 @@ async def test_list_user_occurrences(client: AsyncClient, db_session: AsyncSessi
     user_token = await create_user_and_get_token(
         client, admin_token, "testuser", db_session
     )
-    await create_event_and_enroll(client, admin_token, "testuser")
+    _ = await create_event_and_enroll(client, admin_token, "testuser")
 
     now = int(datetime.now(timezone.utc).timestamp() * 1000)
     future = int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp() * 1000)
@@ -768,7 +768,7 @@ async def test_list_user_occurrences_includes_public_event_occurrences(
     user_token = await create_user_and_get_token(
         client, admin_token, "testuser", db_session
     )
-    public_event_id, start_time = await create_public_event(client, admin_token)
+    public_event_id, _start_time = await create_public_event(client, admin_token)
 
     from_time = future_time_ms(0)
     to_time = future_time_ms(48)
@@ -1220,7 +1220,7 @@ async def test_future_occurrence_hidden_for_removed_member(
         client, admin_token, "carol", db_session
     )
 
-    event_id, start_time = await create_event_and_enroll(client, admin_token, "carol")
+    event_id, _start_time = await create_event_and_enroll(client, admin_token, "carol")
     # Mark removed (terminal status) without changing event times — event stays in the future.
     await _set_enrollment_timestamps(
         db_session,

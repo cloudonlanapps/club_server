@@ -8,6 +8,7 @@ needed for the HTTP creation path to succeed for overlapping camps — until
 then we cannot rely on the HTTP create path to set up these fixtures).
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -79,8 +80,8 @@ def _camp_body(
     organizer_name: str | None = None,
     coach_names: list[str] | None = None,
     exclude_event_id: int | None = None,
-) -> dict:
-    body: dict = {
+) -> dict[str, Any]:
+    body: dict[str, Any] = {
         "type": type_,
         "venueId": venue_id,
         "startTimeUtc": BASE_TS,

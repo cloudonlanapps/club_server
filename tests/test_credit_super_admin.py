@@ -5,6 +5,7 @@ is opened for them, whoever asks. Rule credit:R18b in
 ``docs/credit_system_requirements.md``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +16,7 @@ from .helpers import create_admin_user, create_regular_admin_user
 pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
-def _opening(membername: str) -> dict:
+def _opening(membername: str) -> dict[str, Any]:
     return {
         "membername": membername,
         "credits": 5,
@@ -25,7 +26,7 @@ def _opening(membername: str) -> dict:
     }
 
 
-async def _accounts_of(client: AsyncClient, token: str, membername: str) -> list:
+async def _accounts_of(client: AsyncClient, token: str, membername: str) -> list[Any]:
     listed = await client.get(
         "/v1/credits/accounts", params={"membername": membername}, headers=auth(token)
     )
@@ -75,7 +76,7 @@ async def test_should_open_account_when_regular_admin_is_the_member(
 ):
     admin = await create_admin_user(db_session)
     _ = await create_regular_admin_user(db_session, "ra")
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     await db_session.commit()
 
     for_admin = await open_account(client, admin, "ra", credits=4)

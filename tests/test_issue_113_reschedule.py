@@ -7,6 +7,7 @@ time, and the sparse `changes` notification payload.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytest
 from httpx import AsyncClient
@@ -55,7 +56,7 @@ async def _camp(
     organizer: str | None = None,
     coaches: list[str] | None = None,
 ) -> int:
-    body = {
+    body: dict[str, Any] = {
         "title": "Camp",
         "type": "camp",
         "visibility": "public",
@@ -73,7 +74,9 @@ async def _camp(
     return r.json()["id"]
 
 
-async def _reschedule(client: AsyncClient, token: str, event_id: int, occ: int, **body):
+async def _reschedule(
+    client: AsyncClient, token: str, event_id: int, occ: int, **body: Any
+):
     body.setdefault("version", await occurrence_version(client, token, event_id, occ))
     return await client.post(
         f"/v1/events/by_id/{event_id}/occurrences/{occ}/reschedule",
@@ -194,12 +197,12 @@ async def test_reschedule_super_admin_bypasses_lead_time_and_suppresses(
     client: AsyncClient, db_session: AsyncSession
 ):
     super_admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     start = at(minutes=10)
     event_id = await _camp(
         client, super_admin, start=start, venue_id=await _venue(client, super_admin)
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["amy"]},
         headers=auth(super_admin),
@@ -303,7 +306,7 @@ async def test_reschedule_cancelled_occurrence_rejected(
     event_id = await _camp(
         client, admin, start=start, venue_id=await _venue(client, admin)
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/occurrences/{occ}/cancel",
         json={
             "version": await occurrence_version(client, admin, event_id, occ),
@@ -351,13 +354,13 @@ async def test_reschedule_notification_uses_sparse_changes(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     start = at(hours=48)
     occ = start + 2 * DAY_MS
     venue_id = await _venue(client, admin)
     event_id = await _camp(client, admin, start=start, venue_id=venue_id)
     venue2 = await _venue(client, admin)
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["amy"]},
         headers=auth(admin),
@@ -380,9 +383,9 @@ async def test_reschedule_notifies_enrollees_coaches_and_organizer(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
-    await create_member_user(db_session, "olive")
-    await create_coach_user(db_session, "carl")
+    _ = await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "olive")
+    _ = await create_coach_user(db_session, "carl")
     start = at(hours=48)
     occ = start + 2 * DAY_MS
     event_id = await _camp(
@@ -393,7 +396,7 @@ async def test_reschedule_notifies_enrollees_coaches_and_organizer(
         organizer="olive",
         coaches=["carl"],
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["amy"]},
         headers=auth(admin),

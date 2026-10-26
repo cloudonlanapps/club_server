@@ -26,7 +26,7 @@ async def test_should_reject_account_opening_when_caller_is_coach(
     """R13: a coach cannot open an account."""
     _ = await create_admin_user(db_session)
     coach_token = await create_coach_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     response = await client.post(
         "/v1/credits/accounts",
@@ -93,7 +93,7 @@ async def test_should_reject_account_lookup_when_caller_is_coach(
     """R91 is admin-only: lookup by bare code is not a coach power."""
     admin_token = await create_admin_user(db_session)
     coach_token = await create_coach_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice")
 
     response = await client.get(
@@ -110,7 +110,7 @@ async def test_should_find_account_by_code_alone_when_caller_is_admin(
 ):
     """R91: the code is enough; the owner need not be known."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     opened = await open_account(client, admin_token, "alice", credits=7)
 
     response = await client.get(

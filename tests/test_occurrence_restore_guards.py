@@ -71,7 +71,7 @@ async def _imminent_cancelled_programme(
     """A programme starting in 20 minutes whose first slot a super-admin cancelled."""
     admin = await create_admin_user(db_session)
     regular = await create_regular_admin_user(db_session)
-    await create_member_user(db_session, "skater")
+    _ = await create_member_user(db_session, "skater")
     await db_session.commit()
     venue = await create_venue(client, admin)
     start = at(minutes=20)
@@ -165,7 +165,7 @@ async def test_should_restore_and_notify_when_outside_the_lead_time(
 ):
     admin = await create_admin_user(db_session)
     regular = await create_regular_admin_user(db_session)
-    await create_member_user(db_session, "skater")
+    _ = await create_member_user(db_session, "skater")
     await db_session.commit()
     venue = await create_venue(client, admin)
     event = await create_programme(client, admin, venue)

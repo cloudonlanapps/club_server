@@ -57,15 +57,6 @@ async def _register(client: AsyncClient, username: str = "newbie") -> None:
     assert response.status_code == 201, response.text
 
 
-async def _login(client: AsyncClient, username: str, password: str = "pw123") -> str:
-    login = await client.post(
-        "/v1/auth/login",
-        json={"username": username, "password": password},
-    )
-    assert login.status_code == 200, login.text
-    return login.json()["accessToken"]
-
-
 # ---------------------------------------------------------------------------
 # Registration lands at status=registered with no user_approval notification.
 # ---------------------------------------------------------------------------

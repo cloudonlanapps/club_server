@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypedDict, cast
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -34,25 +34,7 @@ def _reject_until_time_utc(data: Any) -> Any:
     """
     if isinstance(data, dict) and ("until_time_utc" in data or "untilTimeUtc" in data):
         raise ValueError("untilTimeUtc may only be set via the lifecycle endpoints")
-    return data
-
-
-def _event_service_kwargs(model: CamelCaseModel) -> dict[str, object]:
-    """Map EventCreate/EventUpdate fields to the EventService kwarg names.
-
-    Renames ``type``→``event_type``, ``start_time_utc``→``start_time`` and
-    ``end_time_utc``→``end_time``; every other field passes through unchanged.
-    """
-    rename = {
-        "type": "event_type",
-        "start_time_utc": "start_time",
-        "end_time_utc": "end_time",
-    }
-    return {
-        rename.get(name, name): getattr(model, name)
-        for name in type(model).model_fields
-        if name != "version"
-    }
+    return cast(Any, data)
 
 
 class Session(CamelCaseModel):
@@ -65,6 +47,55 @@ class Session(CamelCaseModel):
 
     name: str = Field(..., min_length=1, max_length=200)
     period_minutes: int = Field(..., ge=1)
+
+
+class EventCreateKwargs(TypedDict):
+    """Keyword arguments of ``EventService.create_event`` from an ``EventCreate``."""
+
+    short_description: str | None
+    stamp: str | None
+    highlights: list[str] | None
+    includes: list[str] | None
+    title: str
+    description: str | None
+    event_type: str
+    visibility: VisibilityT
+    venue_id: int
+    organizer_name: str | None
+    coach_names: list[str] | None
+    start_time: int
+    end_time: int
+    rrule: str | None
+    genders: list[Gender] | None
+    min_age: Age | None
+    max_age: Age | None
+    strict_age: bool
+    is_featured: bool
+    gallery_uris: list[str] | None
+    sessions: list[Session] | None
+    accept_conflicts: bool
+
+
+class EventUpdateKwargs(TypedDict):
+    """Keyword arguments of ``EventService.update_event`` from an ``EventUpdate``."""
+
+    short_description: str | None
+    stamp: str | None
+    highlights: list[str] | None
+    includes: list[str] | None
+    title: str | None
+    description: str | None
+    visibility: VisibilityT | None
+    organizer_name: str | None
+    coach_names: list[str] | None
+    genders: list[Gender] | None
+    min_age: Age | None
+    max_age: Age | None
+    strict_age: bool | None
+    is_featured: bool | None
+    gallery_uris: list[str] | None
+    sessions: list[Session] | None
+    accept_conflicts: bool
 
 
 class EventCreate(BasicMarketingFields):
@@ -89,11 +120,45 @@ class EventCreate(BasicMarketingFields):
     sessions: list[Session] | None = None
     accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)
 
-    _reject_until = model_validator(mode="before")(_reject_until_time_utc)
-    _genders = model_validator(mode="after")(reject_repeated_genders)
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_until(cls, data: Any) -> Any:
+        return _reject_until_time_utc(data)
 
-    def to_service_kwargs(self) -> dict[str, object]:
-        return _event_service_kwargs(self)
+    @model_validator(mode="after")
+    def _genders(self) -> Self:
+        return reject_repeated_genders(self)
+
+    def to_service_kwargs(self) -> EventCreateKwargs:
+        """Build kwargs for ``EventService.create_event``.
+
+        Renames ``type``→``event_type``, ``start_time_utc``→``start_time`` and
+        ``end_time_utc``→``end_time``; every other field passes through unchanged.
+        """
+        return {
+            "short_description": self.short_description,
+            "stamp": self.stamp,
+            "highlights": self.highlights,
+            "includes": self.includes,
+            "title": self.title,
+            "description": self.description,
+            "event_type": self.type,
+            "visibility": self.visibility,
+            "venue_id": self.venue_id,
+            "organizer_name": self.organizer_name,
+            "coach_names": self.coach_names,
+            "start_time": self.start_time_utc,
+            "end_time": self.end_time_utc,
+            "rrule": self.rrule,
+            "genders": self.genders,
+            "min_age": self.min_age,
+            "max_age": self.max_age,
+            "strict_age": self.strict_age,
+            "is_featured": self.is_featured,
+            "gallery_uris": self.gallery_uris,
+            "sessions": self.sessions,
+            "accept_conflicts": self.accept_conflicts,
+        }
 
 
 class EventUpdate(BasicMarketingFields):
@@ -125,11 +190,36 @@ class EventUpdate(BasicMarketingFields):
     sessions: list[Session] | None = None
     accept_conflicts: bool = Field(False, description=ACCEPT_CONFLICTS_DESCRIPTION)
 
-    _reject_until = model_validator(mode="before")(_reject_until_time_utc)
-    _genders = model_validator(mode="after")(reject_repeated_genders)
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_until(cls, data: Any) -> Any:
+        return _reject_until_time_utc(data)
 
-    def to_service_kwargs(self) -> dict[str, object]:
-        return _event_service_kwargs(self)
+    @model_validator(mode="after")
+    def _genders(self) -> Self:
+        return reject_repeated_genders(self)
+
+    def to_service_kwargs(self) -> EventUpdateKwargs:
+        """Build kwargs for ``EventService.update_event``: every field but ``version``."""
+        return {
+            "short_description": self.short_description,
+            "stamp": self.stamp,
+            "highlights": self.highlights,
+            "includes": self.includes,
+            "title": self.title,
+            "description": self.description,
+            "visibility": self.visibility,
+            "organizer_name": self.organizer_name,
+            "coach_names": self.coach_names,
+            "genders": self.genders,
+            "min_age": self.min_age,
+            "max_age": self.max_age,
+            "strict_age": self.strict_age,
+            "is_featured": self.is_featured,
+            "gallery_uris": self.gallery_uris,
+            "sessions": self.sessions,
+            "accept_conflicts": self.accept_conflicts,
+        }
 
 
 class EventResponse(CamelCaseModel):
@@ -380,7 +470,9 @@ class EventCorrectionRequest(BasicMarketingFields):
     sessions: list[Session] | None = None
     schedule_id: int | None = None
 
-    _genders = model_validator(mode="after")(reject_repeated_genders)
+    @model_validator(mode="after")
+    def _genders(self) -> Self:
+        return reject_repeated_genders(self)
 
     @model_validator(mode="after")
     def _schedule_id_needs_sessions(self) -> "EventCorrectionRequest":

@@ -30,7 +30,7 @@ async def _create_pending_user(
     db_session: AsyncSession, client: AsyncClient, username: str = "rosa"
 ) -> str:
     token = await create_registered_user(db_session, username)
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     response = await client.post("/v1/users/me/submit-for-review", headers=auth(token))
     assert response.status_code == 200, response.text
     return token

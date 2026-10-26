@@ -7,9 +7,14 @@ is configured). They construct a lightweight media stand-in and monkeypatch
 ``enc.decrypt`` so no encryption key is required.
 """
 
+from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from club_server.db.models.media import Media
 
 from club_server.exceptions import DecryptionFailedException
 from club_server.services import media as media_module
@@ -18,21 +23,29 @@ from club_server.services.media import MediaService
 
 def _service() -> MediaService:
     # resolve_download is synchronous and never touches the DB session.
-    return MediaService(db=None)
+    return MediaService(db=cast(AsyncSession, None))
 
 
-def _media(*, is_encrypted: bool, mime_type: str = "image/png", encryption_meta=None):
-    return SimpleNamespace(
-        is_encrypted=is_encrypted,
-        mime_type=mime_type,
-        original_mime_type=mime_type,
-        encryption_meta=encryption_meta,
+def _media(
+    *,
+    is_encrypted: bool,
+    mime_type: str = "image/png",
+    encryption_meta: str | None = None,
+) -> Media:
+    return cast(
+        Media,
+        SimpleNamespace(
+            is_encrypted=is_encrypted,
+            mime_type=mime_type,
+            original_mime_type=mime_type,
+            encryption_meta=encryption_meta,
+        ),
     )
 
 
-def test_plain_picks_mime_from_suffix(tmp_path):
+def test_plain_picks_mime_from_suffix(tmp_path: Path) -> None:
     file_path = tmp_path / "asset.webp"
-    file_path.write_bytes(b"data")
+    _ = file_path.write_bytes(b"data")
 
     result = _service().resolve_download(_media(is_encrypted=False), file_path)
 
@@ -41,7 +54,7 @@ def test_plain_picks_mime_from_suffix(tmp_path):
     assert result.media_type == "image/webp"
 
 
-def test_plain_unknown_suffix_falls_back_to_octet_stream(tmp_path):
+def test_plain_unknown_suffix_falls_back_to_octet_stream(tmp_path: Path) -> None:
     file_path = tmp_path / "asset.bin"
 
     result = _service().resolve_download(_media(is_encrypted=False), file_path)
@@ -50,12 +63,14 @@ def test_plain_unknown_suffix_falls_back_to_octet_stream(tmp_path):
     assert result.file_path == file_path
 
 
-def test_encrypted_decrypts_inline_and_uses_inner_suffix(tmp_path, monkeypatch):
+def test_encrypted_decrypts_inline_and_uses_inner_suffix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     file_path = tmp_path / "asset.webp.enc"
-    file_path.write_bytes(b"cipher")
-    captured = {}
+    _ = file_path.write_bytes(b"cipher")
+    captured: dict[str, object] = {}
 
-    def fake_decrypt(ciphertext, meta, *, poster=False):
+    def fake_decrypt(ciphertext: bytes, meta: str, *, poster: bool = False) -> bytes:
         captured["call"] = (ciphertext, meta, poster)
         return b"plaintext"
 
@@ -71,18 +86,20 @@ def test_encrypted_decrypts_inline_and_uses_inner_suffix(tmp_path, monkeypatch):
     assert captured["call"] == (b"cipher", "meta-json", False)
 
 
-def test_encrypted_poster_sets_poster_flag(tmp_path, monkeypatch):
+def test_encrypted_poster_sets_poster_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     file_path = tmp_path / "asset_poster.png.enc"
-    file_path.write_bytes(b"cipher")
-    captured = {}
+    _ = file_path.write_bytes(b"cipher")
+    captured: dict[str, object] = {}
 
-    def fake_decrypt(ciphertext, meta, *, poster=False):
+    def fake_decrypt(ciphertext: bytes, meta: str, *, poster: bool = False) -> bytes:
         captured["poster"] = poster
         return b"plaintext"
 
     monkeypatch.setattr(media_module.enc, "decrypt", fake_decrypt)
 
-    _service().resolve_download(
+    _ = _service().resolve_download(
         _media(is_encrypted=True, encryption_meta="meta-json"), file_path
     )
 
@@ -90,11 +107,11 @@ def test_encrypted_poster_sets_poster_flag(tmp_path, monkeypatch):
 
 
 @pytest.mark.requirement("media:R91")
-def test_encrypted_missing_metadata_raises(tmp_path):
+def test_encrypted_missing_metadata_raises(tmp_path: Path) -> None:
     file_path = tmp_path / "asset.webp.enc"
-    file_path.write_bytes(b"cipher")
+    _ = file_path.write_bytes(b"cipher")
 
     with pytest.raises(DecryptionFailedException):
-        _service().resolve_download(
+        _ = _service().resolve_download(
             _media(is_encrypted=True, encryption_meta=None), file_path
         )

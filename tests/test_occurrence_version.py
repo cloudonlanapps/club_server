@@ -5,6 +5,7 @@ Every occurrence now carries a ``version``; reschedule, cancel, undo-cancel,
 drop and reinstate require it and refuse a stale one with 409.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +31,7 @@ from .redesign_helpers import (
 
 async def _occurrence(
     client: AsyncClient, token: str, event_id: int, slot: int
-) -> dict:
+) -> dict[str, Any]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/occurrences/{slot}", headers=auth(token)
     )
@@ -180,7 +181,7 @@ async def test_should_bump_occurrence_version_not_event_version_when_oneoff_is_d
     ],
 )
 async def test_should_reject_occurrence_change_when_version_is_missing(
-    client: AsyncClient, db_session: AsyncSession, verb: str, body: dict
+    client: AsyncClient, db_session: AsyncSession, verb: str, body: dict[str, Any]
 ):
     admin = await create_admin_user(db_session)
     event_id, slot, _ = await _programme(client, admin)
@@ -204,7 +205,7 @@ async def test_should_reject_occurrence_change_when_version_is_missing(
     ("verb", "body"), [("drop", {"reason": "Off"}), ("reinstate", {})]
 )
 async def test_should_reject_drop_or_reinstate_when_version_is_missing(
-    client: AsyncClient, db_session: AsyncSession, verb: str, body: dict
+    client: AsyncClient, db_session: AsyncSession, verb: str, body: dict[str, Any]
 ):
     admin = await create_admin_user(db_session)
     venue = await create_venue(client, admin)

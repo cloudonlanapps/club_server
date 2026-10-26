@@ -1,5 +1,6 @@
 """Tests for #167 — media-link list endpoints filter rows by media.access_roles."""
 
+from typing import Any
 import json
 import os
 import shutil
@@ -58,7 +59,7 @@ async def _upload(
     client: AsyncClient,
     token: str,
     access_roles: list[str] | None = None,
-) -> dict:
+) -> dict[str, Any]:
     data: dict[str, str] = {"preserveOriginal": "true"}
     if access_roles is not None:
         data["accessRoles"] = json.dumps(access_roles)

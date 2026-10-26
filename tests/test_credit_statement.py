@@ -7,6 +7,7 @@ carries ``balanceAfter`` (its account's balance after it) and ``totalAfter``
 the entry, so no filter or page changes them.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,8 +20,11 @@ pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
 async def my_statement(
-    client: AsyncClient, token: str, username: str = "alice", **params: object
-) -> dict:
+    client: AsyncClient,
+    token: str,
+    username: str = "alice",
+    **params: str | int | float | bool | None,
+) -> dict[str, Any]:
     """The member's statement page, as the member reads it."""
     response = await client.get(
         f"/v1/mycredits/by_id/{username}/entries", params=params, headers=auth(token)
@@ -29,7 +33,9 @@ async def my_statement(
     return response.json()
 
 
-async def ledger(client: AsyncClient, token: str, **params: object) -> dict:
+async def ledger(
+    client: AsyncClient, token: str, **params: str | int | float | bool | None
+) -> dict[str, Any]:
     """The staff ledger page."""
     response = await client.get(
         "/v1/credits/entries", params=params, headers=auth(token)
@@ -38,7 +44,7 @@ async def ledger(client: AsyncClient, token: str, **params: object) -> dict:
     return response.json()
 
 
-def running(items: list[dict]) -> list[tuple[str, int, int, int]]:
+def running(items: list[dict[str, Any]]) -> list[tuple[str, int, int, int]]:
     """Each entry as (type, amount, balanceAfter, totalAfter)."""
     return [
         (i["entryType"], i["amount"], i["balanceAfter"], i["totalAfter"]) for i in items

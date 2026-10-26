@@ -54,7 +54,7 @@ async def test_should_assign_trial_when_member_holds_trial_credit(
 ):
     """R50: a trial is funded by a trial account."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await programme(client, admin_token)
     _ = await open_account(
         client, admin_token, "alice", credits=2, event_id=event_id, is_trial=True
@@ -85,7 +85,7 @@ async def test_should_refuse_trial_assignment_when_only_ordinary_credit_held(
     onto a trial they cannot fund.
     """
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await programme(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=50)
 
@@ -106,7 +106,7 @@ async def test_should_refuse_ordinary_assignment_when_only_trial_credit_held(
 ):
     """R53: and a trial account never funds an ordinary enrollment."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await programme(client, admin_token)
     _ = await open_account(
         client, admin_token, "alice", credits=50, event_id=event_id, is_trial=True
@@ -129,7 +129,7 @@ async def test_should_deduct_from_trial_account_when_trial_member_marked(
 ):
     """R51: trial credit is spent by attendance like any other."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await programme(client, admin_token)
     trial = await open_account(
         client, admin_token, "alice", credits=3, event_id=event_id, is_trial=True
@@ -162,7 +162,7 @@ async def test_should_remove_member_when_trial_credit_exhausted(
     waiting for a top-up.
     """
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await programme(client, admin_token)
     trial = await open_account(
         client, admin_token, "alice", credits=1, event_id=event_id, is_trial=True
@@ -199,7 +199,7 @@ async def test_should_not_rescue_exhausted_trial_from_general_account(
 ):
     """R53: exhaustion means exhaustion, even holding other usable credit."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await programme(client, admin_token)
     trial = await open_account(
         client, admin_token, "alice", credits=1, event_id=event_id, is_trial=True

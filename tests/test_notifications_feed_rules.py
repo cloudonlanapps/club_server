@@ -108,7 +108,7 @@ async def test_should_list_pending_actions_newest_first_when_rows_differ_in_age(
     _ = await create_admin_user(db_session)
     token = await create_member_user(db_session, "amy")
     now = now_utc_ms()
-    rows = []
+    rows: list[Notification] = []
     for index, age in enumerate((3000, 1000, 2000)):
         group = Group(name=f"G{index}", kind="manual", created_at=now)
         db_session.add(group)

@@ -41,8 +41,8 @@ async def list_my_accounts(
     username: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_current_active_user)],
-    state: str | None = Query(None),
-    include_closed: bool = Query(False, alias="includeClosed"),
+    state: Annotated[str | None, Query()] = None,
+    include_closed: Annotated[bool, Query(alias="includeClosed")] = False,
 ) -> list[CreditAccountResponse]:
     """List a member's credit accounts.
 
@@ -104,13 +104,13 @@ async def list_my_entries(
     username: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_current_active_user)],
-    account_id: str | None = Query(None, alias="accountId"),
-    event_id: int | None = Query(None, alias="eventId"),
-    from_ts: int | None = Query(None, alias="fromTs"),
-    to_ts: int | None = Query(None, alias="toTs"),
-    order: StatementOrder = Query("asc"),
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    account_id: Annotated[str | None, Query(alias="accountId")] = None,
+    event_id: Annotated[int | None, Query(alias="eventId")] = None,
+    from_ts: Annotated[int | None, Query(alias="fromTs")] = None,
+    to_ts: Annotated[int | None, Query(alias="toTs")] = None,
+    order: Annotated[StatementOrder, Query()] = "asc",
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> PaginatedResponse[CreditEntryResponse]:
     """A member's statement: what each session cost and which account paid.
 

@@ -6,6 +6,8 @@ programme's next occurrence is a day on — or, where the API's own reading
 of today is under test, by correcting their date of birth.
 """
 
+from typing import TypedDict
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import update
@@ -39,7 +41,11 @@ from .redesign_helpers import (
 )
 
 NOTICE = "enrollment.member_ineligible"
-BAND = {"minAge": FIVE, "maxAge": EIGHTEEN, "strictAge": True}
+Band = TypedDict(
+    "Band", {"minAge": dict[str, int], "maxAge": dict[str, int], "strictAge": bool}
+)
+
+BAND: Band = {"minAge": FIVE, "maxAge": EIGHTEEN, "strictAge": True}
 
 
 def births(start: int) -> dict[str, int]:

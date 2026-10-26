@@ -3,6 +3,7 @@ except the reschedule and conflict rules, which live with their siblings in
 ``test_programme_occurrences.py`` and ``test_conflict_gates.py``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +35,7 @@ from .redesign_helpers import (
 
 async def _occurrence(
     client: AsyncClient, token: str, event_id: int, slot: int
-) -> dict:
+) -> dict[str, Any]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/occurrences/{slot}", headers=auth(token)
     )

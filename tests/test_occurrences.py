@@ -778,7 +778,7 @@ async def create_user_and_get_token(
         "/v1/auth/login",
         json={"username": username, "password": "testpass123"},
     )
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},
@@ -944,7 +944,7 @@ async def test_reschedule_occurrence_keeps_attendance(
 
     _ = await create_user_and_get_token(client, token, "attendee", db_session)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["attendee"]},
         headers={"Authorization": f"Bearer {token}"},

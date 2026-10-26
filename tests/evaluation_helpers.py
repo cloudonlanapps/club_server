@@ -1,7 +1,7 @@
 """Shared builders for the evaluation suites (#302, #535)."""
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -155,7 +155,7 @@ def flat_layout(layout: list[Any]) -> list[int]:
     ids: list[int] = []
     for entry in layout:
         if isinstance(entry, dict):
-            ids.extend(entry["items"])
+            ids.extend(cast(list[int], entry["items"]))
         else:
             ids.append(entry)
     return ids
@@ -302,6 +302,13 @@ def answer_of(evaluation: dict[str, Any], item_id: int) -> dict[str, Any] | None
         if answer["itemId"] == item_id:
             return answer
     return None
+
+
+def require_answer(evaluation: dict[str, Any], item_id: int) -> dict[str, Any]:
+    """The answer to one item in a read evaluation; fails the test if missing."""
+    answer = answer_of(evaluation, item_id)
+    assert answer is not None, f"no answer to item {item_id}"
+    return answer
 
 
 async def publish(client: AsyncClient, token: str, evaluation_id: int) -> None:

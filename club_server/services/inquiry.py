@@ -8,7 +8,9 @@ accepted and discarded (a bot should not learn it was caught).
 import base64
 import hashlib
 import hmac
-from sqlalchemy import delete, func, or_, select
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -141,10 +143,10 @@ class InquiryService:
                 message=row.message,
                 extra=row.extra,
             )
-            await get_transactional_sender().send(
+            _ = await get_transactional_sender().send(
                 EmailMessage(to=address, subject=subject, html=html, text=text)
             )
-        await NotificationService(self.db).notify_for_event(
+        _ = await NotificationService(self.db).notify_for_event(
             NotificationEvent(
                 type=NOTIFICATION_TYPE,
                 recipients=await self._admin_usernames(),
@@ -220,7 +222,7 @@ async def purge_expired_inquiries(session: AsyncSession, now: int) -> int:
             )
         )
     )
-    return result.rowcount or 0
+    return cast(CursorResult[Any], result).rowcount or 0
 
 
 def kind_label(kind: str) -> str:

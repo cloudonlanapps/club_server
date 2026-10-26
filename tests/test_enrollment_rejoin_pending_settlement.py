@@ -160,7 +160,7 @@ async def test_should_assign_when_departure_settlement_has_run(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin, member, event_id, slot, bound = await _pending_departure(client, db_session)
-    await sweep_credit_settlements(db_session, slot + 2 * HOUR_MS + MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, slot + 2 * HOUR_MS + MINUTE_MS)
     await db_session.commit()
     assert await balance_of(client, admin, bound) == 0
 

@@ -4,6 +4,7 @@ Covers credit R16, R64, R78, R86, R88 and R89 from
 ``docs/credit_system_requirements.md``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,13 +23,18 @@ from .redesign_helpers import auth
 pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
-async def _get(client: AsyncClient, token: str, path: str, **params: object):
+async def _get(
+    client: AsyncClient,
+    token: str,
+    path: str,
+    **params: str | int | float | bool | None,
+):
     response = await client.get(path, params=params, headers=auth(token))
     assert response.status_code == 200, response.text
     return response.json()
 
 
-def _codes(rows: list[dict]) -> list[str]:
+def _codes(rows: list[dict[str, Any]]) -> list[str]:
     return [row["accountId"] for row in rows]
 
 

@@ -1,5 +1,6 @@
 """Tests for /groups/{id}/eligible and /mygroups/{u}/eligible."""
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,7 @@ DOB_2014 = 1388534400000
 ONE_DAY_MS = 86_400_000
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -49,7 +50,7 @@ async def _register_active(
         json={"username": username, "password": "testpass123"},
     )
     assert pre.status_code == 200
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     sub = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {pre.json()['accessToken']}"},
@@ -59,7 +60,7 @@ async def _register_active(
         f"/v1/users/by_id/{username}/approve", headers=auth(admin_token)
     )
     assert appr.status_code in (200, 201, 204)
-    update: dict = {}
+    update: dict[str, Any] = {}
     if gender is not None:
         update["gender"] = gender
     if date_of_birth is not None:
@@ -83,7 +84,7 @@ async def test_eligible_endpoint_for_manual_lists_active_users_minus_members(
 
     g = await client.post("/v1/groups", json={"name": "M"}, headers=auth(admin_token))
     gid = g.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/byname/u1", headers=auth(admin_token)
     )
 
@@ -262,7 +263,7 @@ async def test_eligible_endpoint_404_for_soft_deleted_group(
     admin_token = await create_admin_user(db_session)
     g = await client.post("/v1/groups", json={"name": "M"}, headers=auth(admin_token))
     gid = g.json()["id"]
-    await client.delete(f"/v1/groups/by_id/{gid}", headers=auth(admin_token))
+    _ = await client.delete(f"/v1/groups/by_id/{gid}", headers=auth(admin_token))
 
     response = await client.get(
         f"/v1/groups/by_id/{gid}/eligible", headers=auth(admin_token)
@@ -302,7 +303,7 @@ async def test_mygroups_eligible_for_member(
     joined = await client.post(
         "/v1/groups", json={"name": "J1"}, headers=auth(admin_token)
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{joined.json()['id']}/members/byname/amy",
         headers=auth(admin_token),
     )

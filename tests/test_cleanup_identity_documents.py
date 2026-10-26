@@ -1,6 +1,7 @@
 """Tests for #173 — Phase B identity-document cleanup helper."""
 
 import shutil
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ from .helpers import create_registered_user
 
 
 @pytest.fixture
-def upload_dir(tmp_path: Path) -> Path:
+def upload_dir(tmp_path: Path) -> Iterator[Path]:
     d = tmp_path / "uploads"
     d.mkdir()
     yield d
@@ -33,7 +34,7 @@ async def legacy_tables(db_session: AsyncSession):
     their SQLAlchemy models are gone, but the cleanup function still
     issues DELETEs against them (production ordering: cleanup migration
     runs before either drop)."""
-    await db_session.execute(
+    _ = await db_session.execute(
         text(
             """
         CREATE TABLE IF NOT EXISTS user_gallery (
@@ -48,7 +49,7 @@ async def legacy_tables(db_session: AsyncSession):
         """
         )
     )
-    await db_session.execute(
+    _ = await db_session.execute(
         text(
             """
         CREATE TABLE IF NOT EXISTS uploaded_media (
@@ -77,8 +78,8 @@ async def legacy_tables(db_session: AsyncSession):
         )
     )
     yield
-    await db_session.execute(text("DROP TABLE IF EXISTS uploaded_media"))
-    await db_session.execute(text("DROP TABLE IF EXISTS user_gallery"))
+    _ = await db_session.execute(text("DROP TABLE IF EXISTS uploaded_media"))
+    _ = await db_session.execute(text("DROP TABLE IF EXISTS user_gallery"))
 
 
 async def _insert_uploaded_media(
@@ -89,7 +90,7 @@ async def _insert_uploaded_media(
     usage_context: str | None = LEGACY_USAGE_CONTEXT,
     deleted_at: int | None = None,
 ) -> None:
-    await db.execute(
+    _ = await db.execute(
         text(
             """
         INSERT INTO uploaded_media (
@@ -120,7 +121,7 @@ async def _insert_media(
     uuid: str,
     uploaded_by: str,
 ) -> None:
-    await db.execute(
+    _ = await db.execute(
         text(
             """
         INSERT INTO media (
@@ -145,7 +146,7 @@ async def _insert_user_gallery(
     tag: str,
     uri: str,
 ) -> None:
-    await db.execute(
+    _ = await db.execute(
         text(
             """
         INSERT INTO user_gallery (id, username, tag, uri, created_at, updated_at)
@@ -158,7 +159,7 @@ async def _insert_user_gallery(
 
 def _write(upload_dir: Path, name: str, size: int = 100) -> Path:
     p = upload_dir / name
-    p.write_bytes(b"x" * size)
+    _ = p.write_bytes(b"x" * size)
     return p
 
 
@@ -175,7 +176,7 @@ async def test_cleanup_removes_legacy_rows_and_root_files(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     uid = "id-uuid-alice"
     await _insert_uploaded_media(db_session, uuid=uid, uploaded_by="alice")
     await _insert_media(db_session, uuid=uid, uploaded_by="alice")
@@ -189,7 +190,7 @@ async def test_cleanup_removes_legacy_rows_and_root_files(
     media_dir = upload_dir / "media"
     media_dir.mkdir()
     canonical_file = media_dir / f"{uid}.webp"
-    canonical_file.write_bytes(b"canonical")
+    _ = canonical_file.write_bytes(b"canonical")
     await db_session.flush()
 
     counts = await _run_cleanup(db_session, upload_dir)
@@ -225,7 +226,7 @@ async def test_cleanup_handles_both_tag_spellings(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     await _insert_user_gallery(
         db_session,
         username="alice",
@@ -249,7 +250,7 @@ async def test_cleanup_leaves_other_uploaded_media_alone(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     keep = "keep-uuid"
     await _insert_uploaded_media(
         db_session,
@@ -257,7 +258,7 @@ async def test_cleanup_leaves_other_uploaded_media_alone(
         uploaded_by="alice",
         usage_context=None,
     )
-    _write(upload_dir, f"{keep}.webp")
+    _ = _write(upload_dir, f"{keep}.webp")
     await db_session.flush()
 
     counts = await _run_cleanup(db_session, upload_dir)
@@ -284,7 +285,7 @@ async def test_cleanup_leaves_non_identity_gallery_rows(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     await _insert_user_gallery(
         db_session,
         username="alice",
@@ -292,7 +293,7 @@ async def test_cleanup_leaves_non_identity_gallery_rows(
         uri="http://x/avatar",
     )
     await db_session.flush()
-    await _run_cleanup(db_session, upload_dir)
+    _ = await _run_cleanup(db_session, upload_dir)
     survivors = (
         await db_session.execute(
             text("SELECT COUNT(*) AS c FROM user_gallery WHERE tag = 'avatar'")
@@ -309,15 +310,15 @@ async def test_cleanup_aborts_when_phase_a_incomplete(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     uid = "orphan-uuid"
     await _insert_uploaded_media(db_session, uuid=uid, uploaded_by="alice")
     # NB: no matching ``media`` row — Phase A never copied this uuid.
-    _write(upload_dir, f"{uid}.webp")
+    _ = _write(upload_dir, f"{uid}.webp")
     await db_session.flush()
 
     with pytest.raises(PhaseAIncompleteError):
-        await _run_cleanup(db_session, upload_dir)
+        _ = await _run_cleanup(db_session, upload_dir)
 
     # Nothing was deleted.
     assert (upload_dir / f"{uid}.webp").exists()
@@ -337,13 +338,13 @@ async def test_cleanup_removes_all_uuid_prefixed_root_files(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     uid = "id-uuid-sweep"
     await _insert_uploaded_media(db_session, uuid=uid, uploaded_by="alice")
     await _insert_media(db_session, uuid=uid, uploaded_by="alice")
-    _write(upload_dir, f"{uid}.webp")
-    _write(upload_dir, f"{uid}_poster.webp")
-    _write(upload_dir, f"{uid}.webp.enc")
+    _ = _write(upload_dir, f"{uid}.webp")
+    _ = _write(upload_dir, f"{uid}_poster.webp")
+    _ = _write(upload_dir, f"{uid}.webp.enc")
     # An unrelated file must survive.
     other = _write(upload_dir, "other.webp")
     await db_session.flush()

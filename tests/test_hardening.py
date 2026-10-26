@@ -36,7 +36,7 @@ async def create_user_and_get_token(
         json={"username": username, "password": "testpass123"},
     )
     _pre_token = _pre_login.json()["accessToken"]
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre_token}"},
@@ -228,7 +228,7 @@ async def test_pending_user_login_allowed(
         json={"username": "pending", "password": "testpass123"},
     )
     pre_token = pre_login.json()["accessToken"]
-    await attach_identity_document(db_session, "pending")
+    _ = await attach_identity_document(db_session, "pending")
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {pre_token}"},

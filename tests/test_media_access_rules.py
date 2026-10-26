@@ -14,7 +14,7 @@ from .helpers import (
 )
 from .media_helpers import (
     auth,
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     png_bytes,
     upload,
 )
@@ -82,7 +82,7 @@ async def test_should_treat_blocked_or_departed_user_as_anonymous_on_download(
     )
     assert before.status_code == 200
 
-    await db_session.execute(
+    _ = await db_session.execute(
         update(User).where(User.username == "cora").values(status=status)
     )
     await db_session.commit()

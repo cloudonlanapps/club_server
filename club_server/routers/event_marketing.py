@@ -51,7 +51,7 @@ async def get_event_marketing(
     current_user: Annotated[User, Depends(require_admin_or_coach())],
 ) -> EventMarketingResponse:
     """Read the extended block (admin, coach); 404 when the event has none."""
-    await EventService(db).get_event(event_id)
+    _ = await EventService(db).get_event(event_id)
     return await EventMarketingService(db).get(event_id)
 
 

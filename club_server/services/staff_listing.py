@@ -58,7 +58,7 @@ class StaffListingService:
 
     # --- public page ------------------------------------------------------
 
-    async def _consenting_coaches(self) -> list[User]:
+    async def consenting_coaches(self) -> list[User]:
         result = await self.db.execute(
             select(User).where(
                 User.status == UserStatus.active.value,
@@ -82,7 +82,7 @@ class StaffListingService:
         self, *, include_guests: bool
     ) -> list[PublicProfileResponse]:
         """The staff page (R1–R3): consenting coaches, curated order, hidden withheld."""
-        coaches = await self._consenting_coaches()
+        coaches = await self.consenting_coaches()
         shown: list[User] = []
         for user in coaches:
             row = user.staff_listing

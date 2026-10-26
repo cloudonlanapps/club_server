@@ -7,6 +7,7 @@ recipients without an email are skipped, not errored; and email failures never
 affect the in-app fan-out.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -54,7 +55,7 @@ async def _active_user(
     await db_session.flush()
 
 
-async def _broadcast_audit_details(db_session: AsyncSession) -> dict:
+async def _broadcast_audit_details(db_session: AsyncSession) -> dict[str, Any]:
     db_session.expire_all()
     rows = (
         (
@@ -161,14 +162,14 @@ async def test_email_true_requires_subject_and_body(
 @pytest.mark.requirement("notifications:R132")
 @pytest.mark.asyncio
 async def test_email_failure_is_counted_and_does_not_block_fanout(
-    client: AsyncClient, db_session: AsyncSession, monkeypatch
-):
+    client: AsyncClient, db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
     admin_token = await create_admin_user(db_session)
     await _active_user(db_session, "amy", email="amy@example.com")
     await _active_user(db_session, "bob", email="bob@example.com")
 
     class _FailingSender:
-        name = "failing"
+        name: str = "failing"
 
         async def send(self, _message: EmailMessage) -> SendResult:
             return SendResult(success=False, provider="failing", error="boom")

@@ -4,6 +4,7 @@ Each test names the rule it proves in ``docs/users_requirements.md``.
 Account states are in ``test_users_requirement_gaps.py``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -22,7 +23,7 @@ from .helpers import (
 MS_PER_YEAR = int(365.25 * MS_PER_DAY)
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -32,7 +33,7 @@ def _born_years_ago(years: int) -> int:
     return dob - dob % MS_PER_DAY
 
 
-def _admin_operations(target: str) -> list[tuple[str, str, dict | None]]:
+def _admin_operations(target: str) -> list[tuple[str, str, dict[str, Any] | None]]:
     base = f"/v1/users/by_id/{target}"
     return [
         ("POST", f"{base}/approve", None),

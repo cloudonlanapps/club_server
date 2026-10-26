@@ -8,6 +8,7 @@ keeps every reference; the super-admin hard delete wipes the person, and
 their organizer and coach references go with them.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -31,7 +32,9 @@ from .redesign_helpers import (
 )
 
 
-async def _schedules(client: AsyncClient, token: str, event_id: int) -> list[dict]:
+async def _schedules(
+    client: AsyncClient, token: str, event_id: int
+) -> list[dict[str, Any]]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/schedules", headers=auth(token)
     )
@@ -308,11 +311,13 @@ async def test_should_pass_events_to_deleting_super_admin_when_organizer_is_hard
 async def _legacy_shape(db: AsyncSession) -> None:
     """Put the tables back the way the migration finds them: the JSON coach
     column present, the FKs absent, so rows naming non-users can exist."""
-    await db.execute(text("ALTER TABLE event_schedules ADD COLUMN coach_names text"))
-    await db.execute(
+    _ = await db.execute(
+        text("ALTER TABLE event_schedules ADD COLUMN coach_names text")
+    )
+    _ = await db.execute(
         text("ALTER TABLE event_schedules DROP CONSTRAINT fk_event_schedules_organizer")
     )
-    await db.execute(
+    _ = await db.execute(
         text(
             "ALTER TABLE occurrence_overrides "
             "DROP CONSTRAINT fk_occurrence_overrides_new_organizer"
@@ -338,21 +343,21 @@ async def test_should_reconcile_legacy_people_references_when_migrating(
     orphaned = await create_camp(client, admin, venue, start=at(days=9))
     await db_session.commit()
     await _legacy_shape(db_session)
-    await db_session.execute(
+    _ = await db_session.execute(
         text(
             "UPDATE event_schedules SET organizer_name = 'ann', coach_names = :c "
             "WHERE event_id = :e"
         ),
         {"c": json.dumps(["bob", "nobody", "ann"]), "e": kept["id"]},
     )
-    await db_session.execute(
+    _ = await db_session.execute(
         text(
             "UPDATE event_schedules SET organizer_name = 'vanished', "
             "coach_names = :c WHERE event_id = :e"
         ),
         {"c": json.dumps(["gone"]), "e": orphaned["id"]},
     )
-    await db_session.execute(
+    _ = await db_session.execute(
         text(
             "INSERT INTO occurrence_overrides "
             "(event_id, occurrence_time, status, new_organizer_name) "

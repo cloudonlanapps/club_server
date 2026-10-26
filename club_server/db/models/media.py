@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import (
     BigInteger,
     ForeignKey,
@@ -47,7 +49,7 @@ class Media(Base):
         nullable=False,
         default='["public"]',
     )
-    is_encrypted: Mapped[bool] = mapped_column(
+    is_encrypted: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=0,
@@ -61,7 +63,7 @@ class Media(Base):
     updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     deleted_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         Index("idx_media_media_type", "media_type"),
         Index("idx_media_conversion_status", "conversion_status"),
         Index("idx_media_uploaded_by", "uploaded_by"),

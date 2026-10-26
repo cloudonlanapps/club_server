@@ -58,7 +58,7 @@ def _copy_artifacts(uuid: str, upload_dir: Path) -> int:
         dst = media_dir / src.name
         if dst.exists() and dst.stat().st_size == src.stat().st_size:
             continue
-        shutil.copy2(src, dst)
+        _ = shutil.copy2(src, dst)
         copied += 1
     return copied
 
@@ -144,7 +144,7 @@ def backfill(conn: Connection, upload_dir: Path) -> dict[str, int]:
             continue
         counts["files_copied"] += copied
 
-        conn.execute(
+        _ = conn.execute(
             text(
                 """
             INSERT INTO media (
@@ -182,7 +182,7 @@ def backfill(conn: Connection, upload_dir: Path) -> dict[str, int]:
             },
         )
 
-        conn.execute(
+        _ = conn.execute(
             text(
                 """
             INSERT INTO user_media (

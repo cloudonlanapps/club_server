@@ -14,11 +14,15 @@ foreign key takes, so it fails only on a real row lock; a plain read, the
 last test, leaves it free.
 """
 
+from collections.abc import AsyncGenerator, Generator
+
 import pytest
 import pytest_asyncio
 from sqlalchemy import event, select
+from sqlalchemy.engine import Connection, ExecutionContext
+from sqlalchemy.engine.interfaces import DBAPICursor
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from club_server.db.models.credit_account import CreditAccount
 from club_server.services.credit import CreditService
@@ -31,7 +35,7 @@ pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
 @pytest_asyncio.fixture(scope="function")
-async def other_session(test_engine):
+async def other_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     """A second, independent connection to the same database."""
     factory = async_sessionmaker(
         test_engine, class_=AsyncSession, expire_on_commit=False
@@ -71,11 +75,18 @@ async def _row_is_locked(session: AsyncSession, account_id: int) -> bool:
 
 
 @pytest.fixture(scope="function")
-def statements(test_engine):
+def statements(test_engine: AsyncEngine) -> Generator[list[str], None, None]:
     """Every SQL statement the engine executes during the test, in order."""
     seen: list[str] = []
 
-    def _record(_conn, _cursor, statement, _params, _context, _many) -> None:
+    def _record(
+        _conn: Connection,
+        _cursor: DBAPICursor,
+        statement: str,
+        _params: object,
+        _context: ExecutionContext | None,
+        _many: bool,
+    ) -> None:
         seen.append(" ".join(statement.split()))
 
     event.listen(test_engine.sync_engine, "before_cursor_execute", _record)

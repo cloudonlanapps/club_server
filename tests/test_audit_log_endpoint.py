@@ -12,6 +12,7 @@ Covers:
 - Missing referent yields null without raising
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -45,7 +46,7 @@ async def _insert_audit(
     target_username: str | None = None,
     resource_type: str | None = None,
     resource_id: str | None = None,
-    details: dict | None = None,
+    details: dict[str, Any] | None = None,
 ) -> AuditLog:
     entry = AuditLog(
         timestamp=timestamp,
@@ -280,9 +281,9 @@ async def test_pagination_limit_clamped_low(
 @pytest.mark.asyncio
 async def test_filter_by_actor(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await _insert_audit(db_session, timestamp=1, action="x", actor_username="alice")
-    await _insert_audit(db_session, timestamp=2, action="x", actor_username="bob")
-    await _insert_audit(db_session, timestamp=3, action="x", actor_username="alice")
+    _ = await _insert_audit(db_session, timestamp=1, action="x", actor_username="alice")
+    _ = await _insert_audit(db_session, timestamp=2, action="x", actor_username="bob")
+    _ = await _insert_audit(db_session, timestamp=3, action="x", actor_username="alice")
 
     resp = await client.get(
         f"{ENDPOINT}?actor=alice",
@@ -297,9 +298,9 @@ async def test_filter_by_actor(client: AsyncClient, db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_filter_by_action(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await _insert_audit(db_session, timestamp=1, action="create_event")
-    await _insert_audit(db_session, timestamp=2, action="delete_event")
-    await _insert_audit(db_session, timestamp=3, action="create_event")
+    _ = await _insert_audit(db_session, timestamp=1, action="create_event")
+    _ = await _insert_audit(db_session, timestamp=2, action="delete_event")
+    _ = await _insert_audit(db_session, timestamp=3, action="create_event")
 
     resp = await client.get(
         f"{ENDPOINT}?action=create_event",
@@ -314,9 +315,9 @@ async def test_filter_by_action(client: AsyncClient, db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_filter_by_timestamp_range(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await _insert_audit(db_session, timestamp=100, action="x")
+    _ = await _insert_audit(db_session, timestamp=100, action="x")
     mid = await _insert_audit(db_session, timestamp=200, action="x")
-    await _insert_audit(db_session, timestamp=300, action="x")
+    _ = await _insert_audit(db_session, timestamp=300, action="x")
     mid_id = mid.id
 
     resp = await client.get(
@@ -335,9 +336,9 @@ async def test_filter_by_timestamp_range(client: AsyncClient, db_session: AsyncS
 @pytest.mark.asyncio
 async def test_actor_and_target_resolved(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await _insert_user(db_session, "sudo", "Sudo", "Admin")
-    await _insert_user(db_session, "akilan", "Akilan", "Anand")
-    await _insert_audit(
+    _ = await _insert_user(db_session, "sudo", "Sudo", "Admin")
+    _ = await _insert_user(db_session, "akilan", "Akilan", "Anand")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="some_action",
@@ -355,8 +356,8 @@ async def test_actor_and_target_resolved(client: AsyncClient, db_session: AsyncS
 @pytest.mark.asyncio
 async def test_event_resource_resolved(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await _insert_event(db_session, 42, "Summer Camp")
-    await _insert_audit(
+    _ = await _insert_event(db_session, 42, "Summer Camp")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="create_event",
@@ -373,8 +374,8 @@ async def test_event_resource_resolved(client: AsyncClient, db_session: AsyncSes
 @pytest.mark.asyncio
 async def test_group_resource_resolved(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await _insert_group(db_session, 7, "Manual Group 1")
-    await _insert_audit(
+    _ = await _insert_group(db_session, 7, "Manual Group 1")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="create_group",
@@ -391,8 +392,8 @@ async def test_group_resource_resolved(client: AsyncClient, db_session: AsyncSes
 @pytest.mark.asyncio
 async def test_venue_resource_resolved(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await _insert_venue(db_session, 5, "Rink One")
-    await _insert_audit(
+    _ = await _insert_venue(db_session, 5, "Rink One")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="create_venue",
@@ -411,8 +412,8 @@ async def test_occurrence_composite_split(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_event(db_session, 380, "test_Leave")
-    await _insert_audit(
+    _ = await _insert_event(db_session, 380, "test_Leave")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="attendance_marked",
@@ -437,8 +438,8 @@ async def test_soft_deleted_user_still_resolves(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_user(db_session, "ghost", "Ghost", "User", deleted=True)
-    await _insert_audit(
+    _ = await _insert_user(db_session, "ghost", "Ghost", "User", deleted=True)
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="login",
@@ -455,8 +456,8 @@ async def test_soft_deleted_event_still_resolves(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_event(db_session, 99, "Past Event", deleted=True)
-    await _insert_audit(
+    _ = await _insert_event(db_session, 99, "Past Event", deleted=True)
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="delete_event",
@@ -474,8 +475,8 @@ async def test_soft_deleted_group_still_resolves(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_group(db_session, 50, "Old Group", deleted=True)
-    await _insert_audit(
+    _ = await _insert_group(db_session, 50, "Old Group", deleted=True)
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="delete_group",
@@ -493,8 +494,8 @@ async def test_soft_deleted_venue_still_resolves(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_venue(db_session, 8, "Old Rink", deleted=True)
-    await _insert_audit(
+    _ = await _insert_venue(db_session, 8, "Old Rink", deleted=True)
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="delete_venue",
@@ -515,9 +516,9 @@ async def test_details_enrichment_username_keys(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_user(db_session, "alice", "Alice", "A")
-    await _insert_user(db_session, "bob", "Bob", "B")
-    await _insert_audit(
+    _ = await _insert_user(db_session, "alice", "Alice", "A")
+    _ = await _insert_user(db_session, "bob", "Bob", "B")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="x",
@@ -538,8 +539,8 @@ async def test_details_enrichment_event_id(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_event(db_session, 12, "Camp X")
-    await _insert_audit(
+    _ = await _insert_event(db_session, 12, "Camp X")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="x",
@@ -557,8 +558,8 @@ async def test_details_enrichment_group_id(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_group(db_session, 1, "Manual Group 1")
-    await _insert_audit(
+    _ = await _insert_group(db_session, 1, "Manual Group 1")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="create_group_join_request",
@@ -576,8 +577,8 @@ async def test_details_enrichment_venue_id(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_venue(db_session, 3, "Main Rink")
-    await _insert_audit(
+    _ = await _insert_venue(db_session, 3, "Main Rink")
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="x",
@@ -595,7 +596,7 @@ async def test_details_unknown_keys_preserved(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_audit(
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="x",
@@ -617,7 +618,7 @@ async def test_unknown_resource_type_passes_through(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_audit(
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="x",
@@ -637,7 +638,7 @@ async def test_missing_user_referent_yields_null(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_audit(
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="login",
@@ -655,7 +656,7 @@ async def test_missing_event_referent_yields_null_label(
     client: AsyncClient, db_session: AsyncSession
 ):
     token = await create_admin_user(db_session)
-    await _insert_audit(
+    _ = await _insert_audit(
         db_session,
         timestamp=1,
         action="delete_event",

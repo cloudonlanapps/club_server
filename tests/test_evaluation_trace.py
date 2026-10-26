@@ -7,6 +7,8 @@ audit trail starts when an evaluation is first saved: a draft is its
 writer's working copy.
 """
 
+from typing import Any, cast
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -45,9 +47,11 @@ async def _notification_types(client: AsyncClient, token: str) -> list[str]:
     assert response.status_code == 200, response.text
     types: list[str] = []
     for item in response.json()["items"]:
-        payload = item.get("payload") or {}
-        if isinstance(payload, dict) and payload.get("type"):
-            types.append(payload["type"])
+        payload: object = item.get("payload") or {}
+        if isinstance(payload, dict):
+            typed = cast(dict[str, Any], payload)
+            if typed.get("type"):
+                types.append(typed["type"])
     return types
 
 

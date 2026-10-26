@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import ClassVar, Self, TypedDict
 from pydantic import ConfigDict, Field, model_validator
 
 from ..age_eligibility import Age, decode_age
@@ -19,7 +19,9 @@ class GroupCreate(CamelCaseModel):
     genders: list[Gender] | None = None
     semi_auto: bool = False
 
-    _genders = model_validator(mode="after")(reject_repeated_genders)
+    @model_validator(mode="after")
+    def _genders(self) -> Self:
+        return reject_repeated_genders(self)
 
 
 class GroupUpdate(CamelCaseModel):
@@ -33,7 +35,9 @@ class GroupUpdate(CamelCaseModel):
     genders: list[Gender] | None = None
     semi_auto: bool | None = None
 
-    _genders = model_validator(mode="after")(reject_repeated_genders)
+    @model_validator(mode="after")
+    def _genders(self) -> Self:
+        return reject_repeated_genders(self)
 
 
 class GroupMemberInfo(CamelCaseModel):
@@ -57,7 +61,18 @@ class EligibleUserInfo(CamelCaseModel):
     nickname: str | None = None
 
 
-def age_band_fields(group: Group) -> dict[str, Age | bool | int | None]:
+class AgeBandFields(TypedDict):
+    """The age-band response fields ``age_band_fields`` produces."""
+
+    min_age: Age | None
+    max_age: Age | None
+    strict_age: bool
+    dob_on_or_after_utc: int | None
+    dob_on_or_before_utc: int | None
+    eligibility_reference_day_utc: int
+
+
+def age_band_fields(group: Group) -> AgeBandFields:
     """A group's age band and the window it comes to today, as response fields."""
     window = group.eligibility_window
     return {

@@ -7,6 +7,7 @@ sends the version the client last saw: a missing one is 422, a stale one is
 written. ``test_cutoff_version_programme.py`` covers terminate and extend.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,8 +39,8 @@ async def _verb(
 
 
 async def _rename(
-    client: AsyncClient, token: str, event: dict, route: str = ""
-) -> dict:
+    client: AsyncClient, token: str, event: dict[str, Any], route: str = ""
+) -> dict[str, Any]:
     """Another editor moves the event on by one version."""
     response = await client.patch(
         f"/v1/events/by_id/{event['id']}{route}",
@@ -50,7 +51,7 @@ async def _rename(
     return response.json()
 
 
-def _assert_stale(response: Response, moved: dict) -> None:
+def _assert_stale(response: Response, moved: dict[str, Any]) -> None:
     """409 ``STALE_VERSION`` carrying where ``moved`` left the event."""
     assert response.status_code == 409, response.text
     detail = response.json()["detail"]
@@ -62,7 +63,7 @@ def _assert_stale(response: Response, moved: dict) -> None:
 
 async def _cancelled_camp(
     client: AsyncClient, admin: str, venue: int
-) -> tuple[dict, int]:
+) -> tuple[dict[str, Any], int]:
     start = at(days=2)
     camp = await create_camp(client, admin, venue, start=start)
     cutoff = start + DAY_MS

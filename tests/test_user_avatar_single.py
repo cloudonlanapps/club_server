@@ -6,6 +6,7 @@ private photo saw nothing to remove, and the old link and file stayed.
 The server keeps the rule itself, when the new avatar is linked.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -24,7 +25,7 @@ from .helpers import (
 )
 from .media_helpers import (
     auth,
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     png_bytes,
     upload,
 )
@@ -42,7 +43,7 @@ async def link(
     media_uuid: str,
     tag: str = USER_AVATAR_TAG,
     expect: int = 201,
-) -> dict:
+) -> dict[str, Any]:
     """Link a media item to the owner at ``owner_path`` under ``tag``."""
     response = await client.post(
         f"/v1/{owner_path}/media",
@@ -76,11 +77,11 @@ async def test_should_leave_one_avatar_when_a_member_links_a_new_one(
     alice = await create_member_user(db_session, "alice")
     sudo = await create_admin_user(db_session)
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", old["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"])
     assert await linked_uuids(client, alice, "users/by_id/alice") == [old["uuid"]]
 
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", new["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", new["uuid"])
 
     assert await linked_uuids(client, alice, "users/by_id/alice") == [new["uuid"]]
     assert await linked_uuids(client, sudo, "users/by_id/alice") == [new["uuid"]]
@@ -97,7 +98,7 @@ async def test_should_remove_an_avatar_the_admin_cannot_view_when_the_admin_link
     admin = await create_regular_admin_user(db_session, "boss")
     sudo = await create_admin_user(db_session)
     old = await upload(client, alice, access_roles=["self"])
-    await link(client, alice, "users/by_id/alice", old["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"])
     assert await linked_uuids(client, admin, "users/by_id/alice") == []
     assert await linked_uuids(client, sudo, "users/by_id/alice") == [old["uuid"]]
 
@@ -113,7 +114,7 @@ async def test_should_remove_an_avatar_the_admin_cannot_view_when_the_admin_link
     )
     assert response.status_code == 201, response.text
     new = response.json()
-    await link(client, admin, "users/by_id/alice", new["uuid"])
+    _ = await link(client, admin, "users/by_id/alice", new["uuid"])
 
     assert await linked_uuids(client, sudo, "users/by_id/alice") == [new["uuid"]]
     assert await linked_uuids(client, alice, "users/by_id/alice") == [new["uuid"]]
@@ -127,11 +128,11 @@ async def test_should_keep_a_replaced_avatar_file_when_another_link_uses_it(
 ):
     alice = await create_member_user(db_session, "alice")
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", old["uuid"])
-    await link(client, alice, "users/by_id/alice", old["uuid"], tag="gallery")
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"], tag="gallery")
 
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", new["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", new["uuid"])
 
     assert await linked_uuids(client, alice, "users/by_id/alice") == [new["uuid"]]
     assert await linked_uuids(client, alice, "users/by_id/alice", "gallery") == [
@@ -147,7 +148,7 @@ async def test_should_keep_the_current_avatar_when_the_new_item_is_unknown(
 ):
     alice = await create_member_user(db_session, "alice")
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", old["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"])
 
     refused = await link(client, alice, "users/by_id/alice", UNKNOWN_UUID, expect=404)
     assert refused["detail"]["code"] == "MEDIA_NOT_FOUND"
@@ -163,7 +164,7 @@ async def test_should_keep_the_current_avatar_when_it_is_linked_again(
 ):
     alice = await create_member_user(db_session, "alice")
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", old["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"])
 
     refused = await link(client, alice, "users/by_id/alice", old["uuid"], expect=409)
     assert refused["detail"]["code"] == "MEDIA_LINK_EXISTS"
@@ -181,8 +182,8 @@ async def test_should_keep_every_link_when_a_user_links_under_another_tag(
     first = await upload(client, alice, access_roles=PRIVATE_ROLES)
     second = await upload(client, alice, access_roles=PRIVATE_ROLES)
 
-    await link(client, alice, "users/by_id/alice", first["uuid"], tag="gallery")
-    await link(client, alice, "users/by_id/alice", second["uuid"], tag="gallery")
+    _ = await link(client, alice, "users/by_id/alice", first["uuid"], tag="gallery")
+    _ = await link(client, alice, "users/by_id/alice", second["uuid"], tag="gallery")
 
     assert await linked_uuids(client, alice, "users/by_id/alice", "gallery") == [
         first["uuid"],
@@ -203,8 +204,8 @@ async def test_should_keep_every_link_when_a_venue_links_under_the_avatar_tag(
     first = await upload(client, sudo)
     second = await upload(client, sudo)
 
-    await link(client, sudo, owner, first["uuid"])
-    await link(client, sudo, owner, second["uuid"])
+    _ = await link(client, sudo, owner, first["uuid"])
+    _ = await link(client, sudo, owner, second["uuid"])
 
     assert await linked_uuids(client, sudo, owner) == [first["uuid"], second["uuid"]]
     assert await deleted_at(client, sudo, first["id"]) is None
@@ -218,10 +219,10 @@ async def test_should_link_a_new_avatar_when_the_tag_limit_is_reached(
     monkeypatch.setattr(settings, "media_max_links_per_owner_tag", 1)
     alice = await create_member_user(db_session, "alice")
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", old["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"])
 
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", new["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", new["uuid"])
 
     assert await linked_uuids(client, alice, "users/by_id/alice") == [new["uuid"]]
 
@@ -233,9 +234,9 @@ async def test_should_name_the_replaced_avatar_in_the_audit_row_of_the_link(
 ):
     alice = await create_member_user(db_session, "alice")
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", old["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", old["uuid"])
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, "users/by_id/alice", new["uuid"])
+    _ = await link(client, alice, "users/by_id/alice", new["uuid"])
 
     rows = (
         (
@@ -249,7 +250,11 @@ async def test_should_name_the_replaced_avatar_in_the_audit_row_of_the_link(
         .all()
     )
     assert len(rows) == 2
-    first, second = (json.loads(row.details) for row in rows)
+    details: list[str] = []
+    for row in rows:
+        assert row.details is not None
+        details.append(row.details)
+    first, second = (json.loads(d) for d in details)
     assert "replacedMediaUuids" not in first
     assert second["mediaUuid"] == new["uuid"]
     assert second["replacedMediaUuids"] == [old["uuid"]]

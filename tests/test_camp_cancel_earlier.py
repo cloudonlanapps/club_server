@@ -5,6 +5,7 @@ start moves the cutoff earlier under R5c's rules; a cutoff at or after the
 current one is still refused, since moving the end later is undo (R5d).
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +29,7 @@ from .redesign_helpers import (
 
 async def _cancelled_camp(
     client: AsyncClient, super_admin: str, admin: str, *, start: int
-) -> dict:
+) -> dict[str, Any]:
     """A 7-day camp with ``skater`` assigned, cancelled from day 5."""
     venue = await create_venue(client, super_admin)
     camp = await create_camp(client, super_admin, venue, start=start, count=7)

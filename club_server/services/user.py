@@ -311,7 +311,7 @@ class UserService:
             "user_approval", pending_action_key=user.username
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="account.registration_approved",
                 recipients=[user.username],
@@ -355,7 +355,7 @@ class UserService:
             "user_approval", pending_action_key=user.username
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.blocked",
                 recipients=[user.username],
@@ -377,7 +377,7 @@ class UserService:
         user.status = UserStatus.active.value
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.unblocked",
                 recipients=[user.username],
@@ -413,7 +413,7 @@ class UserService:
         user.roles = UserRoles(roles=new_roles).model_dump_json()
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.role_changed",
                 recipients=[user.username],
@@ -454,7 +454,7 @@ class UserService:
         user.roles = UserRoles(roles=new_roles).model_dump_json()
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.role_changed",
                 recipients=[user.username],
@@ -575,7 +575,7 @@ class UserService:
         await self.db.flush()
 
         if changed_fields and actor_username is not None and actor_username != username:
-            await self._notifications.notify_for_event(
+            _ = await self._notifications.notify_for_event(
                 NotificationEvent(
                     type="profile.changed_by_admin",
                     recipients=[username],
@@ -663,7 +663,7 @@ class UserService:
         user.deleted_at = now_utc_ms()
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.deleted",
                 recipients=admins,
@@ -686,7 +686,7 @@ class UserService:
         user.deleted_at = None
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.restored",
                 recipients=[username],
@@ -807,7 +807,7 @@ class UserService:
         from_roles = self._roles_list(from_user)
         to_roles = self._roles_list(to_user)
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.role_changed",
                 recipients=[from_user.username],
@@ -821,7 +821,7 @@ class UserService:
                 },
             )
         )
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="user.role_changed",
                 recipients=[to_user.username],

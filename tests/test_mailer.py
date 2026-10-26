@@ -110,7 +110,9 @@ def test_greeting_without_first_name():
     assert "Hi," in html
 
 
-def test_banner_renders_logo_short_name_affiliation_and_theme(monkeypatch):
+def test_banner_renders_logo_short_name_affiliation_and_theme(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # `email_logo_url` is derived (#311): the deployer configures a path
     # relative to the static mount and the absolute URL is built from
     # `server_base_url`, so the banner gets a link email clients can resolve.
@@ -130,7 +132,9 @@ def test_banner_renders_logo_short_name_affiliation_and_theme(monkeypatch):
     assert "Affiliated with X" in html
 
 
-def test_banner_omits_the_affiliation_line_when_unset(monkeypatch):
+def test_banner_omits_the_affiliation_line_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """An unset affiliation removes the line, rather than emitting an empty one.
 
     The affiliation is optional and several deployments have none. Rendering an
@@ -151,7 +155,9 @@ def test_banner_omits_the_affiliation_line_when_unset(monkeypatch):
     assert "(RHC)" in html
 
 
-def test_banner_is_text_only_when_no_logo_configured(monkeypatch):
+def test_banner_is_text_only_when_no_logo_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings, "email_logo_path", "")
     _, html, _ = templates.account_approved(
         club_name="Rink Hockey Club",
@@ -180,8 +186,12 @@ async def test_console_sender_records_and_succeeds():
 @pytest.mark.asyncio
 async def test_console_outbox_shared_across_instances():
     ConsoleEmailSender.clear()
-    await ConsoleEmailSender().send(EmailMessage(to="a@b.com", subject="1", html="x"))
-    await ConsoleEmailSender().send(EmailMessage(to="c@d.com", subject="2", html="y"))
+    _ = await ConsoleEmailSender().send(
+        EmailMessage(to="a@b.com", subject="1", html="x")
+    )
+    _ = await ConsoleEmailSender().send(
+        EmailMessage(to="c@d.com", subject="2", html="y")
+    )
     assert [m.subject for m in ConsoleEmailSender.outbox] == ["1", "2"]
 
 
@@ -192,19 +202,25 @@ def test_factory_defaults_to_console():
     assert isinstance(build_sender("anything-unknown"), ConsoleEmailSender)
 
 
-def test_factory_resend_without_key_falls_back_to_console(monkeypatch):
+def test_factory_resend_without_key_falls_back_to_console(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings, "resend_api_key", None)
     monkeypatch.setattr(settings, "email_from_transactional", "")
     assert isinstance(build_sender("resend"), ConsoleEmailSender)
 
 
-def test_factory_resend_with_config_builds_resend(monkeypatch):
+def test_factory_resend_with_config_builds_resend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings, "resend_api_key", "re_key")
     monkeypatch.setattr(settings, "email_from_transactional", "no-reply@club.com")
     assert isinstance(build_sender("resend"), ResendSender)
 
 
-def test_factory_brevo_with_config_builds_brevo(monkeypatch):
+def test_factory_brevo_with_config_builds_brevo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings, "brevo_api_key", "xkey")
     monkeypatch.setattr(settings, "email_from_broadcast", "news@club.com")
     assert isinstance(build_sender("brevo"), BrevoSender)
@@ -214,10 +230,12 @@ def test_factory_brevo_with_config_builds_brevo(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_resend_adapter_reports_failure_instead_of_raising(monkeypatch):
+async def test_resend_adapter_reports_failure_instead_of_raising(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     sender = ResendSender("re_key", "no-reply@club.com")
 
-    def boom(_msg):
+    def boom(_msg: EmailMessage) -> str | None:
         raise RuntimeError("api down")
 
     monkeypatch.setattr(sender, "_send_sync", boom)
@@ -230,9 +248,13 @@ async def test_resend_adapter_reports_failure_instead_of_raising(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_resend_adapter_success(monkeypatch):
+async def test_resend_adapter_success(monkeypatch: pytest.MonkeyPatch) -> None:
     sender = ResendSender("re_key", "no-reply@club.com")
-    monkeypatch.setattr(sender, "_send_sync", lambda _msg: "msg_123")
+
+    def send_sync(_msg: EmailMessage) -> str | None:
+        return "msg_123"
+
+    monkeypatch.setattr(sender, "_send_sync", send_sync)
     result = await sender.send(
         EmailMessage(to="a@b.com", subject="Hi", html="<p>x</p>")
     )
@@ -240,10 +262,12 @@ async def test_resend_adapter_success(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_brevo_adapter_reports_failure_instead_of_raising(monkeypatch):
+async def test_brevo_adapter_reports_failure_instead_of_raising(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     sender = BrevoSender("xkey", "news@club.com", "Rink FC")
 
-    def boom(_msg):
+    def boom(_msg: EmailMessage) -> str | None:
         raise RuntimeError("brevo down")
 
     monkeypatch.setattr(sender, "_send_sync", boom)

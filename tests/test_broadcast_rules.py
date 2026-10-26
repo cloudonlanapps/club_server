@@ -5,6 +5,7 @@ R118 (malformed selectors), R126 (admin-only reads and revoke) and R128
 (unknown broadcast ids).
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,7 @@ from .redesign_helpers import auth, create_programme, create_venue, notification
 PAYLOAD = {"v": 1, "type": "broadcast.message", "data": {"text": "Hello"}}
 
 
-async def _send(client: AsyncClient, admin: str, selector: dict):
+async def _send(client: AsyncClient, admin: str, selector: dict[str, Any]):
     return await client.post(
         "/v1/broadcasts",
         json={"audienceSelector": selector, "payload": PAYLOAD},

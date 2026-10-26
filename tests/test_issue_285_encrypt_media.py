@@ -13,6 +13,7 @@ is redirected to an isolated tmp dir so on-disk artifacts don't collide.
 
 import base64
 import uuid as _uuid
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
@@ -41,7 +42,7 @@ _TEST_KEK = base64.b64encode(b"0123456789abcdef0123456789abcdef").decode()
 
 
 @pytest.fixture
-def media_dir(tmp_path, monkeypatch):
+def media_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect ``settings.upload_dir`` to an isolated tmp dir; yield media/."""
     monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
     d = tmp_path / "media"
@@ -50,14 +51,14 @@ def media_dir(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def kek(monkeypatch):
+def kek(monkeypatch: pytest.MonkeyPatch) -> None:
     """Configure a real test KEK for the duration of the test."""
     monkeypatch.setattr(settings, "encryption_key", _TEST_KEK)
 
 
 async def _seed_image(
     db_session: AsyncSession,
-    media_dir,
+    media_dir: Path,
     *,
     content: bytes = b"original-image-bytes",
     preserve_original: bool = False,
@@ -65,7 +66,7 @@ async def _seed_image(
 ) -> Media:
     uid = str(_uuid.uuid4())
     name = f"{uid}.{ext}" if preserve_original else f"{uid}.webp"
-    (media_dir / name).write_bytes(content)
+    _ = (media_dir / name).write_bytes(content)
     now = now_utc_ms()
     media = Media(
         uuid=uid,
@@ -90,15 +91,15 @@ async def _seed_image(
 
 async def _seed_pdf(
     db_session: AsyncSession,
-    media_dir,
+    media_dir: Path,
     *,
     pdf: bytes = b"pdf-document-bytes",
     poster: bytes | None = b"poster-png-bytes",
 ) -> Media:
     uid = str(_uuid.uuid4())
-    (media_dir / f"{uid}.pdf").write_bytes(pdf)
+    _ = (media_dir / f"{uid}.pdf").write_bytes(pdf)
     if poster is not None:
-        (media_dir / f"{uid}_poster.png").write_bytes(poster)
+        _ = (media_dir / f"{uid}_poster.png").write_bytes(poster)
     now = now_utc_ms()
     media = Media(
         uuid=uid,
@@ -129,8 +130,8 @@ async def _seed_pdf(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R88")
 async def test_issue_285_encrypts_image_in_place_and_round_trips(
-    db_session, media_dir, kek
-):
+    db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     media = await _seed_image(db_session, media_dir, content=b"the-original-bytes")
     plain_path = resolve_media_file_path(media, "original")
     assert plain_path.exists()
@@ -157,7 +158,9 @@ async def test_issue_285_encrypts_image_in_place_and_round_trips(
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R88")
-async def test_issue_285_encrypts_preserve_original_image(db_session, media_dir, kek):
+async def test_issue_285_encrypts_preserve_original_image(
+    db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     media = await _seed_image(
         db_session, media_dir, content=b"raw", preserve_original=True, ext="png"
     )
@@ -174,8 +177,8 @@ async def test_issue_285_encrypts_preserve_original_image(db_session, media_dir,
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R88")
 async def test_issue_285_encrypts_pdf_with_poster_round_trips(
-    db_session, media_dir, kek
-):
+    db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     media = await _seed_pdf(
         db_session, media_dir, pdf=b"PDF-BODY", poster=b"POSTER-BODY"
     )
@@ -200,11 +203,13 @@ async def test_issue_285_encrypts_pdf_with_poster_round_trips(
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R88")
-async def test_issue_285_encrypts_pdf_without_poster(db_session, media_dir, kek):
+async def test_issue_285_encrypts_pdf_without_poster(
+    db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     media = await _seed_pdf(db_session, media_dir, poster=None)
     uid = media.uuid
 
-    result, did_encrypt = await MediaService(db_session).encrypt_in_place(uid)
+    _result, did_encrypt = await MediaService(db_session).encrypt_in_place(uid)
 
     assert did_encrypt is True
     assert (media_dir / f"{uid}.pdf.enc").exists()
@@ -213,7 +218,9 @@ async def test_issue_285_encrypts_pdf_without_poster(db_session, media_dir, kek)
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R89")
-async def test_issue_285_encrypt_is_idempotent(db_session, media_dir, kek):
+async def test_issue_285_encrypt_is_idempotent(
+    db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     media = await _seed_image(db_session, media_dir)
     svc = MediaService(db_session)
 
@@ -232,7 +239,9 @@ async def test_issue_285_encrypt_is_idempotent(db_session, media_dir, kek):
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R90")
-async def test_issue_285_encrypt_video_rejected(db_session, media_dir, kek):
+async def test_issue_285_encrypt_video_rejected(
+    db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     uid = str(_uuid.uuid4())
     now = now_utc_ms()
     media = Media(
@@ -255,19 +264,19 @@ async def test_issue_285_encrypt_video_rejected(db_session, media_dir, kek):
     await db_session.flush()
 
     with pytest.raises(EncryptionNotSupportedForVideoException):
-        await MediaService(db_session).encrypt_in_place(uid)
+        _ = await MediaService(db_session).encrypt_in_place(uid)
 
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R90")
 async def test_issue_285_encrypt_requires_configured_kek(
-    db_session, media_dir, monkeypatch
-):
+    db_session: AsyncSession, media_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(settings, "encryption_key", None)
     media = await _seed_image(db_session, media_dir)
 
     with pytest.raises(EncryptionNotConfiguredException):
-        await MediaService(db_session).encrypt_in_place(media.uuid)
+        _ = await MediaService(db_session).encrypt_in_place(media.uuid)
 
     # The row is untouched and the plaintext is still on disk.
     assert bool(media.is_encrypted) is False
@@ -276,12 +285,14 @@ async def test_issue_285_encrypt_requires_configured_kek(
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R90")
-async def test_issue_285_encrypt_missing_file_raises(db_session, media_dir, kek):
+async def test_issue_285_encrypt_missing_file_raises(
+    db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     media = await _seed_image(db_session, media_dir)
     resolve_media_file_path(media, "original").unlink()
 
     with pytest.raises(MediaFileMissingException):
-        await MediaService(db_session).encrypt_in_place(media.uuid)
+        _ = await MediaService(db_session).encrypt_in_place(media.uuid)
 
     assert bool(media.is_encrypted) is False
 
@@ -294,8 +305,8 @@ async def test_issue_285_encrypt_missing_file_raises(db_session, media_dir, kek)
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R88")
 async def test_issue_285_encrypt_endpoint_super_admin_encrypts(
-    client: AsyncClient, db_session, media_dir, kek
-):
+    client: AsyncClient, db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     token = await create_admin_user(db_session)
     media = await _seed_image(db_session, media_dir, content=b"abc")
 
@@ -311,8 +322,8 @@ async def test_issue_285_encrypt_endpoint_super_admin_encrypts(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R89")
 async def test_issue_285_encrypt_endpoint_idempotent(
-    client: AsyncClient, db_session, media_dir, kek
-):
+    client: AsyncClient, db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     token = await create_admin_user(db_session)
     media = await _seed_image(db_session, media_dir)
     uuid = media.uuid  # capture before requests expire the ORM object
@@ -329,8 +340,8 @@ async def test_issue_285_encrypt_endpoint_idempotent(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R90")
 async def test_issue_285_encrypt_endpoint_regular_admin_forbidden(
-    client: AsyncClient, db_session, media_dir, kek
-):
+    client: AsyncClient, db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     admin_token = await create_regular_admin_user(db_session, "boss")
     media = await _seed_image(db_session, media_dir)
     uuid = media.uuid
@@ -349,8 +360,8 @@ async def test_issue_285_encrypt_endpoint_regular_admin_forbidden(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R90")
 async def test_issue_285_encrypt_endpoint_unauthenticated(
-    client: AsyncClient, db_session, media_dir, kek
-):
+    client: AsyncClient, db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     media = await _seed_image(db_session, media_dir)
     r = await client.post(f"/v1/media/by_id/{media.uuid}/encrypt")
     assert r.status_code in (401, 403)
@@ -359,8 +370,8 @@ async def test_issue_285_encrypt_endpoint_unauthenticated(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R90")
 async def test_issue_285_encrypt_endpoint_unknown_uuid_404(
-    client: AsyncClient, db_session, media_dir, kek
-):
+    client: AsyncClient, db_session: AsyncSession, media_dir: Path, kek: None
+) -> None:
     token = await create_admin_user(db_session)
     r = await client.post(
         f"/v1/media/by_id/{_uuid.uuid4()}/encrypt",
@@ -372,8 +383,11 @@ async def test_issue_285_encrypt_endpoint_unknown_uuid_404(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R90")
 async def test_issue_285_encrypt_endpoint_not_configured_503(
-    client: AsyncClient, db_session, media_dir, monkeypatch
-):
+    client: AsyncClient,
+    db_session: AsyncSession,
+    media_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings, "encryption_key", None)
     token = await create_admin_user(db_session)
     media = await _seed_image(db_session, media_dir)
@@ -395,10 +409,10 @@ async def test_issue_285_encrypt_endpoint_not_configured_503(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R80")
 async def test_issue_285_links_filter_by_encryption_state(
-    client: AsyncClient, db_session, media_dir
-):
+    client: AsyncClient, db_session: AsyncSession, media_dir: Path
+) -> None:
     token = await create_admin_user(db_session)
-    await create_member_user(db_session, "skater")
+    _ = await create_member_user(db_session, "skater")
 
     plaintext_uuid = await attach_identity_document(db_session, "skater")
     encrypted_uuid = await attach_identity_document(db_session, "skater")

@@ -12,13 +12,16 @@ the invariant structurally across every mounted route so a new
 ``Depends(get_db)`` added without the scope is caught.
 """
 
+from collections.abc import Iterator
+
+from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute
 
 from club_server.dependencies import get_db
 from club_server.main import app
 
 
-def _iter_dependants(dependant):
+def _iter_dependants(dependant: Dependant) -> Iterator[Dependant]:
     yield dependant
     for sub in dependant.dependencies:
         yield from _iter_dependants(sub)

@@ -77,7 +77,7 @@ def test_settings_raises_when_static_dir_missing(
             continue
         isolated_env.setenv(var, val)
     with pytest.raises(ValidationError) as exc_info:
-        _make()
+        _ = _make()
     assert "static_dir" in str(exc_info.value).lower()
 
 
@@ -90,7 +90,7 @@ def test_settings_raises_when_upload_dir_missing(
             continue
         isolated_env.setenv(var, val)
     with pytest.raises(ValidationError) as exc_info:
-        _make()
+        _ = _make()
     assert "upload_dir" in str(exc_info.value).lower()
 
 
@@ -103,7 +103,7 @@ def test_settings_raises_when_database_url_missing(
             continue
         isolated_env.setenv(var, val)
     with pytest.raises(ValidationError):
-        _make()
+        _ = _make()
 
 
 def test_settings_raises_when_secret_key_missing(
@@ -115,7 +115,7 @@ def test_settings_raises_when_secret_key_missing(
             continue
         isolated_env.setenv(var, val)
     with pytest.raises(ValidationError):
-        _make()
+        _ = _make()
 
 
 def test_static_dir_value_is_honoured(

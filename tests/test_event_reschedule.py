@@ -327,7 +327,7 @@ async def test_reschedule_notifies_enrolled_members(
     token = await create_admin_user(db_session)
     _ = await create_member_user(db_session, "alice")
     venue_id = await create_venue(client, token, "V1")
-    event_id, start_ms, _ = await create_camp(
+    event_id, _start_ms, _ = await create_camp(
         client, token, venue_id, start_hours=24, days=3
     )
 

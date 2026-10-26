@@ -4,6 +4,7 @@ Each test names the rule it proves in ``docs/auth_requirements.md``.
 Passwords, email and audit are in ``test_auth_password_requirement_gaps.py``.
 """
 
+from typing import Any
 from datetime import timedelta
 
 import pytest
@@ -21,11 +22,11 @@ STATUS_PASSWORD = "statuspass123"
 MEMBER_PASSWORD = "memberpass123"
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _login(client: AsyncClient, username: str, password: str) -> dict:
+async def _login(client: AsyncClient, username: str, password: str) -> dict[str, Any]:
     response = await client.post(
         "/v1/auth/login", json={"username": username, "password": password}
     )

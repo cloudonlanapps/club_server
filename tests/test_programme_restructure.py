@@ -5,6 +5,7 @@ one id for life, its timetable is a contiguous sequence of schedules, and the
 chain columns are gone from the public surface.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,13 +34,15 @@ from .redesign_helpers import (
 
 
 async def _correct(client: AsyncClient, token: str, event_id: int, **body: object):
-    body.setdefault("version", await version_of(client, token, event_id))
+    _ = body.setdefault("version", await version_of(client, token, event_id))
     return await client.patch(
         f"/v1/events/by_id/{event_id}/correction", json=body, headers=auth(token)
     )
 
 
-async def _schedules(client: AsyncClient, token: str, event_id: int) -> list[dict]:
+async def _schedules(
+    client: AsyncClient, token: str, event_id: int
+) -> list[dict[str, Any]]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/schedules", headers=auth(token)
     )

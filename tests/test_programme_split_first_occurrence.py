@@ -7,6 +7,7 @@ is left that ends where it starts. An earlier start moves the schedule's
 start back to it, as R24e does for the boundary of a split.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +25,9 @@ from .redesign_helpers import (
 )
 
 
-async def _schedules(client: AsyncClient, token: str, event_id: int) -> list[dict]:
+async def _schedules(
+    client: AsyncClient, token: str, event_id: int
+) -> list[dict[str, Any]]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/schedules", headers=auth(token)
     )
@@ -34,7 +37,7 @@ async def _schedules(client: AsyncClient, token: str, event_id: int) -> list[dic
 
 async def _occurrences(
     client: AsyncClient, token: str, event_id: int, from_ms: int, to_ms: int
-) -> dict[int, dict]:
+) -> dict[int, dict[str, Any]]:
     return {
         o["occurrenceTimeUtc"]: o
         for o in await list_occurrences(

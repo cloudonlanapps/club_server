@@ -53,7 +53,7 @@ async def _camp(
     coaches: list[str] | None = None,
 ) -> int:
     venue_id = await _venue(client, token)
-    body = {
+    body: dict[str, object] = {
         "title": "Camp",
         "type": "camp",
         "visibility": "public",
@@ -238,10 +238,10 @@ async def test_camp_cancel_super_admin_bypasses_past_and_suppresses_notification
     client: AsyncClient, db_session: AsyncSession
 ):
     super_admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     start = at(hours=-72)
     event_id = await _camp(client, super_admin, start=start, count=10)
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["amy"]},
         headers=auth(super_admin),
@@ -268,14 +268,14 @@ async def test_camp_cancel_notifies_enrollees_coaches_and_organizer(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
-    await create_member_user(db_session, "olive")  # organizer
-    await create_coach_user(db_session, "carl")
+    _ = await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "olive")  # organizer
+    _ = await create_coach_user(db_session, "carl")
     start = at(hours=48)
     event_id = await _camp(
         client, admin, start=start, organizer="olive", coaches=["carl"]
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["amy"]},
         headers=auth(admin),
@@ -296,10 +296,10 @@ async def test_camp_cancel_preserves_enrollment(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "amy")
+    _ = await create_member_user(db_session, "amy")
     start = at(hours=48)
     event_id = await _camp(client, admin, start=start)
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["amy"]},
         headers=auth(admin),

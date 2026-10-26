@@ -6,6 +6,7 @@ Each row settles in its own savepoint, so one that fails is logged and left
 pending while the rest of the sweep goes ahead (credit R73d).
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from club_server.db.models.enrollment import Enrollment
 from club_server.schemas.credit import CreditDispositionRequest
+from club_server.services.credit import AccountView
 from club_server.services.credit_lifecycle import CreditLifecycleService
 from club_server.services.credit_pending import pending_disposition_json
 from club_server.services.credit_sweep import sweep_credit_settlements
@@ -91,7 +93,9 @@ async def _enrollment(
     ).scalar_one()
 
 
-async def _general_accounts(client: AsyncClient, admin: str, member: str) -> list[dict]:
+async def _general_accounts(
+    client: AsyncClient, admin: str, member: str
+) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/credits/accounts", params={"membername": member}, headers=auth(admin)
     )
@@ -147,7 +151,9 @@ async def test_should_settle_other_departures_when_one_row_fails(
     await db_session.commit()
     original = CreditLifecycleService.dispose_bound_credit
 
-    async def _fail_for_goalie(self, **kwargs):
+    async def _fail_for_goalie(
+        self: CreditLifecycleService, **kwargs: Any
+    ) -> list[AccountView]:
         if kwargs["membername"] == "goalie":
             raise RuntimeError("forced settlement failure")
         return await original(self, **kwargs)

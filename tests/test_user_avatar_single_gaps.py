@@ -11,6 +11,7 @@ is written leaves the old link and file as they were and the new link absent.
 The rule itself is club_server#28.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -32,7 +33,7 @@ from .evaluation_helpers import (
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .media_helpers import (
     auth,
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     upload,
 )
 from .redesign_helpers import create_oneoff, create_venue
@@ -46,22 +47,27 @@ OTHER_TAG = "gallery"
 
 async def _avatar_also_linked_from(
     client: AsyncClient, alice: str, writer: str, owner_path: str, tag: str
-) -> dict:
+) -> dict[str, Any]:
     """Alice's avatar, its file linked by ``writer`` to a second owner too."""
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, old["uuid"])
-    await link(client, writer, owner_path, old["uuid"], tag=tag)
+    _ = await link(client, alice, ALICE, old["uuid"])
+    _ = await link(client, writer, owner_path, old["uuid"], tag=tag)
     assert await linked_uuids(client, alice, ALICE) == [old["uuid"]]
     assert await linked_uuids(client, writer, owner_path, tag) == [old["uuid"]]
     return old
 
 
 async def _replace_and_assert_file_kept(
-    client: AsyncClient, alice: str, reader: str, owner_path: str, tag: str, old: dict
+    client: AsyncClient,
+    alice: str,
+    reader: str,
+    owner_path: str,
+    tag: str,
+    old: dict[str, Any],
 ) -> None:
     """Link a new avatar; the old file and its other link are still there."""
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, new["uuid"])
+    _ = await link(client, alice, ALICE, new["uuid"])
 
     assert await linked_uuids(client, alice, ALICE) == [new["uuid"]]
     assert await linked_uuids(client, reader, ALICE) == [new["uuid"]]
@@ -147,7 +153,11 @@ async def _avatar_state(db: AsyncSession) -> tuple[list[str], list[str]]:
 
 
 async def _assert_old_avatar_untouched(
-    client: AsyncClient, test_engine: AsyncEngine, alice: str, old: dict, new: dict
+    client: AsyncClient,
+    test_engine: AsyncEngine,
+    alice: str,
+    old: dict[str, Any],
+    new: dict[str, Any],
 ) -> None:
     """The old link and file are as they were and the new link is absent:
     through the API as the member and the super admin, and in a session of
@@ -172,7 +182,7 @@ async def test_should_keep_the_old_avatar_when_deleting_the_old_file_fails(
     alice = await create_member_user(db_session, "alice")
     _ = await create_admin_user(db_session)
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, old["uuid"])
+    _ = await link(client, alice, ALICE, old["uuid"])
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
     seen: list[tuple[list[str], list[str]]] = []
 
@@ -184,7 +194,7 @@ async def test_should_keep_the_old_avatar_when_deleting_the_old_file_fails(
         media_links_service, "check_media_in_use", fail_once_the_new_link_is_written
     )
     with pytest.raises(RuntimeError, match="storage went away"):
-        await link(client, alice, ALICE, new["uuid"])
+        _ = await link(client, alice, ALICE, new["uuid"])
 
     # The step that failed ran with the new link written and the old one removed.
     assert seen == [([new["uuid"]], [])]
@@ -202,11 +212,13 @@ async def test_should_keep_the_old_avatar_when_auditing_the_new_link_fails(
     alice = await create_member_user(db_session, "alice")
     _ = await create_admin_user(db_session)
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, old["uuid"])
+    _ = await link(client, alice, ALICE, old["uuid"])
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
     seen: list[tuple[list[str], list[str]]] = []
 
-    async def fail_once_the_old_file_is_deleted(db: AsyncSession, *args, **kwargs):
+    async def fail_once_the_old_file_is_deleted(
+        db: AsyncSession, *args: Any, **kwargs: Any
+    ):
         seen.append(await _avatar_state(db))
         raise RuntimeError("audit log went away")
 
@@ -214,7 +226,7 @@ async def test_should_keep_the_old_avatar_when_auditing_the_new_link_fails(
         media_links_router, "_audit_create", fail_once_the_old_file_is_deleted
     )
     with pytest.raises(RuntimeError, match="audit log went away"):
-        await link(client, alice, ALICE, new["uuid"])
+        _ = await link(client, alice, ALICE, new["uuid"])
 
     # The step that failed ran with the whole replace written, old file deleted.
     assert seen == [([new["uuid"]], [old["uuid"]])]

@@ -13,7 +13,8 @@ from typing import Protocol
 
 
 class _GenderWrite(Protocol):
-    genders: list[Enum] | None
+    @property
+    def genders(self) -> Sequence[Enum] | None: ...
 
 
 def _values(genders: Sequence[Enum | str] | None) -> list[str]:

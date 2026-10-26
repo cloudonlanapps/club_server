@@ -4,6 +4,7 @@ Read through the owner's preview, which renders the same document the
 publish stores.
 """
 
+from typing import Any
 import math
 
 import pytest
@@ -37,7 +38,7 @@ from club_server.services.evaluation_pdf_text import date_text as date_label
 
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .media_helpers import (
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     upload,
 )
 
@@ -52,15 +53,15 @@ A4_PORTRAIT_PT = (595.28, 841.89)
 async def _draft(
     client: AsyncClient,
     db_session: AsyncSession,
-    layout: list,
+    layout: list[Any],
     *,
     name: str = "Spring review",
-    **extra,
+    **extra: Any,
 ) -> tuple[str, str, int, list[int]]:
     """Admin and coach tokens, a draft of alice on `layout`, and its item ids."""
     admin = await create_admin_user(db_session)
     coach = await create_coach_user(db_session, "coach")
-    await create_member_user(db_session, "alice")
+    _ = await create_member_user(db_session, "alice")
     template_id = await create_template(client, admin, name=name, layout=layout)
     ids = await item_ids(client, admin, template_id)
     evaluation_id = await create_general_evaluation(
@@ -69,7 +70,9 @@ async def _draft(
     return admin, coach, evaluation_id, ids
 
 
-async def _answer(client, coach, evaluation_id, item_id, **body) -> None:
+async def _answer(
+    client: AsyncClient, coach: str, evaluation_id: int, item_id: int, **body: Any
+) -> None:
     written = await put_answer(client, coach, evaluation_id, item_id, **body)
     assert written.status_code == 200, written.text
 
@@ -151,7 +154,7 @@ async def test_should_head_a_published_event_review_with_its_event_and_review_da
     """R63: the event's title, and the publication date as the review date."""
     admin = await create_admin_user(db_session)
     coach = await create_coach_user(db_session, "coach")
-    await create_member_user(db_session, "alice")
+    _ = await create_member_user(db_session, "alice")
     template_id = await create_template(
         client, admin, name="Camp report", layout=[rating_item("Edges")]
     )

@@ -5,6 +5,7 @@ actor, the key and the previous and new values, with a summary line in
 the audit log reader. Values stay unvalidated (R6).
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +18,7 @@ RETENTION = "notification_info_retention_days"
 ACTION = "update_system_preference"
 
 
-async def _preference_rows(client: AsyncClient, token: str) -> list[dict]:
+async def _preference_rows(client: AsyncClient, token: str) -> list[dict[str, Any]]:
     log = await client.get(
         "/v1/audit_log", params={"action": ACTION}, headers=auth(token)
     )

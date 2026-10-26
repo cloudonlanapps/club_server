@@ -8,7 +8,7 @@ read tracking, pagination, and the user-facing feed unchanged.
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -114,12 +114,12 @@ class BroadcastService:
         if kind == "users":
             usernames = selector.get("usernames")
             if not isinstance(usernames, list) or not all(
-                isinstance(u, str) for u in usernames
+                isinstance(u, str) for u in cast(list[Any], usernames)
             ):
                 raise InvalidAudienceSelectorException(
                     "users audience requires a list of strings"
                 )
-            return await self._filter_existing_active_users(usernames)
+            return await self._filter_existing_active_users(cast(list[str], usernames))
         raise InvalidAudienceSelectorException(f"unsupported audience kind: {kind}")
 
     async def _all_active_users(self) -> list[str]:

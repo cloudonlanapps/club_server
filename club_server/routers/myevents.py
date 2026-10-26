@@ -161,7 +161,7 @@ async def get_user_event_schedules(
 ):
     """The schedules of a user's event (enrolled or public), in timeline order."""
     require_self_or_staff(username, current_user)
-    await EventService(db).check_user_event_access(event_id, username)
+    _ = await EventService(db).check_user_event_access(event_id, username)
     return await EventListingService(db).list_schedules(event_id)
 
 
@@ -195,7 +195,7 @@ async def get_user_occurrence(
     """Get a specific occurrence for a user's event (enrolled or public)."""
     require_self_or_staff(username, current_user)
     event_service = EventService(db)
-    await event_service.check_user_event_access(event_id, username)
+    _ = await event_service.check_user_event_access(event_id, username)
     occurrence_service = OccurrenceService(db)
     return await occurrence_service.get_occurrence(event_id, occurrence_time_utc)
 

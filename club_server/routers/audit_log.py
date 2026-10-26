@@ -15,31 +15,33 @@ router = APIRouter(prefix="/audit_log", tags=["AuditLog"])
 async def list_audit_log(
     current_user: Annotated[User, Depends(get_current_active_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50),
-    actor: str | None = Query(None),
-    action: str | None = Query(None),
-    from_ts: int | None = Query(None),
-    to_ts: int | None = Query(None),
-    username: str | None = Query(
-        None, description="Scope to a user as either actor or target."
-    ),
-    resource_type: str | None = Query(
-        None, description="Scope to an entity type (with resource_id)."
-    ),
-    resource_id: str | None = Query(
-        None, description="Scope to an entity id (with resource_type)."
-    ),
-    verbose: int = Query(
-        1,
-        ge=1,
-        le=3,
-        description=(
-            "Breadth of an entity scope: 1 = the entity's own rows, "
-            "2 = also its media-link rows, 3 = also its occurrence rows "
-            "(events only). Ignored for the global feed and username scope."
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query()] = 50,
+    actor: Annotated[str | None, Query()] = None,
+    action: Annotated[str | None, Query()] = None,
+    from_ts: Annotated[int | None, Query()] = None,
+    to_ts: Annotated[int | None, Query()] = None,
+    username: Annotated[
+        str | None, Query(description="Scope to a user as either actor or target.")
+    ] = None,
+    resource_type: Annotated[
+        str | None, Query(description="Scope to an entity type (with resource_id).")
+    ] = None,
+    resource_id: Annotated[
+        str | None, Query(description="Scope to an entity id (with resource_type).")
+    ] = None,
+    verbose: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=3,
+            description=(
+                "Breadth of an entity scope: 1 = the entity's own rows, "
+                "2 = also its media-link rows, 3 = also its occurrence rows "
+                "(events only). Ignored for the global feed and username scope."
+            ),
         ),
-    ),
+    ] = 1,
 ) -> AuditLogResponse:
     """Return paginated audit log with foreign-key ids resolved.
 

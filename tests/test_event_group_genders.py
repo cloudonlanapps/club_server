@@ -21,7 +21,7 @@ from .redesign_helpers import (
     get_event,
     version_of,
 )
-from .test_event_eligibility import _register_member
+from .test_event_eligibility import register_member
 
 THREE = ["male", "other", "prefer_not_to_say"]
 
@@ -35,7 +35,7 @@ async def _members(client: AsyncClient, admin: str, db_session: AsyncSession) ->
         ("pnts", "prefer_not_to_say"),
         ("nogender", None),
     ):
-        _ = await _register_member(client, admin, username, db_session, gender=gender)
+        _ = await register_member(client, admin, username, db_session, gender=gender)
 
 
 async def _event_eligible(client: AsyncClient, admin: str, event_id: int) -> set[str]:
@@ -47,7 +47,7 @@ async def _event_eligible(client: AsyncClient, admin: str, event_id: int) -> set
 
 
 async def _update_event(client: AsyncClient, admin: str, event_id: int, **body: object):
-    body.setdefault("version", await version_of(client, admin, event_id))
+    _ = body.setdefault("version", await version_of(client, admin, event_id))
     return await client.patch(
         f"/v1/events/by_id/{event_id}", json=body, headers=auth(admin)
     )
