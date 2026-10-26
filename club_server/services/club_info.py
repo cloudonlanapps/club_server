@@ -22,6 +22,7 @@ from ..mailer.config import email_settings
 from ..schemas.club_info import PublicClubInfoResponse
 from ..schemas.media import MediaRef
 from .media import can_view_media
+from .profile_options import PROFILE_OPTIONS_KEY, validate_profile_options_value
 from .system_preferences import SystemPreferenceService
 
 CLUB_INFO_KEY = "club_info"
@@ -29,7 +30,10 @@ SITE_MEDIA_KEY = "site_media"
 
 
 async def validate_preference_value(db: AsyncSession, key: str, value: Any) -> None:
-    """Refuse a value the public site could not use (R17, R18)."""
+    """Refuse a value the public site or the profile could not use
+    (public R17, R18; users R69b)."""
+    if key == PROFILE_OPTIONS_KEY:
+        validate_profile_options_value(value)
     if key == CLUB_INFO_KEY and not isinstance(value, dict):
         raise InvalidPreferenceValueException(key, "must be a JSON object")
     if key == SITE_MEDIA_KEY:

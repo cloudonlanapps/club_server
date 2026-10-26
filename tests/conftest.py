@@ -205,6 +205,20 @@ def identity_verification_off(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(scope="function")
+def extended_profile_enabled(monkeypatch: pytest.MonkeyPatch):
+    """Turn the optional extended profile on for one test (#92, users R69c).
+
+    Off by default like the other optional modules; the profile fields are
+    stored either way, and only the profile-options write answers 503 while
+    it is off.
+    """
+    from club_server.config import settings as _settings
+
+    monkeypatch.setattr(_settings, "extended_profile_enabled", True)
+    return None
+
+
+@pytest.fixture(scope="function")
 def evaluations_enabled(monkeypatch: pytest.MonkeyPatch):
     """Turn the optional evaluations module on for one test (#302, R61).
 

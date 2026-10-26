@@ -55,7 +55,7 @@ and when. A key never written has no writer and no time.
 - **R5a** [X] Nor read one → 403; a coach or member → 403 on
   every preference operation; an anonymous caller → 401.
 - **R6** [✅] Apart from `club_info` and `site_media` (public R17,
-  R18), a written value is not checked: the retention accepts any JSON
+  R18) and `profile_options` (users R69b), a written value is not checked: the retention accepts any JSON
   value, a number of days or not.
 - **R7** [✅] Every preference write records one audit row naming the
   actor and the key, with the previous value (null for a key never
@@ -85,9 +85,9 @@ and when. A key never written has no writer and no time.
 
 - **R12** [✅] Anyone, signed in or not, whatever their status or role,
   can read what this deployment does, and everyone gets the same answer.
-- **R13** [✅] The document is a closed set: four flags — the credit
-  system, evaluations, event marketing and identity verification — and
-  the default country code.
+- **R13** [✅] The document is a closed set: five flags — the
+  credit system, evaluations, event marketing, identity verification and
+  the extended profile — and the default country code.
 - **R14** [✅] Each flag reports the deployment's configuration: credit
   off unless enabled, identity verification on unless disabled.
 - **R14a** [✅] Evaluations and event marketing each report
@@ -99,6 +99,8 @@ and when. A key never written has no writer and no time.
 - **R14c** [X] A `DEFAULT_COUNTRY_CODE` that is not one to three
   digits stops the server at startup, naming the setting. An empty value
   counts as not set.
+- **R14d** [✅] `extendedProfile` reports whether the deployment
+  enables `EXTENDED_PROFILE_ENABLED`: off unless enabled.
 
 ## Audit log: recording
 

@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     # deadlines, offers…). One club wants it, another does not; decided by
     # the deploy conf like the two modules above, off by default.
     event_marketing_enabled: bool = False
+    # Extended profile (#92) — optional profile fields (club/district,
+    # position, past experience, nationality, language, guardian) for clubs
+    # whose application forms ask for them. The fields are stored and
+    # returned either way; this tells the app whether to show them, and
+    # while off the profile-options write answers 503. Off by default.
+    extended_profile_enabled: bool = False
     # Identity-document verification (#428) — one club verifies new members'
     # identity documents, another does not. On by default, which keeps the
     # flow of #142: a new user is ``registered`` until they upload a document

@@ -5,6 +5,7 @@ from pydantic import ConfigDict, EmailStr, Field
 from ..db.models.user import Gender, Role, User, UserStatus
 from ..utils import generate_public_id, get_display_name
 from .common import Address, CamelCaseModel, UserRoles
+from .extended_profile import ExtendedProfileFields, ExtendedProfileUpdate
 from .media import MediaRef
 
 
@@ -48,6 +49,8 @@ class UserUpdateKwargs(TypedDict, total=False):
     is_public_profile: bool | None
     gender: str | None
     address: str | None
+    # Extended profile columns → values (#92); see ``ExtendedProfileUpdate``.
+    extended: dict[str, object]
 
 
 class UserCreate(CamelCaseModel):
@@ -121,8 +124,9 @@ class UserAdminCreate(CamelCaseModel):
         }
 
 
-class UserUpdate(CamelCaseModel):
-    """Schema for updating a user."""
+class UserUpdate(ExtendedProfileUpdate):
+    """Schema for updating a user; the extended fields (#92) come from
+    ``ExtendedProfileUpdate``."""
 
     email: EmailStr | None = None
     first_name: str | None = Field(None, max_length=100)
@@ -180,6 +184,9 @@ class UserUpdate(CamelCaseModel):
             kwargs["gender"] = self.gender
         if "address" in fields_set:
             kwargs["address"] = self.address.model_dump_json() if self.address else None
+        extended = self.extended_changes()
+        if extended:
+            kwargs["extended"] = extended
         return kwargs
 
 
@@ -343,8 +350,9 @@ class PublicProfileResponse(CamelCaseModel):
         )
 
 
-class UserPrivateResponse(CamelCaseModel):
-    """Private user response schema (UserPrivate equivalent)."""
+class UserPrivateResponse(ExtendedProfileFields):
+    """Private user response schema (UserPrivate equivalent), with the
+    extended profile fields (#92)."""
 
     username: str
     public_id: str
@@ -417,6 +425,7 @@ class UserPrivateResponse(CamelCaseModel):
             created_at_utc=user.created_at,
             deleted_at_utc=user.deleted_at,
             admin_review_note=admin_review_note,
+            **ExtendedProfileFields.values_of(user),
         )
 
 

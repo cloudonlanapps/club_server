@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..club_calendar import club_day, club_today
 from ..config import settings
 from ..db.models.evaluation_template import EvaluationTemplate
 from ..db.models.event_schedule import EventSchedule
@@ -32,6 +33,7 @@ from ..schemas.user import UserInfoResponse
 from ..utils import now_utc_ms
 from ..validation import validate_utc_midnight
 from .auth import AuthService
+from .extended_profile import apply_extended_changes, check_extended_changes
 from .notification import NotificationEvent, NotificationService
 
 IDENTITY_DOCUMENT_TAG = "identity_document"
@@ -298,6 +300,9 @@ class UserService:
             )
 
         user.status = UserStatus.active.value
+        # Membership begins on the approval day unless an admin set it (#92).
+        if user.membership_date is None:
+            user.membership_date = club_today()
         await self.db.flush()
 
         _ = await UserReviewService(self.db).close_active(
@@ -489,6 +494,7 @@ class UserService:
         is_public_profile: bool | None = UNSET,
         gender: str | None = UNSET,
         address: str | None = UNSET,
+        extended: dict[str, object] | None = None,
         actor_username: str | None = None,
     ) -> User:
         """Update a user's profile.
@@ -501,8 +507,13 @@ class UserService:
         ``actor_username`` identifies who is performing the update.
         When it differs from ``username``, an admin-driven edit is
         notified to the target user via ``profile.changed_by_admin``.
+
+        ``extended`` maps extended-profile columns to their new values
+        (#92); they are checked before anything is written.
         """
         user = await self.get_user_or_raise(username)
+        if extended:
+            await check_extended_changes(self.db, user, extended)
 
         changed_fields: list[str] = []
 
@@ -554,6 +565,8 @@ class UserService:
             user.gender = gender
         if address is not UNSET:
             user.address = address
+        if extended:
+            changed_fields.extend(apply_extended_changes(user, extended))
 
         # Public-profile visibility is user-owned: only the user themselves,
         # and only when they hold the coach role, may change it. Admins
@@ -633,6 +646,10 @@ class UserService:
             status=status.value,
             roles="{}",
             created_at=created_at,
+            # An admin-created member is approved on creation (#92).
+            membership_date=club_day(created_at)
+            if status == UserStatus.active
+            else None,
         )
         self.db.add(user)
         await self.db.flush()

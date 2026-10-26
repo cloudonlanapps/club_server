@@ -229,6 +229,22 @@ def require_event_marketing_enabled() -> None:
         )
 
 
+def require_extended_profile_enabled() -> None:
+    """Refuse the profile-options write where the extended profile is off (#92, users R69c).
+
+    The profile fields themselves are stored and returned either way; only
+    the club's choice lists are a write of the module's own.
+    """
+    if not settings.extended_profile_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "EXTENDED_PROFILE_DISABLED",
+                "message": "The extended profile is not enabled on this deployment",
+            },
+        )
+
+
 def require_evaluations_enabled() -> None:
     """Refuse every evaluation operation where the deployment does not ship them.
 

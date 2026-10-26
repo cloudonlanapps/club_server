@@ -26,6 +26,7 @@ STATIC_DIR.mkdir(parents=True, exist_ok=True)
 from .routers import (  # noqa: E402 — directories created at import time, before route/worker modules load
     admin_router,
     admin_preferences_router,
+    profile_options_router,
     auth_router,
     users_router,
     groups_router,
@@ -186,6 +187,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(admin_router, prefix=settings.api_v1_prefix)
 app.include_router(admin_preferences_router, prefix=settings.api_v1_prefix)
+app.include_router(profile_options_router, prefix=settings.api_v1_prefix)
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(users_router, prefix=settings.api_v1_prefix)
 app.include_router(groups_router, prefix=settings.api_v1_prefix)

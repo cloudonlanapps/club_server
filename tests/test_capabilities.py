@@ -123,7 +123,7 @@ async def test_should_return_a_closed_set_of_capabilities(
 
     The set grows as modules become optional — ``evaluations`` joined it in
     #302, ``eventMarketing`` in #410, ``identityVerification`` in #428,
-    ``defaultCountryCode`` in #15 — which is the shape #339 designed for. It stays asserted exactly
+    ``defaultCountryCode`` in #15, ``extendedProfile`` in #92 — which is the shape #339 designed for. It stays asserted exactly
     so that growth is a deliberate edit rather than a silent one.
     """
     token = await create_member(db_session, "alice")
@@ -135,5 +135,30 @@ async def test_should_return_a_closed_set_of_capabilities(
         "evaluations",
         "eventMarketing",
         "identityVerification",
+        "extendedProfile",
         "defaultCountryCode",
     }
+
+
+@pytest.mark.requirement("platform:R14d")
+@pytest.mark.asyncio
+async def test_should_report_extended_profile_off_when_not_enabled(
+    client: AsyncClient,
+):
+    """A deployment that says nothing does not show the extended profile (#92)."""
+    response = await client.get(CAPABILITIES)
+
+    assert response.status_code == 200
+    assert response.json()["extendedProfile"] is False
+
+
+@pytest.mark.requirement("platform:R14d")
+@pytest.mark.asyncio
+async def test_should_report_extended_profile_on_when_enabled(
+    client: AsyncClient, extended_profile_enabled: None
+):
+    """``EXTENDED_PROFILE_ENABLED`` on is reported as ``extendedProfile`` (#92)."""
+    response = await client.get(CAPABILITIES)
+
+    assert response.status_code == 200
+    assert response.json()["extendedProfile"] is True

@@ -1,5 +1,6 @@
 from .admin import router as admin_router
 from .admin_preferences import router as admin_preferences_router
+from .profile_options import router as profile_options_router
 from .auth import router as auth_router
 from .users import router as users_router
 from .groups import router as groups_router
@@ -45,6 +46,7 @@ from .evaluation_media import router as evaluation_media_router
 __all__ = [
     "admin_router",
     "admin_preferences_router",
+    "profile_options_router",
     "auth_router",
     "users_router",
     "groups_router",

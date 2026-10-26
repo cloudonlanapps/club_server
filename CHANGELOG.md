@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0 (unreleased)
+
+### Extended profile
+
+- Add the deployment setting `EXTENDED_PROFILE_ENABLED` (off by default), reported as `extendedProfile` in `GET /v1/capabilities`. `VERSION` moves to 1.3.0, so a deployment's installer asks for it (#92).
+- Add optional extended fields to `PATCH /v1/users/by_id/{username}` and to every private profile (`UserPrivateResponse`: `GET …/private`, `GET /v1/auth/me` and the write responses): `clubDistrict`, `preferredPosition`, `pastExperience`, `nationality`, `preferredLanguage` (strings) and `guardian` (`{name, relation, phone}`, each optional; `phone` at most 20 characters, other keys → 422). They are stored and returned whatever `EXTENDED_PROFILE_ENABLED` says; null clears a field. The basic profile does not carry them (#92).
+- Add `membershipDateUtc` (a UTC-midnight date, ms) to the private profile and to `PATCH /v1/users/by_id/{username}`, settable by an admin only: anyone else → 403 `PROTECTED_FIELDS` with `fields: ["membershipDateUtc"]`; not a UTC midnight → 422 `INVALID_DOB_NOT_UTC_MIDNIGHT` with `field: "membershipDateUtc"`. Approving a user whose date is blank sets it to the club's calendar day of the approval; `POST /v1/users` sets the creation day; registration leaves it null. The migration fills it for users approved through a review request with the day of the earliest approving request (#92).
+- `preferredPosition` must be the `value` of one of the club's positions and `preferredLanguage` one of its languages → 422 `INVALID_PROFILE_OPTION` with `field` and `value`. A value already stored is accepted unchanged after its option is removed (#92).
+- `PATCH /v1/users/by_id/{username}` accepts a `registered` or `pending` user editing their own extended fields (not `membershipDateUtc`); any other edit by them still answers 403 `ACCOUNT_NOT_ACTIVE` (#92).
+- Add `GET /v1/system/preferences/profile_options` (any signed-in user, approved or not) and `PUT /v1/system/preferences/profile_options` (admin; audited as a preference write), both with the body `{"positions": [{"value": str, "label": {lang: str}}], "languages": [str]}`; both lists are empty until written. A position needs a non-empty `value` and at least one non-empty label, values and languages must be distinct, and no other key is accepted → 422. The `PUT` answers 503 `EXTENDED_PROFILE_DISABLED` while `EXTENDED_PROFILE_ENABLED` is off. A super admin's `PATCH /v1/admin/preferences/profile_options` is checked the same way → 422 `INVALID_PREFERENCE_VALUE` (#92).
+
 ## 1.2.0 (2026-10-26)
 
 Changes since `IHM_RELEASE_0_5`, including 1.0.0 (`RELEASE_VERSION_1_0_0`),

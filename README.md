@@ -86,7 +86,9 @@ Optional, with defaults in code: `ENVIRONMENT` (`development`),
 `MAX_VIDEO_…`, `MEDIA_CONVERT_SCRIPT`,
 `SCHEDULING_HORIZON_WEEKS`, the three module switches `CREDIT_SYSTEM_ENABLED`,
 `EVALUATIONS_ENABLED` and `EVENT_MARKETING_ENABLED` (all off; their routes
-answer 503 while off), `IDENTITY_VERIFICATION_REQUIRED` (on; off, a new user
+answer 503 while off), `EXTENDED_PROFILE_ENABLED` (off; reported as
+`extendedProfile` so the apps show the extended profile fields, which are
+stored either way; while off, writing the club's profile options answers 503), `IDENTITY_VERIFICATION_REQUIRED` (on; off, a new user
 registers straight to `pending` with no identity-document step),
 `CLUB_TIMEZONE` (`Asia/Kolkata`; the IANA time zone whose calendar days
 ages are counted on — today, and the day an event starts; an unknown zone stops
