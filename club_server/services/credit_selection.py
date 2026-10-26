@@ -53,7 +53,7 @@ class CreditSelection:
 
     def accounts_query(
         self, membername: str, *, is_trial: bool
-    ) -> "Select[tuple[CreditAccount]]":
+    ) -> "Select[CreditAccount]":
         """The member's open accounts of one kind, oldest first."""
         return (
             select(CreditAccount)
@@ -67,7 +67,7 @@ class CreditSelection:
 
     def spending_query(
         self, membername: str, root_event_id: int | None, *, is_trial: bool
-    ) -> "Select[tuple[CreditAccount]]":
+    ) -> "Select[CreditAccount]":
         """The same query, holding a row lock for the length of the spend.
 
         Deciding what to deduct means reading a balance and then writing

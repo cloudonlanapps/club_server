@@ -52,7 +52,7 @@ async def list_accounts(
     ``state`` is derived from the balance and the validity window, so it is
     applied after the rows are read rather than in SQL.
     """
-    stmt: Select[tuple[CreditAccount]] = select(CreditAccount)
+    stmt: Select[CreditAccount] = select(CreditAccount)
     if membername is not None:
         stmt = stmt.where(CreditAccount.membername == membername)
     if event_id is not None:
@@ -127,7 +127,7 @@ async def list_entries(
     Each entry carries its running ``balanceAfter`` and ``totalAfter``,
     which no filter or page changes (#449).
     """
-    stmt: Select[tuple[CreditEntry]] = select(CreditEntry).join(
+    stmt: Select[CreditEntry] = select(CreditEntry).join(
         CreditAccount, CreditAccount.id == CreditEntry.account_id
     )
     if membername is not None:
