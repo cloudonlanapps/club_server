@@ -117,6 +117,13 @@ class Settings(BaseSettings):
 
     # API
     api_v1_prefix: str = "/v1"
+    # API docs (#78) — Swagger UI at /docs, ReDoc at /redoc and the schema at
+    # /openapi.json map every route, admin ones included, for anyone who asks.
+    # Off by default, so a deployment that says nothing serves none of them;
+    # the dev and test stacks turn them on (the SDK and CLI contract tests read
+    # /openapi.json). An empty value, as the deploy tooling writes for a key it
+    # has no value for, reads as off.
+    api_docs_enabled: bool = False
 
     model_config: ClassVar[SettingsConfigDict] = {
         "extra": "ignore",
@@ -157,6 +164,14 @@ class Settings(BaseSettings):
                 'three digits without "+", e.g. 91'
             )
         return code
+
+    @field_validator("api_docs_enabled", mode="before")
+    @classmethod
+    def _empty_docs_flag_is_off(cls, value: Any) -> Any:
+        """Treat an empty API_DOCS_ENABLED as not set (off)."""
+        if isinstance(value, str) and not value.strip():
+            return False
+        return value
 
     @field_validator("club_timezone", mode="before")
     @classmethod

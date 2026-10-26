@@ -69,6 +69,10 @@ _TEST_IDENTITY = {
 for _key, _value in _TEST_IDENTITY.items():
     _ = os.environ.setdefault(_key, _value)
 
+# The API docs are off by default (#78); the suite reads /openapi.json, as the
+# dev and test stacks do. tests/test_api_docs_setting.py covers the off state.
+_ = os.environ.setdefault("API_DOCS_ENABLED", "true")
+
 # club_server imports must come after the os.environ setup above: Settings() is
 # instantiated at module-load time and must read the test DATABASE_URL, never a
 # developer's real one.

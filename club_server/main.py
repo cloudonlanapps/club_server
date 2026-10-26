@@ -90,6 +90,10 @@ app = FastAPI(
     description="Backend API for Club SDK",
     version=VERSION,
     lifespan=lifespan,
+    # Off unless API_DOCS_ENABLED is set (#78): all three paths then answer 404.
+    docs_url="/docs" if settings.api_docs_enabled else None,
+    redoc_url="/redoc" if settings.api_docs_enabled else None,
+    openapi_url="/openapi.json" if settings.api_docs_enabled else None,
 )
 
 from .exception_handlers import register_exception_handlers  # noqa: E402
