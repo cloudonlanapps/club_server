@@ -6,6 +6,7 @@ Covers:
 - new /mygroups/{u}/group/{group_id} endpoint
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,7 @@ from .helpers import (
 )
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 

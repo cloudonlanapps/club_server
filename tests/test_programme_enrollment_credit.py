@@ -5,6 +5,7 @@ per-occurrence cancelled predicate, departures that settle at the last
 covered occurrence, and trials bounded by money.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +35,9 @@ from .redesign_helpers import (
 )
 
 
-async def _accounts_of(client: AsyncClient, token: str, member: str) -> list[dict]:
+async def _accounts_of(
+    client: AsyncClient, token: str, member: str
+) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/credits/accounts", params={"membername": member}, headers=auth(token)
     )

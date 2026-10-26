@@ -9,6 +9,7 @@ send the version the client last saw: a missing one is 422, a stale one is
 The event's own version is not involved.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,7 +46,7 @@ async def _delete(
     return await client.delete(url, params=params, headers=auth(token))
 
 
-async def _stored(client: AsyncClient, token: str, url: str) -> dict | None:
+async def _stored(client: AsyncClient, token: str, url: str) -> dict[str, Any] | None:
     response = await client.get(url, headers=auth(token))
     if response.status_code == 404:
         return None
@@ -53,7 +54,7 @@ async def _stored(client: AsyncClient, token: str, url: str) -> dict | None:
     return response.json()
 
 
-def _stale_detail(response: Response) -> dict:
+def _stale_detail(response: Response) -> dict[str, Any]:
     assert response.status_code == 409, response.text
     detail = response.json()["detail"]
     assert detail["code"] == "STALE_VERSION"

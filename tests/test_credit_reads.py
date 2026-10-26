@@ -4,6 +4,7 @@ Covers credit R16, R64, R78, R86, R88 and R89 from
 ``docs/credit_system_requirements.md``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +29,7 @@ async def _get(client: AsyncClient, token: str, path: str, **params: object):
     return response.json()
 
 
-def _codes(rows: list[dict]) -> list[str]:
+def _codes(rows: list[dict[str, Any]]) -> list[str]:
     return [row["accountId"] for row in rows]
 
 

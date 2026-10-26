@@ -8,6 +8,7 @@ keeps every reference; the super-admin hard delete wipes the person, and
 their organizer and coach references go with them.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -31,7 +32,9 @@ from .redesign_helpers import (
 )
 
 
-async def _schedules(client: AsyncClient, token: str, event_id: int) -> list[dict]:
+async def _schedules(
+    client: AsyncClient, token: str, event_id: int
+) -> list[dict[str, Any]]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/schedules", headers=auth(token)
     )

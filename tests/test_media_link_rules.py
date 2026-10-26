@@ -1,5 +1,6 @@
 """Link rules of media_requirements.md (#494)."""
 
+from typing import Any
 import asyncio
 from datetime import datetime, timedelta, timezone
 
@@ -62,7 +63,7 @@ async def _owners(client: AsyncClient, admin: str) -> dict[str, int]:
     ],
 )
 async def test_should_refuse_link_when_tag_metadata_or_fields_are_invalid(
-    client: AsyncClient, db_session: AsyncSession, body: dict
+    client: AsyncClient, db_session: AsyncSession, body: dict[str, Any]
 ):
     admin = await create_admin_user(db_session)
     venue = await client.post("/v1/venues", json={"name": "Rink"}, headers=auth(admin))

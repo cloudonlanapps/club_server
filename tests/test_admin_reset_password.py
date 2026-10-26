@@ -1,3 +1,4 @@
+from typing import Any
 import json
 
 import pytest
@@ -44,7 +45,7 @@ async def create_active_user(
     await db_session.flush()
 
 
-async def _reset_audit_details(db_session: AsyncSession, target: str) -> dict:
+async def _reset_audit_details(db_session: AsyncSession, target: str) -> dict[str, Any]:
     db_session.expire_all()
     rows = (
         (

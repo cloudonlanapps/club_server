@@ -5,6 +5,7 @@ kind — a named-user notice, a group or event notice, a broadcast. An active
 user in the same audience still receives theirs.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -52,7 +53,7 @@ async def _event_with(client: AsyncClient, admin: str, *members: str) -> int:
     return event_id
 
 
-async def _broadcast(client: AsyncClient, admin: str, selector: dict) -> int:
+async def _broadcast(client: AsyncClient, admin: str, selector: dict[str, Any]) -> int:
     response = await client.post(
         "/v1/broadcasts",
         json={"audienceSelector": selector, "payload": PAYLOAD},

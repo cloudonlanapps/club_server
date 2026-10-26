@@ -6,6 +6,7 @@ the same request with ``acceptConflicts: true`` is written and the admins
 are told, as an ``event.conflict_detected`` notice.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,11 +28,11 @@ from .redesign_helpers import (
 SCHEDULE_CONFLICT = "SCHEDULE_CONFLICT"
 
 
-async def _conflict_notices(db_session: AsyncSession) -> list:
+async def _conflict_notices(db_session: AsyncSession) -> list[Any]:
     return await notifications_for(db_session, "admin", "event.conflict_detected")
 
 
-def _body(event_type: str, venue: int, start: int, **extra: object) -> dict:
+def _body(event_type: str, venue: int, start: int, **extra: object) -> dict[str, Any]:
     body: dict[str, object] = {
         "title": f"{event_type} clashing",
         "type": event_type,

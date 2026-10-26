@@ -6,6 +6,7 @@ on an event card. They travel on create, update and correction, and come
 back on every event read.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +42,7 @@ BASIC = {
 
 async def _create(
     client: AsyncClient, token: str, venue_id: int, *, event_type: str = "camp", **extra
-) -> dict:
+) -> dict[str, Any]:
     start = _future(48)
     body = {
         "title": "Camp",

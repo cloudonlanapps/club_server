@@ -6,6 +6,7 @@ private photo saw nothing to remove, and the old link and file stayed.
 The server keeps the rule itself, when the new avatar is linked.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -42,7 +43,7 @@ async def link(
     media_uuid: str,
     tag: str = USER_AVATAR_TAG,
     expect: int = 201,
-) -> dict:
+) -> dict[str, Any]:
     """Link a media item to the owner at ``owner_path`` under ``tag``."""
     response = await client.post(
         f"/v1/{owner_path}/media",

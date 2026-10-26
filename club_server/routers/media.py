@@ -1,7 +1,7 @@
 """Router for v2 media endpoints (#161). Parallel to ``routers.uploads``."""
 
 import json
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import (
     APIRouter,
@@ -595,7 +595,7 @@ async def cross_owner_search_links(
     )
 
 
-@router.get("/by_id/{uuid}/links", response_model=list[dict])
+@router.get("/by_id/{uuid}/links", response_model=list[dict[str, Any]])
 async def list_media_links(
     uuid: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],

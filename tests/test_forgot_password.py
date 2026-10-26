@@ -9,6 +9,7 @@ Default email provider in tests is the console sender, so sends succeed and the
 generated password is observable via ConsoleEmailSender.outbox.
 """
 
+from typing import Any
 import json
 import re
 
@@ -59,7 +60,7 @@ def _password_from_outbox() -> str:
     return match.group(1)
 
 
-async def _reset_action_details(db_session: AsyncSession) -> dict:
+async def _reset_action_details(db_session: AsyncSession) -> dict[str, Any]:
     db_session.expire_all()
     rows = (
         (

@@ -6,6 +6,7 @@ dedupe window. Delivery is one email to the club's inquiry address and
 one admin notification. Retention is a daily purge.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -37,7 +38,7 @@ def _ready_token() -> str:
     return issue_form_token(issued_at_ms=now_utc_ms() - 10_000)
 
 
-def _body(**overrides) -> dict:
+def _body(**overrides) -> dict[str, Any]:
     return {
         "kind": "contact",
         "name": "Pat Visitor",
@@ -361,7 +362,7 @@ async def test_should_not_write_submissions_to_the_audit_log(
 # ── an inquiry without a message (#41) ─────────────────────────────────────
 
 
-def _body_without_message(**overrides) -> dict:
+def _body_without_message(**overrides) -> dict[str, Any]:
     body = _body(**overrides)
     del body["message"]
     return body

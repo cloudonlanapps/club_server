@@ -9,6 +9,7 @@ the event has no block, and the one the last write returned after that.
 ``test_event_marketing_version.py`` is the evidence for the version itself.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -56,7 +57,9 @@ async def _venue(client: AsyncClient, admin: str) -> int:
     return response.json()["id"]
 
 
-async def _event(client: AsyncClient, admin: str, venue_id: int, **extra) -> dict:
+async def _event(
+    client: AsyncClient, admin: str, venue_id: int, **extra
+) -> dict[str, Any]:
     start = now_utc_ms() + 48 * HOUR
     body = {
         "title": "Camp",

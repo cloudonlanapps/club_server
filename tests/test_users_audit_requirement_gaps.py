@@ -3,6 +3,7 @@
 Each test names the rule it proves in ``docs/users_requirements.md``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,11 +18,11 @@ from .helpers import (
 )
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _rows(client: AsyncClient, token: str, action: str) -> list[dict]:
+async def _rows(client: AsyncClient, token: str, action: str) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/audit_log", params={"action": action}, headers=auth(token)
     )
@@ -29,7 +30,7 @@ async def _rows(client: AsyncClient, token: str, action: str) -> list[dict]:
     return response.json()["rows"]
 
 
-def _actor_target(rows: list[dict]) -> list[tuple[str, str]]:
+def _actor_target(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
     return [(r["actor"]["username"], r["target"]["username"]) for r in rows]
 
 

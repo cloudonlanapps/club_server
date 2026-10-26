@@ -43,7 +43,9 @@ OWNER_REGISTRY: dict[str, tuple[Any, str]] = {
 }
 
 
-def _link_to_response(link, media: Media, owner_deleted: bool = False) -> dict:
+def _link_to_response(
+    link, media: Media, owner_deleted: bool = False
+) -> dict[str, Any]:
     """A link row: what the link says, and the media it points at.
 
     The media is the same [MediaRef] every other projection embeds, rather
@@ -77,7 +79,7 @@ class MediaLinkService:
         owner_id,
         viewer: User | None,
         media_type: str | None = None,
-    ) -> dict[str, list[dict]]:
+    ) -> dict[str, list[dict[str, Any]]]:
         q = (
             select(self.model, Media)
             .join(Media, Media.uuid == self.model.media_uuid)
@@ -88,7 +90,7 @@ class MediaLinkService:
             q = q.where(Media.media_type == media_type)
         rows = (await self.db.execute(q)).all()
         owner_deleted = await is_owner_deleted(self.db, self.owner_type, owner_id)
-        out: dict[str, list[dict]] = {}
+        out: dict[str, list[dict[str, Any]]] = {}
         for link, media in rows:
             if not can_view_media(media, viewer):
                 continue
@@ -103,7 +105,7 @@ class MediaLinkService:
         tag: str,
         viewer: User | None,
         media_type: str | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         q = (
             select(self.model, Media)
             .join(Media, Media.uuid == self.model.media_uuid)
@@ -126,7 +128,7 @@ class MediaLinkService:
         tag: str,
         media_uuid: str,
         viewer: User | None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         q = (
             select(self.model, Media)
             .join(Media, Media.uuid == self.model.media_uuid)
@@ -171,7 +173,7 @@ class MediaLinkService:
         media_uuid: str,
         metadata: str | None,
         viewer: User,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Link ``media_uuid`` to the owner under ``tag``.
 
         Media the caller may not view is answered as missing, so a link
@@ -314,7 +316,7 @@ class MediaLinkService:
         tag: str,
         media_uuid: str,
         metadata: str | None,
-    ) -> tuple[dict, str | None]:
+    ) -> tuple[dict[str, Any], str | None]:
         await refuse_write_when_owner_deleted(self.db, self.owner_type, owner_id)
         link = await self._get_row(owner_id, tag, media_uuid)
         if link is None:
@@ -333,7 +335,7 @@ class MediaLinkService:
         ).scalar_one()
         return _link_to_response(link, media), old
 
-    async def delete_one(self, owner_id, tag: str, media_uuid: str) -> dict:
+    async def delete_one(self, owner_id, tag: str, media_uuid: str) -> dict[str, Any]:
         await refuse_write_when_owner_deleted(self.db, self.owner_type, owner_id)
         link = await self._get_row(owner_id, tag, media_uuid)
         if link is None:
@@ -381,7 +383,7 @@ async def get_media_links(
     viewer: User | None = None,
     *,
     enforce_access: bool = True,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Reverse lookup via the ``media_in_use`` view.
 
     When ``enforce_access`` is True (the API-facing default), returns []
@@ -428,7 +430,7 @@ async def search_media_links(
     is_encrypted: bool | None = None,
     offset: int = 0,
     limit: int = 20,
-) -> dict:
+) -> dict[str, Any]:
     """Admin/coach cross-owner search using the view joined to ``media``.
 
     Rows the ``viewer`` cannot satisfy under ``media.access_roles`` are
@@ -512,7 +514,7 @@ async def search_media_links(
 async def check_media_in_use(
     db: AsyncSession,
     media_uuid: str,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Return the link list referencing ``media_uuid``. Empty = safe to delete.
 
     Internal: bypasses the per-viewer visibility filter (#167); used by the

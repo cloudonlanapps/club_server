@@ -6,6 +6,7 @@ programme R31d); a user overlap does not block a camp join. Camps still
 require a tighter RRULE (FREQ=DAILY + bounded).
 """
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -42,7 +43,7 @@ async def _create_event(
     accept_conflicts: bool = False,
 ) -> "tuple[int, int]":
     """Return (status_code, event_id or 0)."""
-    body: dict = {
+    body: dict[str, Any] = {
         "title": title,
         "type": type_,
         "venueId": venue_id,

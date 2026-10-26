@@ -6,6 +6,7 @@ carries the same disposition, and a disposition sent to a deployment that
 does not run on credits is rejected rather than ignored.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -244,7 +245,7 @@ def _window(valid_from: int, valid_until: int) -> dict[str, object]:
     }
 
 
-def _is_schema_validation_error(body: dict) -> bool:
+def _is_schema_validation_error(body: dict[str, Any]) -> bool:
     """FastAPI's request-validation shape, which clients read as VALIDATION_ERROR."""
     return isinstance(body.get("detail"), list) and bool(body["detail"])
 

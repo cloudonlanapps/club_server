@@ -8,6 +8,7 @@ User-supplied values (names) are HTML-escaped. ``emailBody`` for the broadcast
 wrapper (T4) is admin-authored and treated as trusted HTML.
 """
 
+from typing import Any
 from html import escape
 
 import markdown
@@ -184,7 +185,7 @@ def inquiry_received(
     email: str,
     phone: str | None,
     message: str | None,
-    extra: dict | None,
+    extra: dict[str, Any] | None,
 ) -> tuple[str, str, str]:
     """T5 — a contact-form or interest submission from the public website (#407).
 

@@ -12,6 +12,7 @@ Covers:
 - Missing referent yields null without raising
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -45,7 +46,7 @@ async def _insert_audit(
     target_username: str | None = None,
     resource_type: str | None = None,
     resource_id: str | None = None,
-    details: dict | None = None,
+    details: dict[str, Any] | None = None,
 ) -> AuditLog:
     entry = AuditLog(
         timestamp=timestamp,

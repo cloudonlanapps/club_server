@@ -1,5 +1,6 @@
 """Tests for /mygroups/{username} membership listing and auth matrix."""
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +18,7 @@ DOB_2014 = 1388534400000
 ONE_DAY_MS = 86_400_000
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 

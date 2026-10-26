@@ -8,6 +8,7 @@ whatever their status. Rules auth:R21-R22b and R26 in
 ``docs/auth_requirements.md``.
 """
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -24,11 +25,11 @@ MEMBER_PASSWORD = "memberpass123"
 STATUS_PASSWORD = "statuspass123"
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _login(client: AsyncClient, username: str, password: str) -> dict:
+async def _login(client: AsyncClient, username: str, password: str) -> dict[str, Any]:
     response = await client.post(
         "/v1/auth/login", json={"username": username, "password": password}
     )
@@ -36,7 +37,7 @@ async def _login(client: AsyncClient, username: str, password: str) -> dict:
     return response.json()
 
 
-async def _refresh(client: AsyncClient, refresh_token: str) -> dict:
+async def _refresh(client: AsyncClient, refresh_token: str) -> dict[str, Any]:
     response = await client.post(
         "/v1/auth/refresh", json={"refreshToken": refresh_token}
     )

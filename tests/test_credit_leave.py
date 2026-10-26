@@ -8,6 +8,7 @@ opens thirty minutes before, so a leave request on a marked record is made
 here by the super-admin, the one caller the leave window does not bind.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,7 +80,7 @@ async def _decide_leave(
     assert response.status_code in (200, 204), response.text
 
 
-async def _deductions(client: AsyncClient, admin: str) -> list[dict]:
+async def _deductions(client: AsyncClient, admin: str) -> list[dict[str, Any]]:
     return await entries_for(
         client, admin, membername="alice", entryType="sessionDeduction"
     )

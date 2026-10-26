@@ -6,6 +6,7 @@ so the rule-by-rule files added for ``media_requirements.md`` do not each
 grow another one.
 """
 
+from typing import Any
 import json
 import os
 import shutil
@@ -98,7 +99,7 @@ async def upload(
     preserve: bool = True,
     encrypt: bool = False,
     expect: int = 201,
-) -> dict:
+) -> dict[str, Any]:
     """Upload one file and return the record, asserting the status."""
     data: dict[str, str] = {"preserveOriginal": "true" if preserve else "false"}
     if access_roles is not None:

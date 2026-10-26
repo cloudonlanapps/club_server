@@ -3,6 +3,7 @@
 Each test names the rule it proves in ``docs/platform_requirements.md``.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -24,7 +25,7 @@ PREFS = "/v1/admin/preferences"
 RETENTION = "notification_info_retention_days"
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 

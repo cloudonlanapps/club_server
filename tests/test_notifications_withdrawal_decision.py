@@ -9,6 +9,7 @@ requested state by a path that does not resolve it: here the admin removes
 the request and then assigns the member directly.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,7 @@ from .redesign_helpers import (
 )
 
 
-async def _request_notices(client: AsyncClient, token: str) -> list[dict]:
+async def _request_notices(client: AsyncClient, token: str) -> list[dict[str, Any]]:
     response = await client.get("/v1/notifications", headers=auth(token))
     assert response.status_code == 200, response.text
     return [

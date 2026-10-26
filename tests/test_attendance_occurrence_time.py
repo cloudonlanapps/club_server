@@ -6,6 +6,7 @@ credit charge) for a session that does not exist. Leave on a soft-deleted
 event answers 404, as marking already did.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,7 @@ async def _register(client: AsyncClient, token: str, event_id: int, slot: int):
     return {row["membername"]: row["status"] for row in response.json()}
 
 
-async def _member_records(client: AsyncClient, token: str, member: str) -> list:
+async def _member_records(client: AsyncClient, token: str, member: str) -> list[Any]:
     response = await client.get(
         f"/v1/myevents/by_id/{member}/attendance",
         params={"fromTimeUtc": at(days=-10), "toTimeUtc": at(days=10)},

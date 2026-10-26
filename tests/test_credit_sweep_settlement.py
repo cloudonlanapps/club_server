@@ -6,6 +6,7 @@ Each row settles in its own savepoint, so one that fails is logged and left
 pending while the rest of the sweep goes ahead (credit R73d).
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -91,7 +92,9 @@ async def _enrollment(
     ).scalar_one()
 
 
-async def _general_accounts(client: AsyncClient, admin: str, member: str) -> list[dict]:
+async def _general_accounts(
+    client: AsyncClient, admin: str, member: str
+) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/credits/accounts", params={"membername": member}, headers=auth(admin)
     )

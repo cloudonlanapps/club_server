@@ -2,6 +2,7 @@
 and the MEDIA_IN_USE soft-delete guard.
 """
 
+from typing import Any
 import os
 import shutil
 import struct
@@ -58,7 +59,7 @@ def clean_upload_dir():
             shutil.rmtree(os.path.join(tmp_base, d), ignore_errors=True)
 
 
-async def _upload(client: AsyncClient, token: str) -> dict:
+async def _upload(client: AsyncClient, token: str) -> dict[str, Any]:
     r = await client.post(
         "/v1/media",
         files={"file": ("img.png", _png_bytes(), "image/png")},

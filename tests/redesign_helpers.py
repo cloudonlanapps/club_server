@@ -9,6 +9,7 @@ against RRULE expansions, which are second-granular, so a millisecond
 remainder would make ``start + k * DAY_MS`` miss the boundary.
 """
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 from httpx import AsyncClient
@@ -71,7 +72,7 @@ async def create_event(
     title: str | None = None,
     expected_status: int = 201,
     **extra: object,
-) -> dict:
+) -> dict[str, Any]:
     """Create an event of ``event_type`` and return the response body.
 
     Asserts ``expected_status`` so a fixture that fails to build is reported
@@ -101,7 +102,7 @@ async def create_programme(
     end: int | None = None,
     rrule: str = EVERY_DAY,
     **extra: object,
-) -> dict:
+) -> dict[str, Any]:
     """Create a programme whose first occurrence is ``start`` (default +2 days)."""
     start = start if start is not None else at(days=2)
     return await create_event(
@@ -125,7 +126,7 @@ async def create_camp(
     end: int | None = None,
     count: int = 5,
     **extra: object,
-) -> dict:
+) -> dict[str, Any]:
     """Create a daily camp of ``count`` days starting at ``start`` (default +2 days)."""
     start = start if start is not None else at(days=2)
     return await create_event(
@@ -148,7 +149,7 @@ async def create_oneoff(
     start: int | None = None,
     end: int | None = None,
     **extra: object,
-) -> dict:
+) -> dict[str, Any]:
     """Create a one-off event starting at ``start`` (default +2 days)."""
     start = start if start is not None else at(days=2)
     return await create_event(
@@ -162,7 +163,7 @@ async def create_oneoff(
     )
 
 
-async def get_event(client: AsyncClient, token: str, event_id: int) -> dict:
+async def get_event(client: AsyncClient, token: str, event_id: int) -> dict[str, Any]:
     """Read one event through the admin endpoint."""
     response = await client.get(f"/v1/events/by_id/{event_id}", headers=auth(token))
     assert response.status_code == 200, response.text
@@ -176,7 +177,7 @@ async def list_occurrences(
     to_ms: int,
     *,
     event_id: int | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Admin occurrence listing, optionally narrowed to one event."""
     response = await client.get(
         "/v1/events/occurrences",
@@ -198,7 +199,7 @@ async def list_user_occurrences(
     to_ms: int,
     *,
     event_id: int | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Member occurrence listing, optionally narrowed to one event."""
     response = await client.get(
         f"/v1/myevents/by_id/{username}/occurrences",
@@ -479,7 +480,7 @@ async def mark(
 
 async def notifications_for(
     db_session: AsyncSession, username: str, ntype: str
-) -> list:
+) -> list[Any]:
     """Notification rows of ``ntype`` addressed to ``username``."""
     from sqlalchemy import select
 
@@ -494,7 +495,7 @@ async def notifications_for(
     return list(result.scalars().all())
 
 
-async def audit_rows(db_session: AsyncSession, action: str) -> list:
+async def audit_rows(db_session: AsyncSession, action: str) -> list[Any]:
     """Audit rows carrying ``action``."""
     from sqlalchemy import select
 

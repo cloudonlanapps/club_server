@@ -6,6 +6,7 @@ guest. Both move to ``public_staff_listing``, curated by admins through
 their own endpoints, so reordering a page is no longer a profile edit.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -64,7 +65,9 @@ async def _seed(client: AsyncClient, db_session: AsyncSession) -> str:
     return admin
 
 
-async def _curate(client: AsyncClient, admin: str, username: str, **body) -> dict:
+async def _curate(
+    client: AsyncClient, admin: str, username: str, **body
+) -> dict[str, Any]:
     response = await client.put(
         f"/v1/admin/staff-listing/{username}", json=body, headers=_auth(admin)
     )
@@ -72,7 +75,7 @@ async def _curate(client: AsyncClient, admin: str, username: str, **body) -> dic
     return response.json()
 
 
-def _names(items: list[dict]) -> list[str]:
+def _names(items: list[dict[str, Any]]) -> list[str]:
     return [i["displayName"] for i in items]
 
 

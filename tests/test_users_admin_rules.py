@@ -5,6 +5,7 @@ admin-created account starts in, and soft-deleting a deleted user. Each
 test names the rule it proves in ``docs/users_requirements.md``.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -26,17 +27,17 @@ from .helpers import (
 MIDNIGHT_2000 = 946684800000  # 2000-01-01 UTC midnight
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _profile(client: AsyncClient, admin: str, username: str) -> dict:
+async def _profile(client: AsyncClient, admin: str, username: str) -> dict[str, Any]:
     response = await client.get(f"/v1/users/by_id/{username}", headers=auth(admin))
     assert response.status_code == 200, response.text
     return response.json()
 
 
-def _new_user(**extra: object) -> dict:
+def _new_user(**extra: object) -> dict[str, Any]:
     return {
         "username": "newbie",
         "passwordHash": "SecurePass123",

@@ -1,6 +1,7 @@
 """Tests for issue #18: structured event eligibility, sessions timetable,
 and aux-info removal."""
 
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -16,7 +17,7 @@ DOB_2000 = 946684800000  # 2000-01-01 UTC midnight
 ONE_DAY_MS = 86_400_000
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -74,7 +75,7 @@ async def _register_member(
     assert appr.status_code in (200, 201, 204)
 
     # Patch dob/gender if different from defaults; supports clearing to None.
-    update: dict = {}
+    update: dict[str, Any] = {}
     if gender != "male":
         update["gender"] = gender
     if date_of_birth != DOB_2000:
@@ -102,18 +103,18 @@ async def _create_event(
     gender: str | None = None,
     dob_on_or_after_utc: int | None = None,
     dob_on_or_before_utc: int | None = None,
-    sessions: list[dict] | None = None,
+    sessions: list[dict[str, Any]] | None = None,
     start_offset_hours: int = 24,
     duration_hours: int = 1,
     is_featured: bool = False,
     gallery_uris: list[str] | None = None,
     expect_status: int = 201,
-) -> dict:
+) -> dict[str, Any]:
     # Derive end from a single start so the window is exactly duration_hours
     # (two separate future_time() calls drift by the elapsed ms between them,
     # which makes the sessions-total equality check flaky).
     start_utc = future_time(start_offset_hours)
-    body: dict = {
+    body: dict[str, Any] = {
         "title": "Camp",
         "type": event_type,
         "venueId": venue_id,

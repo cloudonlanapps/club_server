@@ -5,6 +5,7 @@ a date and moves no enrollment. Covers credit R7, R40 and R82a from
 ``docs/credit_system_requirements.md``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,7 +59,7 @@ async def _marked_then_split(
     return admin, event_id, start, code
 
 
-async def _roster_row(client: AsyncClient, token: str, event_id: int) -> dict:
+async def _roster_row(client: AsyncClient, token: str, event_id: int) -> dict[str, Any]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/credits", headers=auth(token)
     )

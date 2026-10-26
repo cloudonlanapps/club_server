@@ -7,6 +7,7 @@ recipients without an email are skipped, not errored; and email failures never
 affect the in-app fan-out.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -54,7 +55,7 @@ async def _active_user(
     await db_session.flush()
 
 
-async def _broadcast_audit_details(db_session: AsyncSession) -> dict:
+async def _broadcast_audit_details(db_session: AsyncSession) -> dict[str, Any]:
     db_session.expire_all()
     rows = (
         (

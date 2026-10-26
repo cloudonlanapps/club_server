@@ -1,6 +1,7 @@
 """Pure pieces of the member copy PDF (#535, R63): pagination, markdown,
 answers, graphics and dates, tested without a document."""
 
+from typing import Any
 import pytest
 
 from club_server.schemas.evaluation import (
@@ -93,7 +94,7 @@ def test_should_break_a_section_taller_than_a_page_between_rows():
 # Where a written answer prints ----------------------------------------------
 
 
-def _view(types: dict[int, str], layout: list) -> EvaluationMemberView:
+def _view(types: dict[int, str], layout: list[Any]) -> EvaluationMemberView:
     """A member view of items `types` (id -> type) laid out as `layout`."""
     items = [
         _item(

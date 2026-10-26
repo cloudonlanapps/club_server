@@ -7,6 +7,7 @@ programmes are compared as rules, camps and one-offs are bounded by the
 scheduling horizon, and every gate uses one definition of overlap.
 """
 
+from typing import Any
 import importlib
 from datetime import datetime, timedelta, timezone
 
@@ -62,7 +63,7 @@ def monday_at(hour: int, *, weeks_ahead: int = 1) -> int:
     return floor_s(int(monday.timestamp() * 1000))
 
 
-async def _conflict_notices(db_session: AsyncSession) -> list:
+async def _conflict_notices(db_session: AsyncSession) -> list[Any]:
     return await notifications_for(db_session, "admin", "event.conflict_detected")
 
 

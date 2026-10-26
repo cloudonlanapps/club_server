@@ -6,6 +6,7 @@ as public profiles (never usernames), the venue as its public projection,
 media as public uuids, and the basic marketing block rides along.
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -70,7 +71,7 @@ async def _event(
     start_in_hours: int = 48,
     coach_names: list[str] | None = None,
     **extra,
-) -> dict:
+) -> dict[str, Any]:
     start = now_utc_ms() + start_in_hours * HOUR
     body = {
         "title": title,
@@ -119,7 +120,7 @@ async def _link(
     await db.commit()
 
 
-def _pid(event: dict) -> str:
+def _pid(event: dict[str, Any]) -> str:
     return generate_event_public_id(event["id"])
 
 

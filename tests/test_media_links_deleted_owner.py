@@ -6,6 +6,7 @@ search. They are read-only while the owner is deleted: adding, changing or
 removing one → 422 `OWNER_DELETED`.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +42,7 @@ async def _owner(client: AsyncClient, admin: str, owner: str) -> int:
 
 async def _linked_then_deleted(
     client: AsyncClient, db_session: AsyncSession, admin: str, owner: str
-) -> tuple[str, dict]:
+) -> tuple[str, dict[str, Any]]:
     """Link one image to a fresh owner, soft-delete the owner.
 
     Returns the owner's link base url and the linked media record.
@@ -63,7 +64,7 @@ async def _linked_then_deleted(
 
 
 async def _assert_links_unchanged(
-    client: AsyncClient, token: str, base: str, image: dict
+    client: AsyncClient, token: str, base: str, image: dict[str, Any]
 ) -> None:
     listing = await client.get(f"{base}/{TAG}", headers=auth(token))
     assert listing.status_code == 200, listing.text

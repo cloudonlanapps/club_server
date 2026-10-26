@@ -11,6 +11,7 @@ while scoped queries are open to any admin or coach (ownership-independent, for
 transparency).
 """
 
+from typing import Any
 import json
 
 import pytest
@@ -41,7 +42,7 @@ async def _insert_audit(
     target_username: str | None = None,
     resource_type: str | None = None,
     resource_id: str | None = None,
-    details: dict | None = None,
+    details: dict[str, Any] | None = None,
 ) -> AuditLog:
     entry = AuditLog(
         timestamp=timestamp,
@@ -237,7 +238,9 @@ async def test_resource_id_without_type_is_422(
 # --- Verbose widening --------------------------------------------------------
 
 
-async def _event42(client: AsyncClient, token: str, verbose: int | None = None) -> dict:
+async def _event42(
+    client: AsyncClient, token: str, verbose: int | None = None
+) -> dict[str, Any]:
     params: dict[str, object] = {"resource_type": "event", "resource_id": "42"}
     if verbose is not None:
         params["verbose"] = verbose

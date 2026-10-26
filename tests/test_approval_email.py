@@ -1,5 +1,6 @@
 """Tests for #270 — email the user when an admin approves their account."""
 
+from typing import Any
 import json
 
 import pytest
@@ -45,7 +46,9 @@ async def _create_pending_user(
     await db_session.flush()
 
 
-async def _approve_audit_details(db_session: AsyncSession, target: str) -> dict:
+async def _approve_audit_details(
+    db_session: AsyncSession, target: str
+) -> dict[str, Any]:
     db_session.expire_all()
     rows = (
         (

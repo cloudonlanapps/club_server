@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select as _sa_select
@@ -636,7 +637,7 @@ async def create_user_with_profile(
 ) -> None:
     """Create, approve, and set profile fields on a user."""
     await create_user_and_approve(client, token, username, db_session)
-    update: dict = {}
+    update: dict[str, Any] = {}
     if gender is not None:
         update["gender"] = gender
     if date_of_birth is not None:
@@ -1293,7 +1294,7 @@ async def test_update_manual_group_remove_members_then_set_criteria(
 # =============================================================================
 
 
-def _auth(token: str) -> dict:
+def _auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 

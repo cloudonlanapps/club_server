@@ -1,5 +1,6 @@
 """Tests for group kind derivation, semi-auto guards, and DOB-bound truncation."""
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ DOB_2014 = 1388534400000  # 2014-01-01 UTC midnight
 ONE_DAY_MS = 86_400_000
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -53,7 +54,7 @@ async def _approve_user(
         f"/v1/users/by_id/{username}/approve", headers=auth(admin_token)
     )
     assert appr.status_code in (200, 201, 204), appr.json()
-    update: dict = {}
+    update: dict[str, Any] = {}
     if gender is not None:
         update["gender"] = gender
     if date_of_birth is not None:

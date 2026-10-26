@@ -5,6 +5,7 @@ rejection half of R73, R95 and R98a from
 ``docs/credit_system_requirements.md``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
@@ -35,7 +36,7 @@ async def _programme(client: AsyncClient, admin: str, start: int) -> int:
     return (await create_programme(client, admin, venue, start=start))["id"]
 
 
-async def _roster_row(client: AsyncClient, token: str, event_id: int) -> dict:
+async def _roster_row(client: AsyncClient, token: str, event_id: int) -> dict[str, Any]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/credits", headers=auth(token)
     )

@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 VIDEO_POLL_INTERVAL_SECONDS = 5
 
-_scheduler_task: asyncio.Task | None = None
-_video_task: asyncio.Task | None = None
+_scheduler_task: asyncio.Task[None] | None = None
+_video_task: asyncio.Task[None] | None = None
 _session_maker: async_sessionmaker[AsyncSession] | None = None
 _stop_event: asyncio.Event | None = None
 

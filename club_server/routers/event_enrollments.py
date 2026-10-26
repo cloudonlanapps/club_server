@@ -5,7 +5,7 @@ Split from ``routers/events.py`` so each router stays within the file-size
 limit; the paths are unchanged.
 """
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,7 +46,7 @@ async def _apply_to_each_member(
     audit_action: AuditAction,
     event_id: int,
     action,
-    audit_details: dict | None = None,
+    audit_details: dict[str, Any] | None = None,
     ip_address: str | None = None,
 ) -> None:
     """Run ``action(membername)`` once per unique entry, audit-logging each call.

@@ -8,6 +8,7 @@ with their own approval lifecycle and are kept. A restored occurrence is
 unmarked; staff mark the register again if the session goes ahead.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -44,7 +45,7 @@ async def _register(client: AsyncClient, token: str, event_id: int, slot: int):
     return {row["membername"]: row["status"] for row in response.json()}
 
 
-async def _member_records(client: AsyncClient, token: str, member: str) -> list:
+async def _member_records(client: AsyncClient, token: str, member: str) -> list[Any]:
     response = await client.get(
         f"/v1/myevents/by_id/{member}/attendance",
         params={"fromTimeUtc": at(days=-10), "toTimeUtc": at(days=10)},
@@ -60,7 +61,7 @@ async def _imminent_programme(
     *members: str,
     minutes: int = 20,
     credits: int | None = None,
-) -> tuple[str, int, int, dict | None]:
+) -> tuple[str, int, int, dict[str, Any] | None]:
     """A programme starting in ``minutes``: markable now, cancellable by super-admin.
 
     With ``credits`` the first member gets an account before being assigned,

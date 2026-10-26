@@ -1,5 +1,6 @@
 """Tests for /v1/media (#161). Parallel suite to test_uploads.py."""
 
+from typing import Any
 import os
 import shutil
 import struct
@@ -66,7 +67,7 @@ async def _upload_image(
     *,
     preserve: bool = True,
     access_roles: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     data: dict[str, str] = {"preserveOriginal": "true" if preserve else "false"}
     if access_roles is not None:
         data["accessRoles"] = access_roles

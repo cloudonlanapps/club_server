@@ -6,6 +6,7 @@ it the way migration ``w7x8y9z0a1b2`` did, then run the backfill that the
 new migration runs.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
@@ -19,7 +20,7 @@ PREFS = "/v1/admin/preferences"
 RETENTION = "notification_info_retention_days"
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 

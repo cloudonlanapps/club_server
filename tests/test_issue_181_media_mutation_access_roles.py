@@ -11,6 +11,7 @@ Cases per endpoint:
 - super-admin is still allowed.
 """
 
+from typing import Any
 import os
 import shutil
 import struct
@@ -70,7 +71,7 @@ async def _upload_as(
     token: str,
     *,
     access_roles: str,
-) -> dict:
+) -> dict[str, Any]:
     r = await client.post(
         "/v1/media",
         files={"file": ("img.png", _png_bytes(), "image/png")},

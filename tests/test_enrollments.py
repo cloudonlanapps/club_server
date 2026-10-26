@@ -1,3 +1,4 @@
+from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -1148,7 +1149,7 @@ async def create_event_with_times(
     overlapping events.
     """
     venue_id = await create_venue(client, token)
-    data: dict = {
+    data: dict[str, Any] = {
         "title": title,
         "type": event_type,
         "venueId": venue_id,

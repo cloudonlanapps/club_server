@@ -1,5 +1,7 @@
 """Centralized exception definitions for the club_server application."""
 
+from typing import Any
+
 
 # =============================================================================
 # Common Exceptions
@@ -296,7 +298,7 @@ class EventConflictException(Exception):
 
     code = "SCHEDULE_CONFLICT"
 
-    def __init__(self, findings: list):
+    def __init__(self, findings: list[Any]):
         self.findings = findings
         super().__init__("The schedule clashes with other events")
 
@@ -1105,7 +1107,7 @@ class MediaLinkTooManyTagsException(Exception):
 class MediaInUseException(Exception):
     """Raised when media soft-delete is attempted while any link references it (#162)."""
 
-    def __init__(self, media_uuid: str, links: list[dict]):
+    def __init__(self, media_uuid: str, links: list[dict[str, Any]]):
         self.media_uuid = media_uuid
         self.links = links
         super().__init__(f"Media {media_uuid} is in use by {len(links)} link(s)")

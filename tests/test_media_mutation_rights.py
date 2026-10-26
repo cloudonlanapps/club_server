@@ -5,6 +5,7 @@ access roles (media:R43). Anyone else is refused: with 403 when they can
 view the item (media:R44, R46), with 404 when they cannot (media:R45).
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,7 @@ from .media_helpers import (
 pytestmark = pytest.mark.usefixtures("clean_upload_dir")
 
 
-async def _record(client: AsyncClient, token: str, media_id: int) -> dict:
+async def _record(client: AsyncClient, token: str, media_id: int) -> dict[str, Any]:
     response = await client.get(f"/v1/media/by_id/{media_id}", headers=auth(token))
     assert response.status_code == 200, response.text
     return response.json()

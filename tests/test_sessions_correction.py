@@ -6,6 +6,7 @@ no cutoff. Camp R105 and one-off R22a: the ordinary update accepts
 ``sessions`` at any time, including after the event has started.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,7 +57,9 @@ async def _update(client: AsyncClient, token: str, event_id: int, **body: object
     )
 
 
-async def _schedules(client: AsyncClient, token: str, event_id: int) -> list[dict]:
+async def _schedules(
+    client: AsyncClient, token: str, event_id: int
+) -> list[dict[str, Any]]:
     response = await client.get(
         f"/v1/events/by_id/{event_id}/schedules", headers=auth(token)
     )
@@ -64,7 +67,9 @@ async def _schedules(client: AsyncClient, token: str, event_id: int) -> list[dic
     return response.json()
 
 
-async def _split_programme(client: AsyncClient, token: str, venue: int) -> dict:
+async def _split_programme(
+    client: AsyncClient, token: str, venue: int
+) -> dict[str, Any]:
     """A programme split two days in: 60-minute occurrences, then 90-minute ones."""
     start = at(days=2)
     programme = await create_programme(client, token, venue, start=start)

@@ -4,6 +4,7 @@ Read through the owner's preview, which renders the same document the
 publish stores.
 """
 
+from typing import Any
 import math
 
 import pytest
@@ -52,7 +53,7 @@ A4_PORTRAIT_PT = (595.28, 841.89)
 async def _draft(
     client: AsyncClient,
     db_session: AsyncSession,
-    layout: list,
+    layout: list[Any],
     *,
     name: str = "Spring review",
     **extra,

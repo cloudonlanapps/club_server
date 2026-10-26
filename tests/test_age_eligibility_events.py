@@ -1,5 +1,6 @@
 """Age-based eligibility on events (#16, eligibility_requirements.md)."""
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +31,7 @@ BAND = {"minAge": FIVE, "maxAge": EIGHTEEN}
 WINDOW_FIELDS = ("dobOnOrAfterUtc", "dobOnOrBeforeUtc", "eligibilityReferenceDayUtc")
 
 
-def reported_window(event: dict) -> tuple[int | None, int | None, int]:
+def reported_window(event: dict[str, Any]) -> tuple[int | None, int | None, int]:
     return (
         event["dobOnOrAfterUtc"],
         event["dobOnOrBeforeUtc"],

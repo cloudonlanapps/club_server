@@ -11,6 +11,7 @@ is written leaves the old link and file as they were and the new link absent.
 The rule itself is club_server#28.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -46,7 +47,7 @@ OTHER_TAG = "gallery"
 
 async def _avatar_also_linked_from(
     client: AsyncClient, alice: str, writer: str, owner_path: str, tag: str
-) -> dict:
+) -> dict[str, Any]:
     """Alice's avatar, its file linked by ``writer`` to a second owner too."""
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
     _ = await link(client, alice, ALICE, old["uuid"])
@@ -57,7 +58,12 @@ async def _avatar_also_linked_from(
 
 
 async def _replace_and_assert_file_kept(
-    client: AsyncClient, alice: str, reader: str, owner_path: str, tag: str, old: dict
+    client: AsyncClient,
+    alice: str,
+    reader: str,
+    owner_path: str,
+    tag: str,
+    old: dict[str, Any],
 ) -> None:
     """Link a new avatar; the old file and its other link are still there."""
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
@@ -147,7 +153,11 @@ async def _avatar_state(db: AsyncSession) -> tuple[list[str], list[str]]:
 
 
 async def _assert_old_avatar_untouched(
-    client: AsyncClient, test_engine: AsyncEngine, alice: str, old: dict, new: dict
+    client: AsyncClient,
+    test_engine: AsyncEngine,
+    alice: str,
+    old: dict[str, Any],
+    new: dict[str, Any],
 ) -> None:
     """The old link and file are as they were and the new link is absent:
     through the API as the member and the super admin, and in a session of

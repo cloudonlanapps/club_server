@@ -7,6 +7,7 @@ the evidence for; the ones still red carry a strict xfail naming the issue
 whose implementation turns them green.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,7 +49,7 @@ from .redesign_helpers import (
 )
 
 
-def _statuses(occurrences: list[dict]) -> dict[int, str]:
+def _statuses(occurrences: list[dict[str, Any]]) -> dict[int, str]:
     return {o["occurrenceTimeUtc"]: o["status"] for o in occurrences}
 
 
@@ -693,7 +694,9 @@ async def _terminated_programme_with_bound_credit(
     return admin, programme["id"], str(account["accountId"])
 
 
-async def _accounts_of(client: AsyncClient, token: str, member: str) -> list[dict]:
+async def _accounts_of(
+    client: AsyncClient, token: str, member: str
+) -> list[dict[str, Any]]:
     response = await client.get(
         "/v1/credits/accounts", params={"membername": member}, headers=auth(token)
     )

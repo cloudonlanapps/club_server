@@ -4,6 +4,7 @@ Each test names the rule it proves in ``docs/auth_requirements.md``.
 Login and tokens are in ``test_auth_requirement_gaps.py``.
 """
 
+from typing import Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,11 +24,11 @@ def _clear_outbox():
     ConsoleEmailSender.clear()
 
 
-def auth(token: str) -> dict:
+def auth(token: str) -> dict[str, Any]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _login(client: AsyncClient, username: str, password: str) -> dict:
+async def _login(client: AsyncClient, username: str, password: str) -> dict[str, Any]:
     response = await client.post(
         "/v1/auth/login", json={"username": username, "password": password}
     )
@@ -46,7 +47,7 @@ async def _member_with_email(
     await db_session.commit()
 
 
-async def _reset_audit(client: AsyncClient, admin: str) -> dict:
+async def _reset_audit(client: AsyncClient, admin: str) -> dict[str, Any]:
     response = await client.get(
         "/v1/audit_log",
         params={"action": "password_reset_requested"},
