@@ -12,6 +12,7 @@ must stay private cannot join this document.
 from fastapi import APIRouter
 
 from ..config import settings
+from ..dependencies import applications_available
 from ..schemas.common import CapabilitiesResponse
 
 router = APIRouter(prefix="/capabilities", tags=["Capabilities"])
@@ -37,5 +38,6 @@ async def get_capabilities() -> CapabilitiesResponse:
         event_marketing=settings.event_marketing_enabled,
         identity_verification=settings.identity_verification_required,
         extended_profile=settings.extended_profile_enabled,
+        applications=applications_available(),
         default_country_code=settings.default_country_code,
     )

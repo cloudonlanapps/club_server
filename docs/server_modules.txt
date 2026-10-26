@@ -52,6 +52,10 @@ Modules (as of 2026-10-26, regenerated from the routers mounted in main.py)
   │ Eval. Media     │ /evaluations/by_id/{id}/media                                │ evidence links; member_copy                                                           │
   ├─────────────────┼──────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────┤
   │ My Evaluations  │ /myevaluations                                               │ published only, private items left out                                                │
+  ├─────────────────┼──────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────┤
+  │ Applications    │ /applications, /applications/labels|clauses                  │ optional per deployment (#93); templates, admin write                                 │
+  ├─────────────────┼──────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────┤
+  │ App. Forms      │ /applications/{id}/save|publish|…|preview|form               │ lifecycle, duplicate, PDFs: preview, own form, member's form                          │
   └─────────────────┴──────────────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────┘
 
 Removed since the May 2026 snapshot: Guardians, Uploads (/uploaded). Evaluations and

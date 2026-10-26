@@ -1,0 +1,444 @@
+{
+  "_comment": "The clause library: sentences ready in English, Marathi and Hindi, with gaps ({name}) for a template's facts. Gaps hold only dates, times, numbers and names, never nouns: where the noun changes (camp, championship, trial), there is one clause per variant, since Marathi and Hindi inflect it. Text taken from an existing printed registration form is word for word; `_review` lists the languages written for the library that need a fluent reader.",
+  "formats": {
+    "months": {
+      "en": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "mr": [
+        "जानेवारी",
+        "फेब्रुवारी",
+        "मार्च",
+        "एप्रिल",
+        "मे",
+        "जून",
+        "जुलै",
+        "ऑगस्ट",
+        "सप्टेंबर",
+        "ऑक्टोबर",
+        "नोव्हेंबर",
+        "डिसेंबर"
+      ],
+      "hi": [
+        "जनवरी",
+        "फ़रवरी",
+        "मार्च",
+        "अप्रैल",
+        "मई",
+        "जून",
+        "जुलाई",
+        "अगस्त",
+        "सितंबर",
+        "अक्टूबर",
+        "नवंबर",
+        "दिसंबर"
+      ]
+    },
+    "range_word": {
+      "en": "–",
+      "mr": " ते ",
+      "hi": " से "
+    },
+    "and": {
+      "en": "and",
+      "mr": "व",
+      "hi": "और"
+    },
+    "day_parts": {
+      "_comment": "a time prints with the part of the day it falls in: before 12, before 16, before 20, after",
+      "en": [
+        "am",
+        "pm",
+        "pm",
+        "pm"
+      ],
+      "mr": [
+        "सकाळी",
+        "दुपारी",
+        "संध्याकाळी",
+        "रात्री"
+      ],
+      "hi": [
+        "सुबह",
+        "दोपहर",
+        "शाम",
+        "रात"
+      ]
+    },
+    "_review": {
+      "mr": "months and words written for the library",
+      "hi": "all"
+    }
+  },
+  "choices": {
+    "on_ice": {
+      "en": "on-ice",
+      "mr": "ऑन-आईस",
+      "hi": "ऑन-आइस",
+      "_review": [
+        "hi"
+      ]
+    },
+    "inline": {
+      "en": "inline",
+      "mr": "इनलाइन",
+      "hi": "इनलाइन",
+      "_review": [
+        "hi"
+      ]
+    }
+  },
+  "clauses": {
+    "header.camp": {
+      "kind": "header",
+      "gaps": {
+        "dates": "date_range"
+      },
+      "text": {
+        "en": "Camp: {dates}",
+        "mr": "शिबिर: {dates}",
+        "hi": "शिविर: {dates}"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "header.trial": {
+      "kind": "header",
+      "gaps": {
+        "dates": "date_range"
+      },
+      "text": {
+        "en": "Trial: {dates}",
+        "mr": "निवड चाचणी: {dates}",
+        "hi": "चयन ट्रायल: {dates}"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "header.training_camp": {
+      "kind": "header",
+      "gaps": {
+        "dates": "date_range"
+      },
+      "text": {
+        "en": "Training camp: {dates}",
+        "mr": "प्रशिक्षण शिबिर: {dates}",
+        "hi": "प्रशिक्षण शिविर: {dates}"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "header.matches": {
+      "kind": "header",
+      "gaps": {
+        "dates": "date_range"
+      },
+      "text": {
+        "en": "Matches: {dates}",
+        "mr": "सामने: {dates}",
+        "hi": "मैच: {dates}"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "declaration.camp": {
+      "kind": "declaration",
+      "text": {
+        "en": "I hereby declare that the information provided above is true and correct. I agree to abide by all the rules and regulations of the camp.",
+        "mr": "मी याची खात्री देतो/देते की वरील सर्व माहिती अचूक व खरी आहे आणि मी शिबिरातील सर्व नियम व अटींचे पालन करीन.",
+        "hi": "मैं घोषणा करता/करती हूँ कि ऊपर दी गई सभी जानकारी सत्य और सही है। मैं शिविर के सभी नियमों और शर्तों का पालन करूँगा/करूँगी।"
+      },
+      "_review": [
+        "hi"
+      ]
+    },
+    "declaration.championship": {
+      "kind": "declaration",
+      "text": {
+        "en": "I hereby declare that the information provided above is true and correct. I agree to abide by all the rules and regulations of the championship.",
+        "mr": "मी याची खात्री देतो/देते की वरील सर्व माहिती अचूक व खरी आहे आणि मी स्पर्धेतील सर्व नियम व अटींचे पालन करीन.",
+        "hi": "मैं घोषणा करता/करती हूँ कि ऊपर दी गई सभी जानकारी सत्य और सही है। मैं प्रतियोगिता के सभी नियमों और शर्तों का पालन करूँगा/करूँगी।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "declaration.trial": {
+      "kind": "declaration",
+      "text": {
+        "en": "I hereby declare that the information provided above is true and correct. I agree to abide by all the rules and regulations of the selection trial.",
+        "mr": "मी याची खात्री देतो/देते की वरील सर्व माहिती अचूक व खरी आहे आणि मी निवड चाचणीतील सर्व नियम व अटींचे पालन करीन.",
+        "hi": "मैं घोषणा करता/करती हूँ कि ऊपर दी गई सभी जानकारी सत्य और सही है। मैं चयन ट्रायल के सभी नियमों और शर्तों का पालन करूँगा/करूँगी।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "rule.identity_proof": {
+      "kind": "rule",
+      "heading": {
+        "en": "Identity Proof Required",
+        "mr": "ओळखपत्र आवश्यक",
+        "hi": "पहचान पत्र आवश्यक"
+      },
+      "text": {
+        "en": "All players must carry a valid Aadhaar Card or any government-issued document bearing their date of birth and address. This is mandatory for participation.",
+        "mr": "सर्व खेळाडूंनी आधार कार्ड किंवा जन्मतारीख व पत्ता असलेले वैध कागदपत्र सोबत आणणे अनिवार्य आहे.",
+        "hi": "सभी खिलाड़ियों को आधार कार्ड या जन्मतिथि और पता दर्शाने वाला कोई वैध सरकारी दस्तावेज़ साथ लाना अनिवार्य है।"
+      },
+      "_review": [
+        "hi"
+      ]
+    },
+    "rule.no_fee": {
+      "kind": "rule",
+      "heading": {
+        "en": "No Registration Fee",
+        "mr": "नोंदणी शुल्क नाही",
+        "hi": "कोई पंजीकरण शुल्क नहीं"
+      },
+      "text": {
+        "en": "Participation is completely FREE of cost. Skates and required equipment will be provided by the Association.",
+        "mr": "सहभाग पूर्णपणे मोफत आहे. स्केट्स व आवश्यक उपकरणे असोसिएशनतर्फे उपलब्ध करून दिली जातील.",
+        "hi": "भागीदारी पूरी तरह निःशुल्क है। स्केट्स और आवश्यक उपकरण एसोसिएशन द्वारा उपलब्ध कराए जाएँगे।"
+      },
+      "_review": [
+        "mr: first sentence generalised from the printed form's",
+        "hi"
+      ]
+    },
+    "rule.fee": {
+      "kind": "rule",
+      "gaps": {
+        "amount": "amount"
+      },
+      "heading": {
+        "en": "Registration Fee",
+        "mr": "नोंदणी शुल्क",
+        "hi": "पंजीकरण शुल्क"
+      },
+      "text": {
+        "en": "A registration fee of ₹{amount} is payable at registration.",
+        "mr": "नोंदणीच्या वेळी ₹{amount} नोंदणी शुल्क भरावे लागेल.",
+        "hi": "पंजीकरण के समय ₹{amount} पंजीकरण शुल्क देना होगा।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "rule.self_arranged": {
+      "kind": "rule",
+      "heading": {
+        "en": "Self-Arranged Accommodation & Travel",
+        "mr": "स्वखर्चाने व्यवस्था",
+        "hi": "स्वयं के खर्च पर व्यवस्था"
+      },
+      "text": {
+        "en": "Coaches and players are required to make their own arrangements for accommodation, meals, and travel at their own expense.",
+        "mr": "कोचेस व खेळाडूंनी राहणे, जेवण व प्रवासाची व्यवस्था स्वतःच्या खर्चाने करणे आवश्यक आहे.",
+        "hi": "कोच और खिलाड़ियों को रहने, भोजन और यात्रा की व्यवस्था अपने खर्च पर स्वयं करनी होगी।"
+      },
+      "_review": [
+        "hi"
+      ]
+    },
+    "rule.timely_arrival": {
+      "kind": "rule",
+      "gaps": {
+        "city": "name",
+        "arrive": "date",
+        "report": "date",
+        "report_time": "time"
+      },
+      "heading": {
+        "en": "Timely Arrival — Mandatory",
+        "mr": "वेळेवर उपस्थिती",
+        "hi": "समय पर पहुँचना अनिवार्य"
+      },
+      "text": {
+        "en": "All participants (players and parents/guardians) must arrive in {city} by the evening/night of {arrive}. Late arrivals may not be permitted to register. Reporting time on ground – {report_time}, {report}",
+        "mr": "सर्व सहभागी (खेळाडू व पालक) यांनी {arrive} रोजी संध्याकाळी/रात्रीपर्यंत {city} येथे पोहोचणे आवश्यक आहे.",
+        "hi": "सभी प्रतिभागी (खिलाड़ी और अभिभावक) {arrive} की शाम/रात तक {city} पहुँच जाएँ। देर से आने वालों को पंजीकरण की अनुमति नहीं दी जा सकती है। मैदान पर रिपोर्टिंग – {report_time}, {report}"
+      },
+      "_review": [
+        "mr: the printed form's sentence with its date and city made gaps",
+        "hi"
+      ]
+    },
+    "rule.registration_then_camp": {
+      "kind": "rule",
+      "gaps": {
+        "date": "date",
+        "venue": "name"
+      },
+      "heading": {
+        "en": "Registration & Camp Commencement",
+        "mr": "नोंदणी व शिबिराची सुरुवात",
+        "hi": "पंजीकरण और शिविर की शुरुआत"
+      },
+      "text": {
+        "en": "Registration will begin early morning on {date} at {venue}. The camp will commence immediately after registration.",
+        "mr": "{date} रोजी पहाटेपासून नोंदणी सुरू होईल व त्यानंतर त्वरित शिबिरास सुरुवात केली जाईल. ठिकाण: {venue}.",
+        "hi": "पंजीकरण {date} को सुबह {venue} में शुरू होगा। पंजीकरण के तुरंत बाद शिविर शुरू होगा।"
+      },
+      "_review": [
+        "mr: the printed form's sentence with its date and venue made gaps",
+        "hi"
+      ]
+    },
+    "rule.practice_sessions": {
+      "kind": "rule",
+      "gaps": {
+        "dates": "date_range",
+        "kinds": "choices"
+      },
+      "heading": {
+        "en": "Practice Sessions",
+        "mr": "नियमित सराव",
+        "hi": "नियमित अभ्यास"
+      },
+      "text": {
+        "en": "Regular practice sessions ({kinds}) from {dates}.",
+        "mr": "{dates} दरम्यान नियमित सराव ({kinds}).",
+        "hi": "{dates} तक नियमित अभ्यास सत्र ({kinds})।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "rule.training_camp": {
+      "kind": "rule",
+      "gaps": {
+        "dates": "date_range"
+      },
+      "heading": {
+        "en": "Training Camp",
+        "mr": "प्रशिक्षण शिबिर",
+        "hi": "प्रशिक्षण शिविर"
+      },
+      "text": {
+        "en": "A short training camp will be conducted from {dates}.",
+        "mr": "{dates} दरम्यान लहान प्रशिक्षण शिबिर घेतले जाईल.",
+        "hi": "{dates} तक एक छोटा प्रशिक्षण शिविर आयोजित किया जाएगा।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "rule.matches": {
+      "kind": "rule",
+      "gaps": {
+        "dates": "date_range",
+        "venue": "name"
+      },
+      "heading": {
+        "en": "Matches",
+        "mr": "सामने",
+        "hi": "मैच"
+      },
+      "text": {
+        "en": "Tournament matches will take place from {dates} at {venue}.",
+        "mr": "{dates} दरम्यान {venue} येथे स्पर्धेचे सामने होतील.",
+        "hi": "टूर्नामेंट के मैच {dates} तक {venue} में होंगे।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "rule.inform_commitments": {
+      "kind": "rule",
+      "heading": {
+        "en": "Attendance",
+        "mr": "उपस्थिती",
+        "hi": "उपस्थिति"
+      },
+      "text": {
+        "en": "If Diwali holidays, school or college examinations, or any other commitments may affect your attendance, please inform us individually.",
+        "mr": "दिवाळीची सुट्टी, शाळा/महाविद्यालयाच्या परीक्षा किंवा इतर कारणांमुळे उपस्थित राहण्यात अडचण येत असल्यास, कृपया आम्हाला वैयक्तिकरित्या कळवा.",
+        "hi": "यदि दिवाली की छुट्टियाँ, स्कूल या कॉलेज की परीक्षाएँ या कोई अन्य कारण आपकी उपस्थिति पर असर डाल सकते हैं, तो कृपया हमें व्यक्तिगत रूप से सूचित करें।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "selection.attend_practice": {
+      "kind": "selection",
+      "gaps": {
+        "dates": "date_range",
+        "kinds": "choices"
+      },
+      "text": {
+        "en": "I will attend the daily practice sessions ({kinds}) from {dates}.",
+        "mr": "मी {dates} दरम्यानच्या दैनंदिन सरावाला ({kinds}) उपस्थित राहीन.",
+        "hi": "मैं {dates} तक दैनिक अभ्यास सत्रों ({kinds}) में भाग लूँगा/लूँगी।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "selection.attend_training_camp": {
+      "kind": "selection",
+      "gaps": {
+        "dates": "date_range"
+      },
+      "text": {
+        "en": "I will attend the training camp from {dates}.",
+        "mr": "मी {dates} दरम्यानच्या प्रशिक्षण शिबिराला उपस्थित राहीन.",
+        "hi": "मैं {dates} तक प्रशिक्षण शिविर में भाग लूँगा/लूँगी।"
+      },
+      "_review": [
+        "mr",
+        "hi"
+      ]
+    },
+    "note.follow_rules": {
+      "kind": "note",
+      "text": {
+        "en": "All participants are expected to strictly follow the above rules and regulations.",
+        "mr": "सर्वांनी वरील नियमांचे काटेकोर पालन करावे.",
+        "hi": "सभी प्रतिभागियों से उपरोक्त नियमों का सख़्ती से पालन करने की अपेक्षा है।"
+      },
+      "_review": [
+        "hi"
+      ]
+    },
+    "note.keys_to_success": {
+      "kind": "note",
+      "text": {
+        "en": "Discipline, Punctuality and Preparation — Keys to Success",
+        "mr": "शिस्त, वेळेचे पालन आणि तयारी हीच यशाची गुरुकिल्ली आहे",
+        "hi": "अनुशासन, समय की पाबंदी और तैयारी — सफलता की कुंजी"
+      },
+      "_review": [
+        "hi"
+      ]
+    }
+  }
+}

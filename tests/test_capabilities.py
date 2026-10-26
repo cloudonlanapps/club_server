@@ -123,7 +123,7 @@ async def test_should_return_a_closed_set_of_capabilities(
 
     The set grows as modules become optional — ``evaluations`` joined it in
     #302, ``eventMarketing`` in #410, ``identityVerification`` in #428,
-    ``defaultCountryCode`` in #15, ``extendedProfile`` in #92 — which is the shape #339 designed for. It stays asserted exactly
+    ``defaultCountryCode`` in #15, ``extendedProfile`` in #92, ``applications`` in #93 — which is the shape #339 designed for. It stays asserted exactly
     so that growth is a deliberate edit rather than a silent one.
     """
     token = await create_member(db_session, "alice")
@@ -136,6 +136,7 @@ async def test_should_return_a_closed_set_of_capabilities(
         "eventMarketing",
         "identityVerification",
         "extendedProfile",
+        "applications",
         "defaultCountryCode",
     }
 
@@ -162,3 +163,43 @@ async def test_should_report_extended_profile_on_when_enabled(
 
     assert response.status_code == 200
     assert response.json()["extendedProfile"] is True
+
+
+@pytest.mark.requirement("platform:R14e")
+@pytest.mark.requirement("applications:R1")
+@pytest.mark.asyncio
+async def test_should_report_applications_off_when_not_enabled(
+    client: AsyncClient,
+):
+    """A deployment that says nothing does not offer applications (#93)."""
+    response = await client.get(CAPABILITIES)
+
+    assert response.status_code == 200
+    assert response.json()["applications"] is False
+
+
+@pytest.mark.requirement("platform:R14e")
+@pytest.mark.requirement("applications:R1")
+@pytest.mark.asyncio
+async def test_should_report_applications_on_when_enabled_with_identity_verification(
+    client: AsyncClient, applications_enabled: None
+):
+    """Both switches on: applications are offered (#93)."""
+    response = await client.get(CAPABILITIES)
+
+    assert response.status_code == 200
+    assert response.json()["applications"] is True
+
+
+@pytest.mark.requirement("platform:R14e")
+@pytest.mark.requirement("applications:R1")
+@pytest.mark.asyncio
+async def test_should_report_applications_off_when_identity_verification_is_off(
+    client: AsyncClient, applications_enabled: None, identity_verification_off: None
+):
+    """A member's form needs their identity document: without verification
+    the module is off whatever its own switch says (#93)."""
+    response = await client.get(CAPABILITIES)
+
+    assert response.status_code == 200
+    assert response.json()["applications"] is False

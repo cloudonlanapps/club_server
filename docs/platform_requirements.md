@@ -85,9 +85,9 @@ and when. A key never written has no writer and no time.
 
 - **R12** [✅] Anyone, signed in or not, whatever their status or role,
   can read what this deployment does, and everyone gets the same answer.
-- **R13** [✅] The document is a closed set: five flags — the
-  credit system, evaluations, event marketing, identity verification and
-  the extended profile — and the default country code.
+- **R13** [✅] The document is a closed set: six flags — the
+  credit system, evaluations, event marketing, identity verification, the
+  extended profile and applications — and the default country code.
 - **R14** [✅] Each flag reports the deployment's configuration: credit
   off unless enabled, identity verification on unless disabled.
 - **R14a** [✅] Evaluations and event marketing each report
@@ -101,6 +101,9 @@ and when. A key never written has no writer and no time.
   counts as not set.
 - **R14d** [✅] `extendedProfile` reports whether the deployment
   enables `EXTENDED_PROFILE_ENABLED`: off unless enabled.
+- **R14e** [✅] `applications` is true only when the deployment
+  enables both `APPLICATIONS_ENABLED` and `IDENTITY_VERIFICATION_REQUIRED`
+  (applications R1): off unless enabled.
 
 ## Audit log: recording
 

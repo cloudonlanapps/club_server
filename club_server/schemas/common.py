@@ -70,6 +70,9 @@ class CapabilitiesResponse(CamelCaseModel):
     identity_verification: bool = True
     # Whether the app shows the extended profile fields (#92).
     extended_profile: bool = False
+    # Whether members download application forms (#93): APPLICATIONS_ENABLED
+    # and IDENTITY_VERIFICATION_REQUIRED both on.
+    applications: bool = False
     default_country_code: str | None = Field(
         default=None,
         description=(

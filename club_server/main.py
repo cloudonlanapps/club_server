@@ -27,6 +27,8 @@ from .routers import (  # noqa: E402 — directories created at import time, bef
     admin_router,
     admin_preferences_router,
     profile_options_router,
+    applications_router,
+    application_forms_router,
     auth_router,
     users_router,
     groups_router,
@@ -229,6 +231,8 @@ app.include_router(mycredits_router, prefix=settings.api_v1_prefix)
 # via require_evaluations_enabled. The templates router is included before
 # the evaluations router so /evaluations/templates/... is matched by its own
 # literal prefix rather than by /evaluations/by_id/{id}.
+app.include_router(applications_router, prefix=settings.api_v1_prefix)
+app.include_router(application_forms_router, prefix=settings.api_v1_prefix)
 app.include_router(evaluation_templates_router, prefix=settings.api_v1_prefix)
 app.include_router(evaluation_template_items_router, prefix=settings.api_v1_prefix)
 app.include_router(evaluations_router, prefix=settings.api_v1_prefix)

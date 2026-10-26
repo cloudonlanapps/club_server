@@ -1484,3 +1484,78 @@ class InquiryNotFoundException(Exception):
     def __init__(self, inquiry_id: int):
         self.inquiry_id = inquiry_id
         super().__init__(f"Inquiry {inquiry_id} not found")
+
+
+class ApplicationNotFoundException(Exception):
+    """Raised when an application is absent, soft-deleted, or not offered to
+    the caller (#93)."""
+
+    application_id: int
+
+    def __init__(self, application_id: int):
+        self.application_id = application_id
+        super().__init__(f"Application {application_id} not found")
+
+
+class ApplicationNotPublishedException(Exception):
+    """Raised when a member's form is asked of an application not published (#93)."""
+
+    application_id: int
+
+    def __init__(self, application_id: int):
+        self.application_id = application_id
+        super().__init__(f"Application {application_id} is not published")
+
+
+class ApplicationNotEligibleException(Exception):
+    """Raised when no age category of the application matches the member (#93)."""
+
+    def __init__(self) -> None:
+        super().__init__("not eligible for this application")
+
+
+class ApplicationTransitionException(Exception):
+    """Raised when a state move does not start from its one permitted state (#93)."""
+
+    current_status: str
+    action: str
+
+    def __init__(self, current_status: str, action: str):
+        self.current_status = current_status
+        self.action = action
+        super().__init__(f"Cannot {action} an application in status '{current_status}'")
+
+
+class ApplicationIncompleteException(Exception):
+    """Raised when a save finds texts missing a print language (#93)."""
+
+    missing: list[str]
+    language: str
+
+    def __init__(self, missing: list[str], language: str):
+        self.missing = missing
+        self.language = language
+        super().__init__(f"No {language!r} text for {', '.join(missing)}")
+
+
+class ApplicationReferenceException(Exception):
+    """Raised when a text names an unknown clause, a missing fact or a fact of
+    the wrong type, or the template is otherwise unprintable (#93)."""
+
+    reason: str
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(reason)
+
+
+class ApplicationDoesNotFitException(Exception):
+    """Raised when the member's details alone do not fit page 1 (#93)."""
+
+    overflow: int
+
+    def __init__(self, overflow: float):
+        self.overflow = round(overflow)
+        super().__init__(
+            f"The details alone are {self.overflow} pt too long for page 1"
+        )

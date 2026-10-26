@@ -1,0 +1,225 @@
+"""Application templates: storage and state moves (#93, applications R2–R5, R12–R14).
+
+The lifecycle is an evaluation's: a draft is edited, saved (checked
+complete and measured; the layout stored), published to members, and
+unpublished or reverted to change it. Only a draft is edited; only a draft
+or a saved template is deleted (soft).
+"""
+
+from typing import Any
+
+from sqlalchemy import ColumnElement, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..club_calendar import club_today, day_to_date
+from ..db.models.application import Application
+from ..exceptions import (
+    ApplicationNotFoundException,
+    ApplicationTransitionException,
+    InvalidStateException,
+)
+from ..schemas.application import (
+    ApplicationContent,
+    ApplicationLayout,
+    ApplicationResponse,
+    ApplicationSpread,
+    ApplicationStatus,
+    ApplicationUpdate,
+)
+from ..schemas.common import PaginatedResponse
+from ..utils import now_utc_ms
+from .application_document import options_document, template_document
+from .application_form import decide_layout
+from .profile_options import ProfileOptionsService
+
+DRAFT, SAVED, PUBLISHED = "draft", "saved", "published"
+
+# The moves a template can make: action → (from, to).
+TRANSITIONS: dict[str, tuple[str, str]] = {
+    "save": (DRAFT, SAVED),  # checked complete, layout decided and stored
+    "publish": (SAVED, PUBLISHED),  # members see it
+    "unpublish": (PUBLISHED, SAVED),
+    "revert": (SAVED, DRAFT),  # editable again; the stored layout is dropped
+}
+DELETABLE = frozenset({DRAFT, SAVED})
+CONTENT_FIELDS = tuple(ApplicationContent.model_fields)
+LIST_FIELDS = frozenset(
+    {"header", "age_categories", "selections", "terms", "terms_notes"}
+)
+DICT_FIELDS = frozenset({"facts", "label_overrides"})
+
+
+def _stored(value: Any) -> Any:
+    """A schema value as its JSON column holds it: the API's shape."""
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json", by_alias=True, exclude_none=True)
+    if isinstance(value, list):
+        return [_stored(v) for v in value]  # pyright: ignore[reportUnknownVariableType]
+    if isinstance(value, dict):
+        return {k: _stored(v) for k, v in value.items()}  # pyright: ignore[reportUnknownVariableType]
+    return value
+
+
+def _empty(field: str) -> Any:
+    if field in LIST_FIELDS:
+        return []
+    if field in DICT_FIELDS:
+        return {}
+    return None
+
+
+def application_response(application: Application) -> ApplicationResponse:
+    """A template as returned."""
+    content: dict[str, Any] = {
+        field: getattr(application, field) for field in CONTENT_FIELDS
+    }
+    stored = application.layout
+    layout = (
+        ApplicationLayout(
+            name=stored["name"],
+            spread=ApplicationSpread(**stored["spread"]),
+        )
+        if stored
+        else None
+    )
+    status: ApplicationStatus = application.status  # pyright: ignore[reportAssignmentType]
+    return ApplicationResponse.model_validate(
+        {
+            **ApplicationContent.model_validate(content).model_dump(),
+            "id": application.id,
+            "status": status,
+            "layout": layout,
+            "created_by": application.created_by,
+            "created_at_utc": application.created_at,
+            "updated_at_utc": application.updated_at,
+        }
+    )
+
+
+class ApplicationService:
+    """Templates and their lifecycle."""
+
+    def __init__(self, db: AsyncSession):
+        self.db: AsyncSession = db
+
+    async def get_or_raise(self, application_id: int) -> Application:
+        """A live template, or ``ApplicationNotFoundException``."""
+        result = await self.db.execute(
+            select(Application).where(
+                Application.id == application_id, Application.deleted_at.is_(None)
+            )
+        )
+        application = result.scalar_one_or_none()
+        if application is None:
+            raise ApplicationNotFoundException(application_id)
+        return application
+
+    async def list_page(
+        self, status: str | None, offset: int, limit: int
+    ) -> PaginatedResponse[ApplicationResponse]:
+        """Live templates, newest first, optionally of one status."""
+        condition: list[ColumnElement[bool]] = [Application.deleted_at.is_(None)]
+        if status is not None:
+            condition.append(Application.status == status)
+        total = await self.db.execute(
+            select(func.count()).select_from(Application).where(*condition)
+        )
+        rows = await self.db.execute(
+            select(Application)
+            .where(*condition)
+            .order_by(Application.created_at.desc(), Application.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return PaginatedResponse(
+            items=[application_response(a) for a in rows.scalars().all()],
+            total=total.scalar_one(),
+            offset=offset,
+            limit=limit,
+        )
+
+    async def create(self, content: ApplicationContent, created_by: str) -> Application:
+        """A new draft (R2)."""
+        now = now_utc_ms()
+        application = Application(
+            status=DRAFT,
+            created_by=created_by,
+            created_at=now,
+            updated_at=now,
+            layout=None,
+            **{field: _stored(getattr(content, field)) for field in CONTENT_FIELDS},
+        )
+        self.db.add(application)
+        await self.db.flush()
+        await self.db.refresh(application)
+        return application
+
+    async def update(
+        self, application_id: int, changes: ApplicationUpdate
+    ) -> Application:
+        """Replace the fields sent; a draft only (R3)."""
+        application = await self.get_or_raise(application_id)
+        if application.status != DRAFT:
+            raise InvalidStateException(
+                f"Only a draft application can be edited (it is {application.status})"
+            )
+        for field in changes.model_fields_set:
+            value = getattr(changes, field)
+            if value is None and field == "languages":
+                continue
+            setattr(
+                application, field, _empty(field) if value is None else _stored(value)
+            )
+        application.updated_at = now_utc_ms()
+        await self.db.flush()
+        await self.db.refresh(application)
+        return application
+
+    async def soft_delete(self, application_id: int) -> Application:
+        """Soft delete a draft or saved template (R4)."""
+        application = await self.get_or_raise(application_id)
+        if application.status not in DELETABLE:
+            raise InvalidStateException(
+                "A published application must be unpublished before it is deleted"
+            )
+        now = now_utc_ms()
+        application.deleted_at = now
+        application.updated_at = now
+        await self.db.flush()
+        return application
+
+    async def duplicate(self, application_id: int, created_by: str) -> Application:
+        """A new draft copied from any template (R5)."""
+        source = await self.get_or_raise(application_id)
+        now = now_utc_ms()
+        copy = Application(
+            status=DRAFT,
+            created_by=created_by,
+            created_at=now,
+            updated_at=now,
+            layout=None,
+            **{field: getattr(source, field) for field in CONTENT_FIELDS},
+        )
+        self.db.add(copy)
+        await self.db.flush()
+        await self.db.refresh(copy)
+        return copy
+
+    async def move(self, application_id: int, action: str) -> Application:
+        """One of the four state moves (R12–R14)."""
+        application = await self.get_or_raise(application_id)
+        source, target = TRANSITIONS[action]
+        if application.status != source:
+            raise ApplicationTransitionException(application.status, action)
+        if action == "save":
+            options = options_document(await ProfileOptionsService(self.db).read())
+            application.layout = decide_layout(
+                template_document(application), options, day_to_date(club_today())
+            )
+        if action == "revert":
+            application.layout = None
+        application.status = target
+        application.updated_at = now_utc_ms()
+        await self.db.flush()
+        await self.db.refresh(application)
+        return application

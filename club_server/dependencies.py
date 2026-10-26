@@ -245,6 +245,31 @@ def require_extended_profile_enabled() -> None:
         )
 
 
+def applications_available() -> bool:
+    """Whether this deployment serves applications (#93, applications R1).
+
+    A member's form needs their identity document, so the module needs
+    identity verification as well as its own switch.
+    """
+    return settings.applications_enabled and settings.identity_verification_required
+
+
+def require_applications_enabled() -> None:
+    """Refuse every application operation where the module is not available.
+
+    Attached to the application routers, as the evaluations' and credits'
+    gates are: the routes stay registered, only the answer changes.
+    """
+    if not applications_available():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "APPLICATIONS_DISABLED",
+                "message": "Applications are not enabled on this deployment",
+            },
+        )
+
+
 def require_evaluations_enabled() -> None:
     """Refuse every evaluation operation where the deployment does not ship them.
 

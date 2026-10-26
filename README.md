@@ -88,7 +88,7 @@ Optional, with defaults in code: `ENVIRONMENT` (`development`),
 `EVALUATIONS_ENABLED` and `EVENT_MARKETING_ENABLED` (all off; their routes
 answer 503 while off), `EXTENDED_PROFILE_ENABLED` (off; reported as
 `extendedProfile` so the apps show the extended profile fields, which are
-stored either way; while off, writing the club's profile options answers 503), `IDENTITY_VERIFICATION_REQUIRED` (on; off, a new user
+stored either way; while off, writing the club's profile options answers 503), `APPLICATIONS_ENABLED` (off; printable application forms from admin-defined templates, reported as `applications` and served only while `IDENTITY_VERIFICATION_REQUIRED` is on too; otherwise every application route answers 503), `IDENTITY_VERIFICATION_REQUIRED` (on; off, a new user
 registers straight to `pending` with no identity-document step),
 `CLUB_TIMEZONE` (`Asia/Kolkata`; the IANA time zone whose calendar days
 ages are counted on — today, and the day an event starts; an unknown zone stops

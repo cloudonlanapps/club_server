@@ -219,6 +219,19 @@ def extended_profile_enabled(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(scope="function")
+def applications_enabled(monkeypatch: pytest.MonkeyPatch):
+    """Turn the optional applications module on for one test (#93, applications R1).
+
+    Off by default like the other optional modules; it also needs identity
+    verification, which is on by default.
+    """
+    from club_server.config import settings as _settings
+
+    monkeypatch.setattr(_settings, "applications_enabled", True)
+    return None
+
+
+@pytest.fixture(scope="function")
 def evaluations_enabled(monkeypatch: pytest.MonkeyPatch):
     """Turn the optional evaluations module on for one test (#302, R61).
 

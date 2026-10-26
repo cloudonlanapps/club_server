@@ -101,6 +101,12 @@ class Settings(BaseSettings):
     # returned either way; this tells the app whether to show them, and
     # while off the profile-options write answers 503. Off by default.
     extended_profile_enabled: bool = False
+    # Applications (#93) — printable application forms from admin-defined
+    # templates, which a member downloads pre-filled, prints, signs and hands
+    # in. A member's form needs their identity document, so the module is
+    # available only where IDENTITY_VERIFICATION_REQUIRED is on too; while
+    # either is off every application route answers 503. Off by default.
+    applications_enabled: bool = False
     # Identity-document verification (#428) — one club verifies new members'
     # identity documents, another does not. On by default, which keeps the
     # flow of #142: a new user is ``registered`` until they upload a document
