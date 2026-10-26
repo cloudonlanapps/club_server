@@ -31,7 +31,7 @@ async def legacy_uploaded_media_table(db_session: AsyncSession):
     SQLAlchemy model is gone, but the cleanup function still issues a
     DELETE against it (production ordering: cleanup migration runs
     before the drop)."""
-    await db_session.execute(
+    _ = await db_session.execute(
         text(
             """
         CREATE TABLE IF NOT EXISTS uploaded_media (
@@ -56,7 +56,7 @@ async def legacy_uploaded_media_table(db_session: AsyncSession):
         )
     )
     yield
-    await db_session.execute(text("DROP TABLE IF EXISTS uploaded_media"))
+    _ = await db_session.execute(text("DROP TABLE IF EXISTS uploaded_media"))
 
 
 async def _insert_uploaded_media(
@@ -65,7 +65,7 @@ async def _insert_uploaded_media(
     uuid: str,
     uploaded_by: str,
 ) -> None:
-    await db.execute(
+    _ = await db.execute(
         text(
             """
         INSERT INTO uploaded_media (
@@ -89,7 +89,7 @@ async def _insert_media(
     uuid: str,
     uploaded_by: str,
 ) -> None:
-    await db.execute(
+    _ = await db.execute(
         text(
             """
         INSERT INTO media (
@@ -109,7 +109,7 @@ async def _insert_media(
 
 def _write(upload_dir: Path, name: str) -> Path:
     p = upload_dir / name
-    p.write_bytes(b"x" * 50)
+    _ = p.write_bytes(b"x" * 50)
     return p
 
 
@@ -124,7 +124,7 @@ async def test_cleanup_removes_remaining_rows_and_root_files(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     uid = "remaining-1"
     await _insert_uploaded_media(db_session, uuid=uid, uploaded_by="alice")
     await _insert_media(db_session, uuid=uid, uploaded_by="alice")
@@ -132,7 +132,7 @@ async def test_cleanup_removes_remaining_rows_and_root_files(
     media_dir = upload_dir / "media"
     media_dir.mkdir()
     canonical = media_dir / f"{uid}.webp"
-    canonical.write_bytes(b"canonical")
+    _ = canonical.write_bytes(b"canonical")
     await db_session.flush()
 
     counts = await _run_cleanup(db_session, upload_dir)
@@ -168,15 +168,15 @@ async def test_cleanup_aborts_when_phase_a_incomplete(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     uid = "orphan-uuid"
     await _insert_uploaded_media(db_session, uuid=uid, uploaded_by="alice")
     # NB: no matching media row.
-    _write(upload_dir, f"{uid}.webp")
+    _ = _write(upload_dir, f"{uid}.webp")
     await db_session.flush()
 
     with pytest.raises(PhaseAIncompleteError):
-        await _run_cleanup(db_session, upload_dir)
+        _ = await _run_cleanup(db_session, upload_dir)
 
     assert (upload_dir / f"{uid}.webp").exists()
     n = (
@@ -192,13 +192,13 @@ async def test_cleanup_sweeps_all_uuid_prefixed_root_files(
     db_session: AsyncSession,
     upload_dir: Path,
 ):
-    await create_registered_user(db_session, "alice")
+    _ = await create_registered_user(db_session, "alice")
     uid = "sweep-uuid"
     await _insert_uploaded_media(db_session, uuid=uid, uploaded_by="alice")
     await _insert_media(db_session, uuid=uid, uploaded_by="alice")
-    _write(upload_dir, f"{uid}.mp4")
-    _write(upload_dir, f"{uid}_poster.webp")
-    _write(upload_dir, f"{uid}_animated.webp")
+    _ = _write(upload_dir, f"{uid}.mp4")
+    _ = _write(upload_dir, f"{uid}_poster.webp")
+    _ = _write(upload_dir, f"{uid}_animated.webp")
     other = _write(upload_dir, "unrelated.webp")
     await db_session.flush()
 

@@ -102,7 +102,7 @@ async def _reconsidered(client: AsyncClient, db_session: AsyncSession) -> str:
     """``rosa`` sent back to ``registered`` with an active review request."""
     admin = await create_admin_user(db_session)
     rosa = await create_registered_user(db_session, "rosa")
-    await attach_identity_document(db_session, "rosa")
+    _ = await attach_identity_document(db_session, "rosa")
     submitted = await client.post("/v1/users/me/submit-for-review", headers=_auth(rosa))
     assert submitted.status_code == 200, submitted.text
     reconsidered = await client.post(

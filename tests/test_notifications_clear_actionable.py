@@ -68,7 +68,7 @@ async def test_user_approval_cleared_when_admin_approves(
         json={"username": "alice", "password": "testpass123"},
     )
     alice_token = login.json()["accessToken"]
-    await attach_identity_document(db_session, "alice")
+    _ = await attach_identity_document(db_session, "alice")
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {alice_token}"},

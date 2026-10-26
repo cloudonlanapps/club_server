@@ -58,7 +58,7 @@ async def test_should_refuse_removal_when_credit_unresolved(
 ):
     """R71: a member cannot be removed with credit left in a bound account."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, account_id = await enrolled_member(client, admin_token, "alice", 20)
 
     response = await client.post(
@@ -212,7 +212,7 @@ async def test_should_remove_without_disposition_when_member_holds_no_credit(
 ):
     """A member with nothing bound to the programme needs no disposition."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=5)
     _ = await client.post(
@@ -254,7 +254,7 @@ async def test_should_reject_removal_when_disposition_window_ends_before_it_star
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, account_id = await enrolled_member(client, admin_token, "alice", 20)
 
     response = await client.post(
@@ -278,7 +278,7 @@ async def test_should_reject_removal_when_disposition_window_has_already_closed(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, account_id = await enrolled_member(client, admin_token, "alice", 20)
 
     response = await client.post(

@@ -266,7 +266,7 @@ class MediaService:
 
         tmp_dir = Path(tempfile.mkdtemp(prefix="club_media_"))
         input_path = tmp_dir / f"{uid}_input.{extension}"
-        input_path.write_bytes(content)
+        _ = input_path.write_bytes(content)
 
         try:
             if media_type == "image":
@@ -334,7 +334,7 @@ class MediaService:
     ) -> Media:
         if preserve_original:
             staged = tmp_dir / f"{uid}.{extension}"
-            shutil.move(str(input_path), str(staged))
+            _ = shutil.move(str(input_path), str(staged))
             conversion_status = "none"
             dest_name = f"{uid}.{extension}"
         else:
@@ -358,7 +358,7 @@ class MediaService:
             file_size = dest.stat().st_size
         else:
             dest = upload_dir / dest_name
-            shutil.move(str(staged), str(dest))
+            _ = shutil.move(str(staged), str(dest))
             file_size = dest.stat().st_size
 
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -408,7 +408,7 @@ class MediaService:
     ) -> Media:
         if preserve_original:
             staged_pdf = tmp_dir / f"{uid}.pdf"
-            shutil.move(str(input_path), str(staged_pdf))
+            _ = shutil.move(str(input_path), str(staged_pdf))
             poster_src: Path | None = None
             conversion_status = "none"
         else:
@@ -436,10 +436,10 @@ class MediaService:
             file_size = dest_pdf.stat().st_size
         else:
             dest_pdf = upload_dir / f"{uid}.pdf"
-            shutil.move(str(staged_pdf), str(dest_pdf))
+            _ = shutil.move(str(staged_pdf), str(dest_pdf))
             file_size = dest_pdf.stat().st_size
             if poster_src is not None:
-                shutil.move(str(poster_src), str(upload_dir / f"{uid}_poster.png"))
+                _ = shutil.move(str(poster_src), str(upload_dir / f"{uid}_poster.png"))
 
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -491,7 +491,7 @@ class MediaService:
         pending_dir = upload_dir / "_pending"
         pending_dir.mkdir(parents=True, exist_ok=True)
         staged_input = pending_dir / f"{uid}_input.{extension}"
-        shutil.move(str(input_path), str(staged_input))
+        _ = shutil.move(str(input_path), str(staged_input))
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
         media = Media(
@@ -682,7 +682,7 @@ class MediaService:
 
         ciphertext, meta_json = enc.encrypt_payload(main_path.read_bytes())
         enc_main = main_path.with_name(main_path.name + ".enc")
-        enc_main.write_bytes(ciphertext)
+        _ = enc_main.write_bytes(ciphertext)
 
         # PDFs carry a converted poster alongside the document; encrypt it under
         # the same DEK so the poster variant keeps downloading after the flip.
@@ -692,7 +692,7 @@ class MediaService:
             if candidate.exists():
                 plain_poster = candidate
                 poster_cipher = enc.encrypt_poster(candidate.read_bytes(), meta_json)
-                (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
+                _ = (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
 
         # Flip the row (and flush) before removing any plaintext.
         media.is_encrypted = 1

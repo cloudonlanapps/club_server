@@ -60,7 +60,7 @@ async def _draft(
     """Admin and coach tokens, a draft of alice on `layout`, and its item ids."""
     admin = await create_admin_user(db_session)
     coach = await create_coach_user(db_session, "coach")
-    await create_member_user(db_session, "alice")
+    _ = await create_member_user(db_session, "alice")
     template_id = await create_template(client, admin, name=name, layout=layout)
     ids = await item_ids(client, admin, template_id)
     evaluation_id = await create_general_evaluation(
@@ -151,7 +151,7 @@ async def test_should_head_a_published_event_review_with_its_event_and_review_da
     """R63: the event's title, and the publication date as the review date."""
     admin = await create_admin_user(db_session)
     coach = await create_coach_user(db_session, "coach")
-    await create_member_user(db_session, "alice")
+    _ = await create_member_user(db_session, "alice")
     template_id = await create_template(
         client, admin, name="Camp report", layout=[rating_item("Edges")]
     )

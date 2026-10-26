@@ -74,7 +74,7 @@ async def test_should_return_404_when_cancelling_a_deleted_camp(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await create_member_user(db_session, "skater")
+    _ = await create_member_user(db_session, "skater")
     await db_session.commit()
     venue = await create_venue(client, admin)
     start = at(days=2)

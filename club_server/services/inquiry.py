@@ -141,10 +141,10 @@ class InquiryService:
                 message=row.message,
                 extra=row.extra,
             )
-            await get_transactional_sender().send(
+            _ = await get_transactional_sender().send(
                 EmailMessage(to=address, subject=subject, html=html, text=text)
             )
-        await NotificationService(self.db).notify_for_event(
+        _ = await NotificationService(self.db).notify_for_event(
             NotificationEvent(
                 type=NOTIFICATION_TYPE,
                 recipients=await self._admin_usernames(),

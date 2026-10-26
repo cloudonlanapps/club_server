@@ -47,7 +47,7 @@ async def _event_eligible(client: AsyncClient, admin: str, event_id: int) -> set
 
 
 async def _update_event(client: AsyncClient, admin: str, event_id: int, **body: object):
-    body.setdefault("version", await version_of(client, admin, event_id))
+    _ = body.setdefault("version", await version_of(client, admin, event_id))
     return await client.patch(
         f"/v1/events/by_id/{event_id}", json=body, headers=auth(admin)
     )

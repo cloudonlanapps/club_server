@@ -445,7 +445,7 @@ class NotificationService:
         await self.db.flush()
 
         if fire_to:
-            await self.notify_for_event(
+            _ = await self.notify_for_event(
                 NotificationEvent(
                     type=restored_type,
                     recipients=fire_to,

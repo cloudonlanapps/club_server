@@ -32,7 +32,7 @@ async def test_mygroups_returns_manual_memberships(
         "/v1/groups", json={"name": "Manual1"}, headers=auth(admin_token)
     )
     gid = g.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/byname/amy", headers=auth(admin_token)
     )
 
@@ -64,7 +64,7 @@ async def test_mygroups_returns_semi_auto_memberships(
         headers=auth(admin_token),
     )
     gid = g.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/byname/amy", headers=auth(admin_token)
     )
 
@@ -83,7 +83,7 @@ async def test_mygroups_returns_matching_auto_groups(
     member_token = await create_member_user(
         db_session, username="amy", date_of_birth=DOB_2010 + ONE_DAY_MS
     )
-    await client.post(
+    _ = await client.post(
         "/v1/groups",
         json=with_group_band(
             {
@@ -108,7 +108,7 @@ async def test_mygroups_excludes_non_matching_auto_groups(
     member_token = await create_member_user(
         db_session, username="amy", date_of_birth=DOB_2010 - ONE_DAY_MS
     )
-    await client.post(
+    _ = await client.post(
         "/v1/groups",
         json=with_group_band(
             {
@@ -133,7 +133,7 @@ async def test_mygroups_kind_field_present(
     member_token = await create_member_user(db_session, username="amy")
     g = await client.post("/v1/groups", json={"name": "M"}, headers=auth(admin_token))
     gid = g.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/byname/amy", headers=auth(admin_token)
     )
 

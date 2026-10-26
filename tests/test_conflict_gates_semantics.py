@@ -190,7 +190,7 @@ async def test_should_exclude_the_event_itself_when_asked(db_session: AsyncSessi
 @pytest.mark.asyncio
 async def test_should_exclude_deleted_events(db_session: AsyncSession):
     venue_id = await _make_venue(db_session)
-    await _make_event(db_session, venue_id=venue_id, deleted_at=now_utc_ms())
+    _ = await _make_event(db_session, venue_id=venue_id, deleted_at=now_utc_ms())
 
     assert await _gate(db_session, _camp_target(venue_id), ConflictGate.venue) == []
 
@@ -198,7 +198,7 @@ async def test_should_exclude_deleted_events(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_should_exclude_camp_cancelled_before_it_starts(db_session: AsyncSession):
     venue_id = await _make_venue(db_session)
-    await _make_event(db_session, venue_id=venue_id, until_time=BASE_TS - HOUR_MS)
+    _ = await _make_event(db_session, venue_id=venue_id, until_time=BASE_TS - HOUR_MS)
 
     assert await _gate(db_session, _camp_target(venue_id), ConflictGate.venue) == []
 
@@ -219,7 +219,7 @@ async def test_should_count_programme_until_its_cutoff(db_session: AsyncSession)
     assert [f.event_id for f in findings] == [running.id]
 
     other_venue = await _make_venue(db_session, "B")
-    await _make_event(
+    _ = await _make_event(
         db_session,
         venue_id=other_venue,
         type="programme",
@@ -234,7 +234,7 @@ async def test_should_drop_rest_day_from_target_when_it_carries_exdate(
     db_session: AsyncSession,
 ):
     venue_id = await _make_venue(db_session)
-    await _make_event(db_session, venue_id=venue_id)
+    _ = await _make_event(db_session, venue_id=venue_id)
     day2 = datetime.fromtimestamp((BASE_TS + DAY_MS) / 1000, tz=timezone.utc)
     target = ScheduleTarget(
         event_type="camp",
@@ -255,7 +255,7 @@ async def test_should_drop_rest_day_from_target_when_it_carries_exdate(
 async def test_should_find_nothing_when_venue_differs(db_session: AsyncSession):
     venue_a = await _make_venue(db_session, "A")
     venue_b = await _make_venue(db_session, "B")
-    await _make_event(db_session, venue_id=venue_a)
+    _ = await _make_event(db_session, venue_id=venue_a)
 
     assert await _gate(db_session, _camp_target(venue_b), ConflictGate.venue) == []
 
@@ -287,7 +287,7 @@ async def test_should_find_nothing_when_target_names_no_organizer(
     db_session: AsyncSession,
 ):
     venue_id = await _make_venue(db_session)
-    await _make_event(db_session, venue_id=venue_id, organizer_name="alice")
+    _ = await _make_event(db_session, venue_id=venue_id, organizer_name="alice")
 
     assert await _gate(db_session, _camp_target(venue_id), ConflictGate.organizer) == []
 
@@ -314,7 +314,7 @@ async def test_should_find_nothing_when_coaches_are_disjoint_or_absent(
     db_session: AsyncSession,
 ):
     venue_id = await _make_venue(db_session)
-    await _make_event(db_session, venue_id=venue_id, coach_names=["bob"])
+    _ = await _make_event(db_session, venue_id=venue_id, coach_names=["bob"])
 
     assert (
         await _gate(
@@ -402,7 +402,7 @@ async def test_should_keep_surviving_days_when_camp_is_cancelled_mid_series(
     db_session: AsyncSession,
 ):
     venue_id = await _make_venue(db_session)
-    await _make_event(db_session, venue_id=venue_id, until_time=BASE_TS + DAY_MS)
+    _ = await _make_event(db_session, venue_id=venue_id, until_time=BASE_TS + DAY_MS)
 
     findings = await _gate(db_session, _camp_target(venue_id), ConflictGate.venue)
 

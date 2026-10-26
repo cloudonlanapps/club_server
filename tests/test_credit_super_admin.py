@@ -75,7 +75,7 @@ async def test_should_open_account_when_regular_admin_is_the_member(
 ):
     admin = await create_admin_user(db_session)
     _ = await create_regular_admin_user(db_session, "ra")
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     await db_session.commit()
 
     for_admin = await open_account(client, admin, "ra", credits=4)

@@ -70,7 +70,7 @@ async def _register_member(
     _pre = await client.post(
         "/v1/auth/login", json={"username": username, "password": "pw123"}
     )
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},

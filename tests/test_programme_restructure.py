@@ -33,7 +33,7 @@ from .redesign_helpers import (
 
 
 async def _correct(client: AsyncClient, token: str, event_id: int, **body: object):
-    body.setdefault("version", await version_of(client, token, event_id))
+    _ = body.setdefault("version", await version_of(client, token, event_id))
     return await client.patch(
         f"/v1/events/by_id/{event_id}/correction", json=body, headers=auth(token)
     )

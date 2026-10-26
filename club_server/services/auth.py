@@ -226,7 +226,7 @@ class AuthService:
         if not admins:
             return
 
-        await NotificationService(self.db).notify_for_event(
+        _ = await NotificationService(self.db).notify_for_event(
             NotificationEvent(
                 type="user.registration_pending",
                 recipients=admins,
@@ -325,7 +325,7 @@ class AuthService:
             event_type = "account.password_changed_self"
             data = {"username": user.username}
 
-        await NotificationService(self.db).notify_for_event(
+        _ = await NotificationService(self.db).notify_for_event(
             NotificationEvent(
                 type=event_type,
                 recipients=[user.username],

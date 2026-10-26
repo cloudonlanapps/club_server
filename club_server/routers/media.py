@@ -632,7 +632,7 @@ async def soft_delete_media(
             },
         )
 
-    await service.soft_delete(media_id)
+    _ = await service.soft_delete(media_id)
     await audit_service.log(
         actor_username=current_user.username,
         action=AuditAction.SOFT_DELETE_MEDIA_V2,
@@ -684,7 +684,7 @@ async def hard_delete_media(
     audit_service = AuditService(db)
     media = await service.get(media_id, include_deleted=True)
 
-    await service.hard_delete(media_id)
+    _ = await service.hard_delete(media_id)
 
     await audit_service.log(
         actor_username=current_user.username,

@@ -42,12 +42,12 @@ TEST_DATABASE_URL = (
 # module load time and the test process must never accidentally connect to
 # a developer's real DATABASE_URL from a shell env or .env file.
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
-os.environ.setdefault("SECRET_KEY", "test-secret-key")
+_ = os.environ.setdefault("SECRET_KEY", "test-secret-key")
 
 _TEST_STATIC_DIR = os.path.join(tempfile.gettempdir(), "club_server_test_static")
 _TEST_UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "club_server_test_uploads")
-os.environ.setdefault("STATIC_DIR", _TEST_STATIC_DIR)
-os.environ.setdefault("UPLOAD_DIR", _TEST_UPLOAD_DIR)
+_ = os.environ.setdefault("STATIC_DIR", _TEST_STATIC_DIR)
+_ = os.environ.setdefault("UPLOAD_DIR", _TEST_UPLOAD_DIR)
 
 # Product identity (club naming, CORS, email branding) has no in-code default
 # — see issue #311 — so the suite supplies it here. In a real deployment these
@@ -67,7 +67,7 @@ _TEST_IDENTITY = {
     "EMAIL_THEME_COLOR": "#E8772E",
 }
 for _key, _value in _TEST_IDENTITY.items():
-    os.environ.setdefault(_key, _value)
+    _ = os.environ.setdefault(_key, _value)
 
 # club_server imports must come after the os.environ setup above: Settings() is
 # instantiated at module-load time and must read the test DATABASE_URL, never a
@@ -96,7 +96,7 @@ async def test_engine():
         # alembic migration; replicate it here so tests can query it.
         from sqlalchemy import text as _text
 
-        await conn.execute(
+        _ = await conn.execute(
             _text(
                 "CREATE VIEW media_in_use AS "
                 "SELECT media_uuid, 'user'::text  AS owner_type, username::text  AS owner_id, tag, metadata_value, created_at, updated_at FROM user_media "
@@ -116,7 +116,7 @@ async def test_engine():
     async with engine.begin() as conn:
         from sqlalchemy import text as _text
 
-        await conn.execute(_text("DROP VIEW IF EXISTS media_in_use"))
+        _ = await conn.execute(_text("DROP VIEW IF EXISTS media_in_use"))
         await conn.run_sync(Base.metadata.drop_all)
 
     await engine.dispose()

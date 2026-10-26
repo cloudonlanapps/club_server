@@ -715,7 +715,7 @@ async def test_should_release_bound_balance_when_cutoff_passes(
         client, db_session, start=start, cutoff=cutoff
     )
 
-    await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
     await db_session.commit()
 
     assert await balance_of(client, admin, bound) == 0
@@ -772,7 +772,7 @@ async def test_should_let_released_credit_fund_another_programme(
     admin, _, _ = await _terminated_programme_with_bound_credit(
         client, db_session, start=start, cutoff=cutoff
     )
-    await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
     await db_session.commit()
     venue = await create_venue(client, admin, "Rink B")
     other = await create_programme(client, admin, venue, start=at(days=10))
@@ -795,7 +795,7 @@ async def test_should_release_nothing_when_cutoff_moved_earlier(
     )
 
     response = await extend(client, admin, programme_id, start + 3 * DAY_MS)
-    await sweep_credit_settlements(db_session, at())
+    _ = await sweep_credit_settlements(db_session, at())
     await db_session.commit()
 
     assert response.status_code == 200, response.text
@@ -816,7 +816,7 @@ async def test_should_keep_balance_bound_when_cutoff_has_not_passed(
         client, db_session, start=start, cutoff=cutoff
     )
 
-    await sweep_credit_settlements(db_session, cutoff - MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, cutoff - MINUTE_MS)
     await db_session.commit()
 
     assert await balance_of(client, admin, bound) == 10
@@ -838,7 +838,7 @@ async def test_should_keep_validity_window_when_balance_is_released(
         bound
     ]
 
-    await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
     await db_session.commit()
 
     general = [
@@ -864,9 +864,9 @@ async def test_should_release_once_when_sweep_runs_repeatedly(
         client, db_session, start=start, cutoff=cutoff
     )
 
-    await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
+    _ = await sweep_credit_settlements(db_session, cutoff + MINUTE_MS)
     await db_session.commit()
-    await sweep_credit_settlements(db_session, cutoff + HOUR_MS)
+    _ = await sweep_credit_settlements(db_session, cutoff + HOUR_MS)
     await db_session.commit()
 
     accounts = await _accounts_of(client, admin, "skater")

@@ -80,7 +80,7 @@ async def _register_pending(
     token = login.json()["accessToken"]
 
     assert db_session is not None, "_register_pending requires db_session"
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     submit = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {token}"},

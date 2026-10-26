@@ -75,7 +75,7 @@ async def _seed_video(
     if create_staged_input:
         pending = _pending_dir()
         pending.mkdir(parents=True, exist_ok=True)
-        (pending / f"{uid}_input.mp4").write_bytes(b"fake")
+        _ = (pending / f"{uid}_input.mp4").write_bytes(b"fake")
     return media
 
 
@@ -95,9 +95,9 @@ def _success_subprocess():
         args_list = list(args)
         output = args_list[args_list.index("--output") + 1]
         prefix = str(Path(output).with_suffix(""))
-        Path(f"{prefix}.mp4").write_bytes(b"fake mp4")
-        Path(f"{prefix}_poster.webp").write_bytes(b"fake poster")
-        Path(f"{prefix}_animated.webp").write_bytes(b"fake animated")
+        _ = Path(f"{prefix}.mp4").write_bytes(b"fake mp4")
+        _ = Path(f"{prefix}_poster.webp").write_bytes(b"fake poster")
+        _ = Path(f"{prefix}_animated.webp").write_bytes(b"fake animated")
         proc = AsyncMock()
         proc.returncode = 0
         proc.communicate = AsyncMock(return_value=(b"", b""))

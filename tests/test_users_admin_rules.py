@@ -231,7 +231,7 @@ async def test_should_reject_super_admin_when_taking_a_role(
 ):
     admin = await create_admin_user(db_session)
     _ = await create_member_user(db_session, "amy")
-    await db_session.execute(
+    _ = await db_session.execute(
         text(
             'UPDATE users SET roles = \'{"roles": ["coach", "super_admin"]}\' '
             "WHERE username = 'amy'"
@@ -273,7 +273,7 @@ async def test_should_strip_super_admin_from_stored_roles_when_migrating(
     _ = await create_admin_user(db_session)
     _ = await create_member_user(db_session, "amy")
     _ = await create_member_user(db_session, "bob")
-    await db_session.execute(
+    _ = await db_session.execute(
         text("UPDATE users SET roles = :r WHERE username = 'amy'"),
         {"r": json.dumps({"roles": ["coach", "super_admin", "admin"]})},
     )

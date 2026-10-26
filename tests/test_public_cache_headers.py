@@ -39,7 +39,7 @@ async def test_should_cache_public_reads_with_a_content_etag(
     # Same content, same tag; the site's cache-buster query string changes nothing.
     assert (await client.get("/v1/public/venues?v=20260905")).headers["etag"] == first
     # Different content, different tag.
-    await client.post("/v1/venues", json={"name": "Arena"}, headers=_auth(admin))
+    _ = await client.post("/v1/venues", json={"name": "Arena"}, headers=_auth(admin))
     assert (await client.get("/v1/public/venues")).headers["etag"] != first
 
 
@@ -50,7 +50,7 @@ async def test_should_answer_304_on_matching_if_none_match(
 ):
     admin = await create_admin_user(db_session)
     await db_session.commit()
-    await client.post("/v1/venues", json={"name": "Rink"}, headers=_auth(admin))
+    _ = await client.post("/v1/venues", json={"name": "Rink"}, headers=_auth(admin))
     etag = (await client.get("/v1/public/venues")).headers["etag"]
 
     response = await client.get("/v1/public/venues", headers={"If-None-Match": etag})

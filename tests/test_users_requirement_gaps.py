@@ -36,7 +36,7 @@ async def _profile(client: AsyncClient, admin: str, username: str) -> dict:
 async def _sent_back(client: AsyncClient, db_session: AsyncSession, admin: str) -> str:
     """``rosa`` sent back to ``registered`` with an active review request."""
     rosa = await create_registered_user(db_session, "rosa")
-    await attach_identity_document(db_session, "rosa")
+    _ = await attach_identity_document(db_session, "rosa")
     submitted = await client.post("/v1/users/me/submit-for-review", headers=auth(rosa))
     assert submitted.status_code == 200, submitted.text
     sent_back = await client.post(

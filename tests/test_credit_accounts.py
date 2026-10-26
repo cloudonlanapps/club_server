@@ -36,7 +36,7 @@ async def test_should_open_general_account_when_no_event_given(
 ):
     """R2/R18: an account opened without an event is general."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     account = await open_account(client, admin_token, "alice", credits=10)
 
@@ -55,7 +55,7 @@ async def test_should_open_event_bound_account_when_programme_given(
 ):
     """R2/R18: naming a programme binds the account to it."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
 
     account = await open_account(
@@ -73,7 +73,7 @@ async def test_should_record_opening_admin_when_account_opened(
 ):
     """R24/R82: the account records who opened it."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     account = await open_account(client, admin_token, "alice")
 
@@ -87,7 +87,7 @@ async def test_should_issue_eight_character_code_when_account_opened(
 ):
     """R5: the account id is an 8-character letter-and-digit code."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     account = await open_account(client, admin_token, "alice")
 
@@ -104,7 +104,7 @@ async def test_should_issue_distinct_codes_when_two_accounts_opened(
 ):
     """R5: codes are unique across accounts."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     first = await open_account(client, admin_token, "alice")
     second = await open_account(client, admin_token, "alice")
@@ -122,7 +122,7 @@ async def test_should_reject_account_when_event_is_a_camp(
 ):
     """R6: only programmes consume credit."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     camp_id = await create_event(client, admin_token, event_type="camp")
 
     response = await client.post(
@@ -149,7 +149,7 @@ async def test_should_reject_account_when_event_is_one_off(
 ):
     """R6: one-off events never reach the credit subsystem."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     one_off_id = await create_event(client, admin_token, event_type="oneOff")
 
     response = await client.post(
@@ -177,7 +177,7 @@ async def test_should_reject_account_when_credits_not_positive(
 ):
     """R19: the opening amount must be a positive whole number."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     response = await client.post(
         "/v1/credits/accounts",
@@ -202,7 +202,7 @@ async def test_should_reject_account_when_window_ends_before_it_starts(
 ):
     """R23: the validity window's end must be after its start."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     response = await client.post(
         "/v1/credits/accounts",
@@ -227,7 +227,7 @@ async def test_should_reject_account_when_window_wholly_in_the_past(
 ):
     """R23: a window that has already closed cannot be opened."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     response = await client.post(
         "/v1/credits/accounts",
@@ -251,7 +251,7 @@ async def test_should_reject_account_when_reason_missing(
 ):
     """R60: no unexplained movement of credit."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     response = await client.post(
         "/v1/credits/accounts",
@@ -340,7 +340,7 @@ async def test_should_allow_second_account_when_member_already_has_one_for_event
 ):
     """R9/R22: a second account for the same programme is the normal top-up."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
 
     first = await open_account(
@@ -362,7 +362,7 @@ async def test_should_not_expose_a_top_up_operation(
 ):
     """R20: there is no recharge, renew, or add-credits endpoint."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=5)
     account_id = account["accountId"]
 

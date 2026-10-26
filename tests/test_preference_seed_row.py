@@ -24,7 +24,7 @@ def auth(token: str) -> dict:
 
 
 async def _seed_as_old_migration(db: AsyncSession, value: str = "90") -> None:
-    await db.execute(
+    _ = await db.execute(
         text(
             "INSERT INTO system_preferences (key, value, updated_at, updated_by) "
             "VALUES (:key, CAST(:value AS jsonb), "

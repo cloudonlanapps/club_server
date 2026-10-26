@@ -68,7 +68,7 @@ async def _create_event(
 async def _register_user(
     client: AsyncClient, admin_token: str, username: str, db_session: AsyncSession
 ) -> None:
-    await client.post(
+    _ = await client.post(
         "/v1/auth/register",
         json={
             "username": username,
@@ -84,12 +84,12 @@ async def _register_user(
         "/v1/auth/login",
         json={"username": username, "password": "testpass123"},
     )
-    await attach_identity_document(db_session, username)
-    await client.post(
+    _ = await attach_identity_document(db_session, username)
+    _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/users/by_id/{username}/approve",
         headers={"Authorization": f"Bearer {admin_token}"},
     )

@@ -75,7 +75,7 @@ async def _link_image(
 async def test_should_refuse_venue_listing_when_anonymous(
     client: AsyncClient, db_session: AsyncSession
 ):
-    await _seed(client, db_session)
+    _ = await _seed(client, db_session)
     await db_session.commit()
 
     response = await client.get("/v1/venues")

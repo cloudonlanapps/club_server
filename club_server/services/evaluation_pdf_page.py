@@ -63,7 +63,7 @@ def _page(
             # The top line the part above, on the previous page, drew;
             # drawn last so a shaded bar does not cover it.
             c.hline(x, x + CONTENT_WIDTH, top)
-    c.text_box(
+    _ = c.text_box(
         x,
         PAGE_HEIGHT - MARGIN - SMALL * LEADING,
         CONTENT_WIDTH,

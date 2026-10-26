@@ -372,7 +372,7 @@ async def _handle_delete_one(
     ip_address: str | None = None,
 ):
     await ensure_fn(db, owner_id)
-    await MediaLinkService(db, owner_type).delete_one(owner_id, tag, media_uuid)
+    _ = await MediaLinkService(db, owner_type).delete_one(owner_id, tag, media_uuid)
     await _audit_delete_one(
         db,
         current_user.username,

@@ -499,7 +499,7 @@ class GroupService:
         await self.db.flush()
 
         if changes:
-            await self._notifications.notify_for_event(
+            _ = await self._notifications.notify_for_event(
                 NotificationEvent(
                     type="group.settings_changed",
                     recipients=await self._list_member_usernames(group),
@@ -530,7 +530,7 @@ class GroupService:
         group.deleted_at = now_utc_ms()
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="group.archived",
                 recipients=recipients,
@@ -566,13 +566,13 @@ class GroupService:
 
         group_name = group.name
 
-        await self.db.execute(
+        _ = await self.db.execute(
             delete(GroupJoinRequest).where(GroupJoinRequest.group_id == group_id)
         )
-        await self.db.execute(
+        _ = await self.db.execute(
             delete(GroupMember).where(GroupMember.group_id == group_id)
         )
-        await self.db.execute(delete(Group).where(Group.id == group_id))
+        _ = await self.db.execute(delete(Group).where(Group.id == group_id))
         await self.db.flush()
         return group_name
 
@@ -690,7 +690,7 @@ class GroupService:
             group_id, membername, actor_username
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="group.member_added",
                 recipients=[membername],
@@ -733,7 +733,7 @@ class GroupService:
         await self.db.flush()
         await self.db.refresh(group)
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="group.member_removed",
                 recipients=[membername],
@@ -848,7 +848,7 @@ class GroupService:
             )
 
         for name in added:
-            await self._notifications.notify_for_event(
+            _ = await self._notifications.notify_for_event(
                 NotificationEvent(
                     type="group.member_added",
                     recipients=[name],
@@ -1083,7 +1083,7 @@ class GroupService:
             self.db.add(req)
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="group.join_request",
                 recipients=await self._list_admin_usernames(),
@@ -1213,7 +1213,7 @@ class GroupService:
             "group_join_request", pending_action_id=req.id
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="group.join_response",
                 recipients=[req.username],
@@ -1259,7 +1259,7 @@ class GroupService:
 
         group_result = await self.db.execute(select(Group).where(Group.id == group_id))
         group = group_result.scalar_one()
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="group.join_response",
                 recipients=[req.username],

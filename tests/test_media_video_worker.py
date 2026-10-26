@@ -66,7 +66,7 @@ async def seed_video(
     if create_staged_input:
         pending = _pending_dir()
         pending.mkdir(parents=True, exist_ok=True)
-        (pending / f"{uid}_input.{extension}").write_bytes(b"fake video bytes")
+        _ = (pending / f"{uid}_input.{extension}").write_bytes(b"fake video bytes")
 
     return media
 
@@ -90,9 +90,9 @@ def make_success_side_effect():
 
     async def side_effect(*args, **_kwargs):
         prefix = _output_prefix(args)
-        Path(f"{prefix}.mp4").write_bytes(b"fake mp4")
-        Path(f"{prefix}_poster.webp").write_bytes(b"fake poster")
-        Path(f"{prefix}_animated.webp").write_bytes(b"fake animated")
+        _ = Path(f"{prefix}.mp4").write_bytes(b"fake mp4")
+        _ = Path(f"{prefix}_poster.webp").write_bytes(b"fake poster")
+        _ = Path(f"{prefix}_animated.webp").write_bytes(b"fake animated")
         proc = AsyncMock()
         proc.returncode = 0
         proc.communicate = AsyncMock(return_value=(b"", b""))
@@ -359,7 +359,7 @@ async def test_loop_processes_pending_then_idles(
             else:
                 pytest.fail("Worker did not complete the pending job in time")
         finally:
-            task.cancel()
+            _ = task.cancel()
             try:
                 await task
             except asyncio.CancelledError:

@@ -178,7 +178,7 @@ async def test_should_refuse_download_when_video_is_not_converted(
     )
     assert response.status_code == 202, response.text
     video = response.json()
-    await db_session.execute(
+    _ = await db_session.execute(
         update(Media)
         .where(Media.uuid == video["uuid"])
         .values(conversion_status=status)

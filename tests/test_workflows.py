@@ -21,7 +21,7 @@ async def create_user_and_get_token(
     client: AsyncClient, admin_token: str, username: str, db_session: AsyncSession
 ) -> str:
     """Helper to create a regular user and return their access token."""
-    await client.post(
+    _ = await client.post(
         "/v1/auth/register",
         json={
             "username": username,
@@ -37,12 +37,12 @@ async def create_user_and_get_token(
         "/v1/auth/login",
         json={"username": username, "password": "testpass123"},
     )
-    await attach_identity_document(db_session, username)
-    await client.post(
+    _ = await attach_identity_document(db_session, username)
+    _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/users/by_id/{username}/approve",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
@@ -112,18 +112,18 @@ async def test_workflow_enrollment_attendance_story(
     event_id = event_response.json()["id"]
 
     # Invite both
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/invite",
         json={"membernames": ["alice", "bob"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
     # Alice accepts, Bob declines
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/alice/{event_id}/enrollments/accept",
         headers={"Authorization": f"Bearer {alice_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/bob/{event_id}/enrollments/decline",
         headers={"Authorization": f"Bearer {bob_token}"},
     )
@@ -158,7 +158,7 @@ async def test_workflow_enrollment_attendance_story(
     start_time = past_start
 
     # Mark attendance for alice
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/occurrences/{start_time}/attendance",
         json={"records": [{"membername": "alice", "status": "present"}]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -207,7 +207,7 @@ async def test_workflow_cancellation_flow(
     event_id = event_response.json()["id"]
 
     # Assign and accept
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["member"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -266,7 +266,7 @@ async def test_workflow_programme_lifecycle(
     event_id = event_response.json()["id"]
 
     # Assign player
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["player"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -351,22 +351,22 @@ async def test_workflow_camp_enrollment(client: AsyncClient, db_session: AsyncSe
     event_id = event_response.json()["id"]
 
     # Users request to join
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/camper1/{event_id}/enrollments/request",
         headers={"Authorization": f"Bearer {user1_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/camper2/{event_id}/enrollments/request",
         headers={"Authorization": f"Bearer {user2_token}"},
     )
 
     # Approve camper1, reject camper2
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/approve",
         json={"membernames": ["camper1"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/reject",
         json={"membernames": ["camper2"], "reason": "Age requirement not met"},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -457,7 +457,7 @@ async def test_workflow_calendar_range_query(
 
     # Create a daily programme starting tomorrow (5 occurrences)
     near_start = future_time_ms(24)
-    await client.post(
+    _ = await client.post(
         "/v1/events",
         json={
             "title": "Daily Programme",
@@ -517,7 +517,7 @@ async def test_workflow_oneoff_event_excluded_from_out_of_range_query(
 
     # Create a one-off event 10 days in the future
     far_start = future_time_ms(240)
-    await client.post(
+    _ = await client.post(
         "/v1/events",
         json={
             "title": "Far Future Event",
@@ -576,7 +576,7 @@ async def test_workflow_past_event_edge_cases(
     )
     event_id = event_response.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["player"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -625,21 +625,21 @@ async def test_workflow_withdrawal_lifecycle(
     event_id = event_id_response.json()["id"]
 
     # Assign
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["member"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
     # First withdrawal request
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/member/{event_id}/enrollments/withdraw",
         json={"reason": "Want to leave"},
         headers={"Authorization": f"Bearer {user_token}"},
     )
 
     # Reject the withdrawal
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/reject-withdraw",
         json={"membernames": ["member"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -655,14 +655,14 @@ async def test_workflow_withdrawal_lifecycle(
     assert status1 == "assigned"
 
     # Second withdrawal request
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/member/{event_id}/enrollments/withdraw",
         json={"reason": "Still want to leave"},
         headers={"Authorization": f"Bearer {user_token}"},
     )
 
     # Approve this time
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/approve-withdraw",
         json={"membernames": ["member"]},
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -709,21 +709,21 @@ async def test_workflow_leave_and_attendance(
     )
     event_id = event_response.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments/assign",
         json={"membernames": ["player"]},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
     # Declare leave
-    await client.post(
+    _ = await client.post(
         f"/v1/myevents/by_id/player/{event_id}/occurrences/{start_time}/leave/request",
         json={"reason": "Family emergency"},
         headers={"Authorization": f"Bearer {user_token}"},
     )
 
     # Approve leave
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/occurrences/{start_time}/leave/approve",
         json={"membernames": ["player"]},
         headers={"Authorization": f"Bearer {admin_token}"},

@@ -180,8 +180,12 @@ async def test_console_sender_records_and_succeeds():
 @pytest.mark.asyncio
 async def test_console_outbox_shared_across_instances():
     ConsoleEmailSender.clear()
-    await ConsoleEmailSender().send(EmailMessage(to="a@b.com", subject="1", html="x"))
-    await ConsoleEmailSender().send(EmailMessage(to="c@d.com", subject="2", html="y"))
+    _ = await ConsoleEmailSender().send(
+        EmailMessage(to="a@b.com", subject="1", html="x")
+    )
+    _ = await ConsoleEmailSender().send(
+        EmailMessage(to="c@d.com", subject="2", html="y")
+    )
     assert [m.subject for m in ConsoleEmailSender.outbox] == ["1", "2"]
 
 

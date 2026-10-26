@@ -362,7 +362,7 @@ async def test_should_batch_read_public_marketing_for_listing_cards(
     b = await _event(client, admin, venue_id, title="B")
     c = await _event(client, admin, venue_id, title="C", visibility="private")
     for e, fee in ((a, 100), (b, 200), (c, 300)):
-        await client.put(
+        _ = await client.put(
             f"/v1/events/by_id/{e['id']}/marketing",
             json={"fee": fee, "version": 1},
             headers=_auth(admin),
@@ -391,7 +391,7 @@ async def test_should_drop_marketing_row_with_the_event(
     await db_session.commit()
     venue_id = await _venue(client, admin)
     event = await _event(client, admin, venue_id)
-    await client.put(
+    _ = await client.put(
         f"/v1/events/by_id/{event['id']}/marketing",
         json={"fee": 1, "version": 1},
         headers=_auth(admin),

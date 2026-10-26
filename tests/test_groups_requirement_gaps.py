@@ -45,7 +45,9 @@ async def test_should_refuse_add_when_user_is_soft_deleted(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_user_with_status(db_session, "gone", UserStatus.active, deleted=True)
+    _ = await create_user_with_status(
+        db_session, "gone", UserStatus.active, deleted=True
+    )
     await db_session.commit()
     g = await client.post("/v1/groups", json={"name": "M"}, headers=auth(admin_token))
     assert g.status_code == 201
@@ -70,7 +72,7 @@ async def test_should_remove_member_when_group_is_semi_auto(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin_token = await create_admin_user(db_session)
-    await create_member_user(
+    _ = await create_member_user(
         db_session, username="amy", date_of_birth=DOB_2010 + ONE_DAY_MS
     )
     gid = await _make_semi_auto(client, admin_token, "S")
@@ -105,7 +107,7 @@ async def test_should_omit_semi_auto_group_from_requestable_when_criteria_fail(
         "/v1/groups", json={"name": "Open"}, headers=auth(admin_token)
     )
     assert manual.status_code == 201
-    await _make_semi_auto(client, admin_token, "Window")
+    _ = await _make_semi_auto(client, admin_token, "Window")
 
     response = await client.get(
         "/v1/mygroups/by_id/young/eligible", headers=auth(member_token)

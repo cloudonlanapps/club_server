@@ -168,7 +168,7 @@ async def test_should_clear_site_media_with_an_empty_map(
     admin = await create_admin_user(db_session)
     public_uuid = await create_media_row(db_session, uploaded_by="admin", public=True)
     await db_session.commit()
-    await client.patch(
+    _ = await client.patch(
         "/v1/admin/preferences/site_media",
         json={"value": {"logo": public_uuid}},
         headers=_auth(admin),
@@ -199,7 +199,7 @@ async def test_should_brand_emails_with_the_club_info_name_when_set(
     assert "Test Club" in ConsoleEmailSender.outbox[0].html
     ConsoleEmailSender.clear()
 
-    await client.patch(
+    _ = await client.patch(
         "/v1/admin/preferences/club_info",
         json={"value": {"name": "Polar Bears Club", "shortName": "Bears"}},
         headers=_auth(admin),

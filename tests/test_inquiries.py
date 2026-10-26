@@ -227,8 +227,8 @@ async def test_should_list_filter_handle_and_delete_inquiries_as_admin(
 ):
     admin = await create_admin_user(db_session)
     await db_session.commit()
-    await client.post("/v1/public/inquiries", json=_body())
-    await client.post(
+    _ = await client.post("/v1/public/inquiries", json=_body())
+    _ = await client.post(
         "/v1/public/inquiries", json=_body(kind="interest", email="kid@example.com")
     )
 
@@ -317,7 +317,7 @@ async def test_should_refuse_the_inbox_to_non_admins(
 async def test_should_purge_handled_after_180_days_and_unhandled_after_365(
     client: AsyncClient, db_session: AsyncSession
 ):
-    await create_admin_user(db_session)
+    _ = await create_admin_user(db_session)
     await db_session.commit()
     for email in ("a@example.com", "b@example.com", "c@example.com", "d@example.com"):
         assert (

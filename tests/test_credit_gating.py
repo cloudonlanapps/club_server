@@ -97,7 +97,7 @@ async def test_should_serve_credit_endpoints_when_system_enabled(
 ):
     """R92: the same endpoint works once the deployment turns it on."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
 
     account = await open_account(client, admin_token, "alice", credits=5)
 
@@ -115,7 +115,7 @@ async def test_should_keep_accounts_when_system_switched_off_and_on(
 
     monkeypatch.setattr(settings, "credit_system_enabled", True)
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=9)
     account_id = account["accountId"]
 
@@ -146,7 +146,7 @@ async def test_should_reject_credit_disposition_when_system_disabled(
     applied when no such thing had happened.
     """
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     venue = await client.post(
         "/v1/venues", json={"name": "V"}, headers=auth(admin_token)
     )
@@ -199,7 +199,7 @@ async def test_should_keep_bulk_mark_shape_when_system_disabled(
     configuration, the SDK would face two contracts for one path.
     """
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id, occurrence = await create_event_and_enroll(
         client, admin_token, "alice", in_past=True, db_session=db_session
     )

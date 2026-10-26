@@ -122,7 +122,7 @@ async def test_list_media_admin_only(
 ):
     admin_token = await create_admin_user(db_session)
     member_token = await create_registered_user(db_session, "alice")
-    await _upload_image(client, admin_token)
+    _ = await _upload_image(client, admin_token)
 
     r_member = await client.get(
         "/v1/media",
@@ -146,9 +146,9 @@ async def test_myfiles_returns_only_caller_uploads(
 ):
     admin_token = await create_admin_user(db_session)
     alice_token = await create_registered_user(db_session, "alice")
-    await _upload_image(client, admin_token)
-    await _upload_image(client, alice_token)
-    await _upload_image(client, alice_token)
+    _ = await _upload_image(client, admin_token)
+    _ = await _upload_image(client, alice_token)
+    _ = await _upload_image(client, alice_token)
 
     r = await client.get(
         "/v1/media/myfiles",
@@ -515,7 +515,7 @@ async def test_restore_clears_deleted_at(
     token = await create_admin_user(db_session)
     body = await _upload_image(client, token)
     mid = body["id"]
-    await client.delete(
+    _ = await client.delete(
         f"/v1/media/by_id/{mid}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -558,7 +558,7 @@ async def test_hard_delete_super_admin_only(
     uid = body["uuid"]
 
     # Coach cannot hard-delete even after soft-delete.
-    await client.delete(
+    _ = await client.delete(
         f"/v1/media/by_id/{mid}",
         headers={"Authorization": f"Bearer {super_token}"},
     )

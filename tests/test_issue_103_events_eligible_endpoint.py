@@ -58,7 +58,7 @@ async def _register_member(
     )
     assert login.status_code == 200, login.text
     user_token = login.json()["accessToken"]
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     submit = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {user_token}"},

@@ -48,7 +48,7 @@ def _title(title: str, logo: bytes | None) -> EvaluationPdfBlock:
     def draw(c: EvaluationPdfCanvas, x: float, y: float) -> float:
         height = c.measure(write)
         row = max(height, side)
-        write(c, x + side, y + (row - height) / 2)
+        _ = write(c, x + side, y + (row - height) / 2)
         if logo:
             c.picture(x + CONTENT_WIDTH - side, y + (row - side) / 2, side, logo)
         return y + row + GAP
@@ -78,7 +78,7 @@ def _field(label: str, parts: list[str], after: float) -> EvaluationPdfBlock:
         heights = [c.measure(value(v)) for v in values]
         row = max([BODY * LEADING, SMALL * LEADING, *heights])
         bottom = y + row
-        c.text_box(
+        _ = c.text_box(
             x,
             bottom - BODY * LEADING,
             label_width,
@@ -91,7 +91,7 @@ def _field(label: str, parts: list[str], after: float) -> EvaluationPdfBlock:
         for i, part in enumerate(parts):
             if i % 2:
                 width = joins[i // 2]
-                c.text_box(
+                _ = c.text_box(
                     left + CELL,
                     bottom - SMALL * LEADING,
                     width,

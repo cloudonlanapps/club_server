@@ -36,7 +36,7 @@ async def create_pending_user(
     )
     assert login.status_code == 200, login.text
     user_token = login.json()["accessToken"]
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     submit = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {user_token}"},
@@ -78,8 +78,8 @@ async def test_list_users_as_coach(client: AsyncClient, db_session: AsyncSession
     coach_token = await create_coach_user(db_session)
 
     # Seed one regular user so the list has content visible to the coach.
-    await create_pending_user(client, "alice", db_session)
-    await client.patch(
+    _ = await create_pending_user(client, "alice", db_session)
+    _ = await client.patch(
         "/v1/users/by_id/alice/status",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={"status": "active"},
@@ -104,8 +104,8 @@ async def test_get_user_private_as_coach(client: AsyncClient, db_session: AsyncS
     admin_token = await create_admin_user(db_session)
     coach_token = await create_coach_user(db_session)
 
-    await create_pending_user(client, "alice", db_session)
-    await client.patch(
+    _ = await create_pending_user(client, "alice", db_session)
+    _ = await client.patch(
         "/v1/users/by_id/alice/status",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={"status": "active"},
@@ -383,11 +383,11 @@ async def test_list_deleted_users(client: AsyncClient, db_session: AsyncSession)
     _ = await create_pending_user(client, "tobedeleted", db_session)
 
     # Approve then delete
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/tobedeleted/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
-    await client.delete(
+    _ = await client.delete(
         "/v1/users/by_id/tobedeleted",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -437,11 +437,11 @@ async def test_list_deleted_users_search(client: AsyncClient, db_session: AsyncS
     _ = await create_pending_user(client, "bob_del", db_session)
 
     for name in ["alice_del", "bob_del"]:
-        await client.post(
+        _ = await client.post(
             f"/v1/users/by_id/{name}/approve",
             headers={"Authorization": f"Bearer {token}"},
         )
-        await client.delete(
+        _ = await client.delete(
             f"/v1/users/by_id/{name}",
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -474,11 +474,11 @@ async def test_list_deleted_users_pagination(
 
     for i in range(3):
         _ = await create_pending_user(client, f"del_user_{i}", db_session)
-        await client.post(
+        _ = await client.post(
             f"/v1/users/by_id/del_user_{i}/approve",
             headers={"Authorization": f"Bearer {token}"},
         )
-        await client.delete(
+        _ = await client.delete(
             f"/v1/users/by_id/del_user_{i}",
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -816,7 +816,7 @@ async def test_soft_delete_user(client: AsyncClient, db_session: AsyncSession):
     """Test soft deleting a user sets deletedAtUtc."""
     token = await create_admin_user(db_session)
     _ = await create_pending_user(client, "softdel", db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/softdel/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -843,13 +843,13 @@ async def test_restore_user(client: AsyncClient, db_session: AsyncSession):
     """Test restoring a soft-deleted user clears deletedAtUtc."""
     token = await create_admin_user(db_session)
     _ = await create_pending_user(client, "torestore", db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/torestore/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
 
     # Soft delete
-    await client.delete(
+    _ = await client.delete(
         "/v1/users/by_id/torestore",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -878,7 +878,7 @@ async def test_restore_user_not_deleted(client: AsyncClient, db_session: AsyncSe
     """Test restoring a user that is not deleted fails."""
     token = await create_admin_user(db_session)
     _ = await create_pending_user(client, "activeuser", db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/activeuser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -896,13 +896,13 @@ async def test_hard_delete_user(client: AsyncClient, db_session: AsyncSession):
     """Test permanently deleting a user (super admin)."""
     token = await create_admin_user(db_session)
     _ = await create_pending_user(client, "toremove", db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/toremove/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
 
     # Soft delete first (required before hard delete)
-    await client.delete(
+    _ = await client.delete(
         "/v1/users/by_id/toremove",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -930,7 +930,7 @@ async def test_hard_delete_user_requires_super_admin(
     super_admin_token = await create_admin_user(db_session)
     regular_admin_token = await create_regular_admin_user(db_session)
     _ = await create_pending_user(client, "protected", db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/protected/approve",
         headers={"Authorization": f"Bearer {super_admin_token}"},
     )
@@ -965,7 +965,7 @@ async def test_hard_delete_user_cascades_enrollments(
     """Test that hard deleting a user cascades to their enrollments."""
     token = await create_admin_user(db_session)
     _ = await create_pending_user(client, "enrolled_user", db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/enrolled_user/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -999,14 +999,14 @@ async def test_hard_delete_user_cascades_enrollments(
     event_id = event_response.json()["id"]
 
     # Enroll the user
-    await client.post(
+    _ = await client.post(
         f"/v1/events/by_id/{event_id}/enrollments",
         json={"membername": "enrolled_user"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
     # Soft delete first (required before hard delete)
-    await client.delete(
+    _ = await client.delete(
         "/v1/users/by_id/enrolled_user",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1034,7 +1034,7 @@ async def test_hard_delete_user_cascades_group_membership(
     """Test that hard deleting a user cascades to their group memberships."""
     token = await create_admin_user(db_session)
     _ = await create_pending_user(client, "grouped_user", db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/grouped_user/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1047,14 +1047,14 @@ async def test_hard_delete_user_cascades_group_membership(
     )
     group_id = group_response.json()["id"]
 
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/members",
         json={"membernames": ["grouped_user"]},
         headers={"Authorization": f"Bearer {token}"},
     )
 
     # Soft delete first (required before hard delete)
-    await client.delete(
+    _ = await client.delete(
         "/v1/users/by_id/grouped_user",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1166,8 +1166,8 @@ async def test_transfer_superadmin(client: AsyncClient, db_session: AsyncSession
     """Test transferring super admin role to another user."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "newadmin", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "newadmin", db_session)
+    _ = await client.post(
         "/v1/users/by_id/newadmin/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1191,8 +1191,8 @@ async def test_transfer_superadmin_non_superadmin_fails(
     _ = await create_admin_user(db_session)
     regular_token = await create_regular_admin_user(db_session)
 
-    await create_pending_user(client, "targetuser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "targetuser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/targetuser/approve",
         headers={"Authorization": f"Bearer {regular_token}"},
     )
@@ -1210,8 +1210,8 @@ async def test_mark_user_left(client: AsyncClient, db_session: AsyncSession):
     """Test marking a user as left."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "leavinguser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "leavinguser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/leavinguser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1230,12 +1230,12 @@ async def test_reactivate_left_user(client: AsyncClient, db_session: AsyncSessio
     """Test reactivating a user who was marked as left."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "leavinguser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "leavinguser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/leavinguser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/leavinguser/mark-left",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1254,13 +1254,13 @@ async def test_list_users_search_by_term(client: AsyncClient, db_session: AsyncS
     """Test searching users by search term."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "alice_smith", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "alice_smith", db_session)
+    _ = await client.post(
         "/v1/users/by_id/alice_smith/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
-    await create_pending_user(client, "bob_jones", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "bob_jones", db_session)
+    _ = await client.post(
         "/v1/users/by_id/bob_jones/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1285,9 +1285,9 @@ async def test_list_users_filter_by_status(
     """Test filtering users by status."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "pendinguser", db_session)
-    await create_pending_user(client, "activeuser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "pendinguser", db_session)
+    _ = await create_pending_user(client, "activeuser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/activeuser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1311,8 +1311,8 @@ async def test_list_users_excludes_registered_by_default(
 ):
     """Default list_users excludes users with status=registered (issue #133)."""
     token = await create_admin_user(db_session)
-    await create_registered_user(db_session, username="newbie")
-    await create_pending_user(client, "pendingfellow", db_session)
+    _ = await create_registered_user(db_session, username="newbie")
+    _ = await create_pending_user(client, "pendingfellow", db_session)
 
     response = await client.get(
         "/v1/users",
@@ -1332,8 +1332,8 @@ async def test_list_users_explicit_status_registered_returns_them(
 ):
     """Explicit ?status=registered still surfaces registered users (issue #133)."""
     token = await create_admin_user(db_session)
-    await create_registered_user(db_session, username="newbie")
-    await create_pending_user(client, "pendingfellow", db_session)
+    _ = await create_registered_user(db_session, username="newbie")
+    _ = await create_pending_user(client, "pendingfellow", db_session)
 
     response = await client.get(
         "/v1/users",
@@ -1351,19 +1351,19 @@ async def test_list_users_filter_by_role(client: AsyncClient, db_session: AsyncS
     """Test filtering users by role."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "coachuser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "coachuser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/coachuser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
-    await client.post(
+    _ = await client.post(
         "/v1/users/by_id/coachuser/roles",
         json={"role": "coach"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    await create_pending_user(client, "regularuser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "regularuser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/regularuser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1388,8 +1388,8 @@ async def test_hard_delete_requires_soft_delete_first(
     """Test that hard-deleting a user who hasn't been soft-deleted fails."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "targetuser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "targetuser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/targetuser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1408,8 +1408,8 @@ async def test_privacy_preference_toggle(client: AsyncClient, db_session: AsyncS
     """Test toggling use_name_publicly privacy preference."""
     token = await create_admin_user(db_session)
 
-    await create_pending_user(client, "privuser", db_session)
-    await client.post(
+    _ = await create_pending_user(client, "privuser", db_session)
+    _ = await client.post(
         "/v1/users/by_id/privuser/approve",
         headers={"Authorization": f"Bearer {token}"},
     )

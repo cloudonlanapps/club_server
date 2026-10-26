@@ -66,7 +66,7 @@ async def _busy_coach(client: AsyncClient, db_session: AsyncSession):
 
 
 async def _patch(client: AsyncClient, token: str, event_id: int, **body: object):
-    body.setdefault("version", await version_of(client, token, event_id))
+    _ = body.setdefault("version", await version_of(client, token, event_id))
     return await client.patch(
         f"/v1/events/by_id/{event_id}", json=body, headers=auth(token)
     )

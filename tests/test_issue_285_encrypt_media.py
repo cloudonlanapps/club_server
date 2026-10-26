@@ -255,7 +255,7 @@ async def test_issue_285_encrypt_video_rejected(db_session, media_dir, kek):
     await db_session.flush()
 
     with pytest.raises(EncryptionNotSupportedForVideoException):
-        await MediaService(db_session).encrypt_in_place(uid)
+        _ = await MediaService(db_session).encrypt_in_place(uid)
 
 
 @pytest.mark.asyncio
@@ -267,7 +267,7 @@ async def test_issue_285_encrypt_requires_configured_kek(
     media = await _seed_image(db_session, media_dir)
 
     with pytest.raises(EncryptionNotConfiguredException):
-        await MediaService(db_session).encrypt_in_place(media.uuid)
+        _ = await MediaService(db_session).encrypt_in_place(media.uuid)
 
     # The row is untouched and the plaintext is still on disk.
     assert bool(media.is_encrypted) is False
@@ -281,7 +281,7 @@ async def test_issue_285_encrypt_missing_file_raises(db_session, media_dir, kek)
     resolve_media_file_path(media, "original").unlink()
 
     with pytest.raises(MediaFileMissingException):
-        await MediaService(db_session).encrypt_in_place(media.uuid)
+        _ = await MediaService(db_session).encrypt_in_place(media.uuid)
 
     assert bool(media.is_encrypted) is False
 
@@ -398,7 +398,7 @@ async def test_issue_285_links_filter_by_encryption_state(
     client: AsyncClient, db_session, media_dir
 ):
     token = await create_admin_user(db_session)
-    await create_member_user(db_session, "skater")
+    _ = await create_member_user(db_session, "skater")
 
     plaintext_uuid = await attach_identity_document(db_session, "skater")
     encrypted_uuid = await attach_identity_document(db_session, "skater")

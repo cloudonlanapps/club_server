@@ -82,7 +82,7 @@ def test_encrypted_poster_sets_poster_flag(tmp_path, monkeypatch):
 
     monkeypatch.setattr(media_module.enc, "decrypt", fake_decrypt)
 
-    _service().resolve_download(
+    _ = _service().resolve_download(
         _media(is_encrypted=True, encryption_meta="meta-json"), file_path
     )
 
@@ -95,6 +95,6 @@ def test_encrypted_missing_metadata_raises(tmp_path):
     file_path.write_bytes(b"cipher")
 
     with pytest.raises(DecryptionFailedException):
-        _service().resolve_download(
+        _ = _service().resolve_download(
             _media(is_encrypted=True, encryption_meta=None), file_path
         )

@@ -19,11 +19,11 @@ ALL_STATUSES = ("registered", "pending", "active", "blocked", "left")
 
 async def _seed_one_of_each_status(db_session: AsyncSession) -> None:
     """Create exactly one non-super-admin user in each of the five statuses."""
-    await create_registered_user(db_session, username="reg1")
-    await create_user_with_status(db_session, "pend1", UserStatus.pending)
-    await create_member_user(db_session, username="act1")
-    await create_user_with_status(db_session, "blk1", UserStatus.blocked)
-    await create_user_with_status(db_session, "left1", UserStatus.left)
+    _ = await create_registered_user(db_session, username="reg1")
+    _ = await create_user_with_status(db_session, "pend1", UserStatus.pending)
+    _ = await create_member_user(db_session, username="act1")
+    _ = await create_user_with_status(db_session, "blk1", UserStatus.blocked)
+    _ = await create_user_with_status(db_session, "left1", UserStatus.left)
 
 
 @pytest.mark.requirement("users:R45")
@@ -53,7 +53,7 @@ async def test_should_count_users_per_status(
     """Each status bucket reports the number of users in that status."""
     token = await create_admin_user(db_session)
     await _seed_one_of_each_status(db_session)
-    await create_member_user(db_session, username="act2")
+    _ = await create_member_user(db_session, username="act2")
 
     response = await client.get(
         "/v1/users/count",
@@ -96,8 +96,10 @@ async def test_should_exclude_soft_deleted_users_from_count(
 ):
     """A soft-deleted user is counted in no bucket and not in the total."""
     token = await create_admin_user(db_session)
-    await create_member_user(db_session, username="act1")
-    await create_user_with_status(db_session, "gone", UserStatus.active, deleted=True)
+    _ = await create_member_user(db_session, username="act1")
+    _ = await create_user_with_status(
+        db_session, "gone", UserStatus.active, deleted=True
+    )
 
     response = await client.get(
         "/v1/users/count",
@@ -117,8 +119,8 @@ async def test_should_exclude_super_admins_from_count(
 ):
     """Super admins stay hidden from the counts, as they are from the list (#103)."""
     token = await create_admin_user(db_session)
-    await create_member_user(db_session, username="act1")
-    await create_user_with_status(
+    _ = await create_member_user(db_session, username="act1")
+    _ = await create_user_with_status(
         db_session, "hidden_root", UserStatus.active, is_super_admin=True
     )
 
@@ -164,9 +166,9 @@ async def test_should_allow_coach_to_read_count(
     client: AsyncClient, db_session: AsyncSession
 ):
     """A coach may read the counts, matching access to ``GET /v1/users``."""
-    await create_admin_user(db_session)
+    _ = await create_admin_user(db_session)
     coach_token = await create_coach_user(db_session, username="coach1")
-    await create_member_user(db_session, username="act1")
+    _ = await create_member_user(db_session, username="act1")
 
     response = await client.get(
         "/v1/users/count",
@@ -183,7 +185,7 @@ async def test_should_reject_count_for_plain_member(
     client: AsyncClient, db_session: AsyncSession
 ):
     """A member with no admin or coach role is refused."""
-    await create_admin_user(db_session)
+    _ = await create_admin_user(db_session)
     member_token = await create_member_user(db_session, username="act1")
 
     response = await client.get(

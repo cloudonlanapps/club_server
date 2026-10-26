@@ -35,7 +35,7 @@ async def create_user_and_approve(
         "/v1/auth/login",
         json={"username": username, "password": "testpass123"},
     )
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},
@@ -195,7 +195,7 @@ async def test_restore_group(client: AsyncClient, db_session: AsyncSession):
     group_id = create_response.json()["id"]
 
     # Soft delete
-    await client.delete(
+    _ = await client.delete(
         f"/v1/groups/by_id/{group_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -252,7 +252,7 @@ async def test_hard_delete_group(client: AsyncClient, db_session: AsyncSession):
     group_id = create_response.json()["id"]
 
     # Soft delete first (required before hard delete)
-    await client.delete(
+    _ = await client.delete(
         f"/v1/groups/by_id/{group_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -496,7 +496,7 @@ async def test_soft_deleted_group_excluded_from_list(
     group_id = create_response.json()["id"]
 
     # Soft delete
-    await client.delete(
+    _ = await client.delete(
         f"/v1/groups/by_id/{group_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -599,7 +599,7 @@ async def test_bulk_add_members_already_member(
     group_id = create_response.json()["id"]
 
     # Add one user first via single-add
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/members/byname/existinguser",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -642,7 +642,7 @@ async def create_user_with_profile(
     if date_of_birth is not None:
         update["dateOfBirthUtc"] = date_of_birth
     if update:
-        await client.patch(
+        _ = await client.patch(
             f"/v1/users/by_id/{username}",
             json=update,
             headers={"Authorization": f"Bearer {token}"},
@@ -934,7 +934,7 @@ async def test_auto_group_excludes_non_active_users(
         client, token, "activeuser", db_session, gender="male"
     )
 
-    await client.post(
+    _ = await client.post(
         "/v1/auth/register",
         json={
             "username": "pendinguser",
@@ -946,7 +946,7 @@ async def test_auto_group_excludes_non_active_users(
             "phone": "1234567890",
         },
     )
-    await client.patch(
+    _ = await client.patch(
         "/v1/users/by_id/pendinguser",
         json={"gender": "male"},
         headers={"Authorization": f"Bearer {token}"},
@@ -979,7 +979,7 @@ async def test_auto_group_member_count_in_list(
     await create_user_with_profile(client, token, "male1", db_session, gender="male")
     await create_user_with_profile(client, token, "male2", db_session, gender="male")
 
-    await client.post(
+    _ = await client.post(
         "/v1/groups",
         json={"name": "Males", "genders": ["male"]},
         headers={"Authorization": f"Bearer {token}"},
@@ -1028,7 +1028,7 @@ async def test_update_auto_group_dob_window(
     )
     assert "born2012" in [m["membername"] for m in members.json()]
 
-    await client.patch(
+    _ = await client.patch(
         f"/v1/groups/by_id/{group_id}",
         json=with_group_band(
             {
@@ -1127,7 +1127,7 @@ async def test_update_manual_group_with_members_to_auto_rejected_gender(
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_resp.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/members/byname/member1",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1163,7 +1163,7 @@ async def test_update_manual_group_with_members_to_auto_rejected_dob(
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_resp.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/members/byname/member1",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1241,7 +1241,7 @@ async def test_update_manual_group_with_members_non_criteria_allowed(
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_resp.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/members/byname/member1",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1269,12 +1269,12 @@ async def test_update_manual_group_remove_members_then_set_criteria(
         headers={"Authorization": f"Bearer {token}"},
     )
     group_id = create_resp.json()["id"]
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/members/byname/member1",
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    await client.delete(
+    _ = await client.delete(
         f"/v1/groups/by_id/{group_id}/members/member1",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -1387,26 +1387,26 @@ async def test_audit_log_for_group_mutations(
         "/v1/groups", json={"name": "Auditable"}, headers=_auth(admin_token)
     )
     gid = g.json()["id"]
-    await client.patch(
+    _ = await client.patch(
         f"/v1/groups/by_id/{gid}",
         json={"description": "updated"},
         headers=_auth(admin_token),
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/byname/amy", headers=_auth(admin_token)
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/bulk",
         json={"membernames": ["bob"]},
         headers=_auth(admin_token),
     )
-    await client.delete(
+    _ = await client.delete(
         f"/v1/groups/by_id/{gid}/members/amy", headers=_auth(admin_token)
     )
-    await client.delete(f"/v1/groups/by_id/{gid}", headers=_auth(admin_token))
-    await client.post(f"/v1/groups/by_id/{gid}/restore", headers=_auth(admin_token))
-    await client.delete(f"/v1/groups/by_id/{gid}", headers=_auth(admin_token))
-    await client.delete(f"/v1/groups/by_id/{gid}/hard", headers=_auth(admin_token))
+    _ = await client.delete(f"/v1/groups/by_id/{gid}", headers=_auth(admin_token))
+    _ = await client.post(f"/v1/groups/by_id/{gid}/restore", headers=_auth(admin_token))
+    _ = await client.delete(f"/v1/groups/by_id/{gid}", headers=_auth(admin_token))
+    _ = await client.delete(f"/v1/groups/by_id/{gid}/hard", headers=_auth(admin_token))
 
     rows = (
         await db_session.execute(

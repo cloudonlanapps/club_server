@@ -174,7 +174,7 @@ async def test_public_profile_avatar_public_only(
     await _make_coach(db_session, "pub_avatar", is_public_profile=True)
     await _make_coach(db_session, "priv_avatar", is_public_profile=True)
     pub_uuid = await _attach_avatar(db_session, "pub_avatar", public=True)
-    await _attach_avatar(db_session, "priv_avatar", public=False)
+    _ = await _attach_avatar(db_session, "priv_avatar", public=False)
     await db_session.commit()
 
     resp_pub = await client.get(

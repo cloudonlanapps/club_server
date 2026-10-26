@@ -24,7 +24,7 @@ def test_camel_case_model_forbids_undeclared_fields():
     assert Sample(knownField="ok").known_field == "ok"
 
     with pytest.raises(ValueError) as excinfo:
-        Sample(knownField="ok", surpriseField="nope")
+        _ = Sample(knownField="ok", surpriseField="nope")
     assert "surpriseField" in str(excinfo.value)
 
 

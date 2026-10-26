@@ -358,7 +358,7 @@ async def test_soft_delete_blocked_when_linked(
     admin = await create_admin_user(db_session)
     m = await _upload(client, admin)
     venue_id = await _create_venue(client, admin)
-    await client.post(
+    _ = await client.post(
         f"/v1/venues/by_id/{venue_id}/media",
         json={"tag": "banner", "mediaUuid": m["uuid"]},
         headers={"Authorization": f"Bearer {admin}"},
@@ -375,7 +375,7 @@ async def test_soft_delete_blocked_when_linked(
     assert body["links"][0]["ownerType"] == "venue"
 
     # Unlink, then soft-delete succeeds.
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue_id}/media/banner/{m['uuid']}",
         headers={"Authorization": f"Bearer {admin}"},
     )
@@ -401,12 +401,12 @@ async def test_reverse_lookup_lists_all_links(
     venue_id = await _create_venue(client, admin)
     group_id = await _create_group(client, admin)
 
-    await client.post(
+    _ = await client.post(
         f"/v1/venues/by_id/{venue_id}/media",
         json={"tag": "banner", "mediaUuid": m["uuid"]},
         headers={"Authorization": f"Bearer {admin}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/media",
         json={"tag": "logo", "mediaUuid": m["uuid"]},
         headers={"Authorization": f"Bearer {admin}"},
@@ -454,12 +454,12 @@ async def test_cross_owner_search(
     m2 = await _upload(client, admin)
     venue_id = await _create_venue(client, admin)
     group_id = await _create_group(client, admin)
-    await client.post(
+    _ = await client.post(
         f"/v1/venues/by_id/{venue_id}/media",
         json={"tag": "banner", "mediaUuid": m1["uuid"]},
         headers={"Authorization": f"Bearer {admin}"},
     )
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{group_id}/media",
         json={"tag": "logo", "mediaUuid": m2["uuid"]},
         headers={"Authorization": f"Bearer {admin}"},
@@ -586,17 +586,17 @@ async def test_audit_log_entries_written(
     admin = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin)
     m = await _upload(client, admin)
-    await client.post(
+    _ = await client.post(
         f"/v1/venues/by_id/{venue_id}/media",
         json={"tag": "banner", "mediaUuid": m["uuid"]},
         headers={"Authorization": f"Bearer {admin}"},
     )
-    await client.patch(
+    _ = await client.patch(
         f"/v1/venues/by_id/{venue_id}/media/banner/{m['uuid']}",
         json={"metadata": "hello"},
         headers={"Authorization": f"Bearer {admin}"},
     )
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue_id}/media/banner/{m['uuid']}",
         headers={"Authorization": f"Bearer {admin}"},
     )

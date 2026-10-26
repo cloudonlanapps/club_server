@@ -48,7 +48,7 @@ async def test_create_venue_records_client_ip(
 @pytest.mark.asyncio
 async def test_ip_appears_in_summary(client: AsyncClient, db_session: AsyncSession):
     token = await create_admin_user(db_session)
-    await client.post(
+    _ = await client.post(
         "/v1/venues", headers=_auth(token, "8.8.8.8"), json={"name": "Rink B"}
     )
 

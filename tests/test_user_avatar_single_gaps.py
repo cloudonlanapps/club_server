@@ -49,8 +49,8 @@ async def _avatar_also_linked_from(
 ) -> dict:
     """Alice's avatar, its file linked by ``writer`` to a second owner too."""
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, old["uuid"])
-    await link(client, writer, owner_path, old["uuid"], tag=tag)
+    _ = await link(client, alice, ALICE, old["uuid"])
+    _ = await link(client, writer, owner_path, old["uuid"], tag=tag)
     assert await linked_uuids(client, alice, ALICE) == [old["uuid"]]
     assert await linked_uuids(client, writer, owner_path, tag) == [old["uuid"]]
     return old
@@ -61,7 +61,7 @@ async def _replace_and_assert_file_kept(
 ) -> None:
     """Link a new avatar; the old file and its other link are still there."""
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, new["uuid"])
+    _ = await link(client, alice, ALICE, new["uuid"])
 
     assert await linked_uuids(client, alice, ALICE) == [new["uuid"]]
     assert await linked_uuids(client, reader, ALICE) == [new["uuid"]]
@@ -172,7 +172,7 @@ async def test_should_keep_the_old_avatar_when_deleting_the_old_file_fails(
     alice = await create_member_user(db_session, "alice")
     _ = await create_admin_user(db_session)
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, old["uuid"])
+    _ = await link(client, alice, ALICE, old["uuid"])
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
     seen: list[tuple[list[str], list[str]]] = []
 
@@ -184,7 +184,7 @@ async def test_should_keep_the_old_avatar_when_deleting_the_old_file_fails(
         media_links_service, "check_media_in_use", fail_once_the_new_link_is_written
     )
     with pytest.raises(RuntimeError, match="storage went away"):
-        await link(client, alice, ALICE, new["uuid"])
+        _ = await link(client, alice, ALICE, new["uuid"])
 
     # The step that failed ran with the new link written and the old one removed.
     assert seen == [([new["uuid"]], [])]
@@ -202,7 +202,7 @@ async def test_should_keep_the_old_avatar_when_auditing_the_new_link_fails(
     alice = await create_member_user(db_session, "alice")
     _ = await create_admin_user(db_session)
     old = await upload(client, alice, access_roles=PRIVATE_ROLES)
-    await link(client, alice, ALICE, old["uuid"])
+    _ = await link(client, alice, ALICE, old["uuid"])
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
     seen: list[tuple[list[str], list[str]]] = []
 
@@ -214,7 +214,7 @@ async def test_should_keep_the_old_avatar_when_auditing_the_new_link_fails(
         media_links_router, "_audit_create", fail_once_the_old_file_is_deleted
     )
     with pytest.raises(RuntimeError, match="audit log went away"):
-        await link(client, alice, ALICE, new["uuid"])
+        _ = await link(client, alice, ALICE, new["uuid"])
 
     # The step that failed ran with the whole replace written, old file deleted.
     assert seen == [([new["uuid"]], [old["uuid"]])]

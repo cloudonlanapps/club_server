@@ -48,11 +48,11 @@ async def run_loop_once(session_factory, tick_seconds: float = 1.0) -> None:
     signal = _TickSignal(session_factory)
     task = asyncio.create_task(scheduler_loop(signal, tick_seconds=tick_seconds))
     try:
-        await asyncio.wait_for(
+        _ = await asyncio.wait_for(
             signal.tick_done.wait(), timeout=FIRST_TICK_TIMEOUT_SECONDS
         )
     finally:
-        task.cancel()
+        _ = task.cancel()
         try:
             await task
         except asyncio.CancelledError:

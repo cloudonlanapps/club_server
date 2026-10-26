@@ -59,7 +59,7 @@ async def _seed(client: AsyncClient, db_session: AsyncSession) -> str:
     """Admin plus four opted-in coaches; returns the admin token."""
     admin = await create_admin_user(db_session)
     for name in ("suraj", "aagam", "aaryan", "manju"):
-        await _public_coach(db_session, name)
+        _ = await _public_coach(db_session, name)
     await db_session.commit()
     return admin
 
@@ -85,8 +85,8 @@ async def test_should_order_public_staff_by_position_then_unlisted_by_name(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await _seed(client, db_session)
-    await _curate(client, admin, "aagam", position=20)
-    await _curate(client, admin, "suraj", position=10)
+    _ = await _curate(client, admin, "aagam", position=20)
+    _ = await _curate(client, admin, "suraj", position=10)
 
     response = await client.get("/v1/public/staff")
     assert response.status_code == 200
@@ -101,9 +101,9 @@ async def test_should_list_only_opted_in_coaches_whatever_the_curation(
 ):
     """The listing row can withhold or order; it can never grant visibility."""
     admin = await _seed(client, db_session)
-    await _public_coach(db_session, "private_coach", opted_in=False)
+    _ = await _public_coach(db_session, "private_coach", opted_in=False)
     await db_session.commit()
-    await _curate(client, admin, "private_coach", position=1)
+    _ = await _curate(client, admin, "private_coach", position=1)
 
     response = await client.get("/v1/public/staff")
     assert "Private_Coach" not in _names(response.json())
@@ -115,7 +115,7 @@ async def test_should_hide_hidden_coach_from_public_staff(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await _seed(client, db_session)
-    await _curate(client, admin, "manju", is_hidden=True)
+    _ = await _curate(client, admin, "manju", is_hidden=True)
 
     response = await client.get("/v1/public/staff")
     assert "Manju" not in _names(response.json())
@@ -129,7 +129,7 @@ async def test_should_drop_guests_unless_include_guests(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await _seed(client, db_session)
-    await _curate(client, admin, "aaryan", is_guest=True, position=5)
+    _ = await _curate(client, admin, "aaryan", is_guest=True, position=5)
 
     default = await client.get("/v1/public/staff")
     assert "Aaryan" not in _names(default.json())
@@ -225,7 +225,7 @@ async def test_should_not_treat_curation_as_a_profile_edit(
     coach_token = await _public_coach(db_session, "suraj")
     await db_session.commit()
 
-    await _curate(client, admin, "suraj", position=10)
+    _ = await _curate(client, admin, "suraj", position=10)
 
     notices = await client.get("/v1/notifications", headers=_auth(coach_token))
     assert notices.status_code == 200
@@ -315,7 +315,7 @@ async def test_should_no_longer_carry_display_order_on_the_user(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    await _public_coach(db_session, "suraj")
+    _ = await _public_coach(db_session, "suraj")
     await db_session.commit()
 
     response = await client.patch(

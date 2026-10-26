@@ -45,10 +45,10 @@ class PublicCacheMiddleware(BaseHTTPMiddleware):
         headers = dict(response.headers)
         headers["Cache-Control"] = f"public, max-age={PUBLIC_MAX_AGE_SECONDS}"
         headers["ETag"] = etag
-        headers.pop("content-length", None)
+        _ = headers.pop("content-length", None)
 
         if request.headers.get("if-none-match") == etag:
-            headers.pop("content-type", None)
+            _ = headers.pop("content-type", None)
             return Response(status_code=304, headers=headers)
         return Response(
             content=body,

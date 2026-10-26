@@ -94,7 +94,7 @@ class EvaluationPdfCanvas(FPDF):
         self.set_char_spacing(tracking)
         self.set_text_color(*rgb(colour))
         self.set_xy(x, y)
-        self.multi_cell(
+        _ = self.multi_cell(
             width,
             size * LEADING,
             text,
@@ -125,7 +125,7 @@ class EvaluationPdfCanvas(FPDF):
         for run in runs:
             self.set_font(PRINT_FONT, UNDERLINE if run.link else REGULAR, size)
             self.set_text_color(*rgb(link_colour if run.link else colour))
-            self.write(line, run.text, link=run.link or "")
+            _ = self.write(line, run.text, link=run.link or "")
         bottom = self.get_y() + line
         self.set_left_margin(left)
         self.set_right_margin(right)
@@ -164,8 +164,10 @@ class EvaluationPdfCanvas(FPDF):
 
     def svg(self, x: float, y: float, size: float, source: str) -> None:
         """An SVG graphic scaled into a ``size`` square."""
-        self.image(io.BytesIO(source.encode()), x=x, y=y, w=size, h=size)
+        _ = self.image(io.BytesIO(source.encode()), x=x, y=y, w=size, h=size)
 
     def picture(self, x: float, y: float, size: float, data: bytes) -> None:
         """A raster picture fitted, aspect kept, into a ``size`` square."""
-        self.image(io.BytesIO(data), x=x, y=y, w=size, h=size, keep_aspect_ratio=True)
+        _ = self.image(
+            io.BytesIO(data), x=x, y=y, w=size, h=size, keep_aspect_ratio=True
+        )

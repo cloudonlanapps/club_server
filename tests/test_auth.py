@@ -156,7 +156,7 @@ async def test_pending_user_can_login(client: AsyncClient, db_session: AsyncSess
     )
     assert login_resp.status_code == 200
     token = login_resp.json()["accessToken"]
-    await attach_identity_document(db_session, "newuser")
+    _ = await attach_identity_document(db_session, "newuser")
     submit = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {token}"},
@@ -487,7 +487,7 @@ async def test_register_whitespace_name_returns_400(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client: AsyncClient):
     """Registering with an already-used email returns 409 DUPLICATE_EMAIL."""
-    await client.post(
+    _ = await client.post(
         "/v1/auth/register",
         json={
             "username": "user1",
@@ -574,7 +574,7 @@ async def test_refresh_token_invalid(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_password_reset_existing_email(client: AsyncClient):
     """Password reset for a known email returns 204."""
-    await client.post(
+    _ = await client.post(
         "/v1/auth/register",
         json={
             "username": "resetuser",

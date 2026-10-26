@@ -66,7 +66,7 @@ def draw_head(c: EvaluationPdfCanvas, x: float, y: float) -> float:
     c.outline_box(x, y, CONTENT_WIDTH, height, colour=RULE, width=HAIRLINE)
     c.vline(x + COLUMN, y, y + height)
     for i, title in enumerate((QUESTION_HEADER, RATING_HEADER)):
-        c.text_box(
+        _ = c.text_box(
             x + i * COLUMN + CELL,
             y + CELL,
             INNER,
@@ -96,7 +96,7 @@ def bar(title: str):
     def draw(c: EvaluationPdfCanvas, x: float, y: float) -> float:
         bottom = y + c.measure(write) + 2 * CELL
         c.fill_box(x, y, CONTENT_WIDTH, bottom - y, BAND)
-        write(c, x + CELL, y + CELL)
+        _ = write(c, x + CELL, y + CELL)
         _sides(c, x, y, bottom)
         return bottom
 
@@ -139,7 +139,7 @@ def draw_answer(
                 fraction=value / top, fill=ACCENT, track=TRACK, ring=PIE_RING / PIE
             )
             c.svg(x, y, PIE, ring)
-            c.text_box(
+            _ = c.text_box(
                 x,
                 y + (PIE - SMALL * LEADING) / 2,
                 PIE,
@@ -190,8 +190,8 @@ def question_row(
         heights = (c.measure(left), c.measure(right))
         inside = max(heights)
         # Both cells sit in the middle of the row.
-        left(c, x + CELL, y + CELL + (inside - heights[0]) / 2)
-        right(c, x + COLUMN + CELL, y + CELL + (inside - heights[1]) / 2)
+        _ = left(c, x + CELL, y + CELL + (inside - heights[0]) / 2)
+        _ = right(c, x + COLUMN + CELL, y + CELL + (inside - heights[1]) / 2)
         bottom = y + inside + 2 * CELL
         _sides(c, x, y, bottom)
         c.vline(x + COLUMN, y, bottom)

@@ -48,7 +48,7 @@ def test_converter_handles_every_api_image_extension():
 def test_media_convert_script_converts_image_to_webp(tmp_path: Path, ext: str):
     """media_convert.sh converts each supported image format to webp (exit 0)."""
     src = tmp_path / f"in.{ext}"
-    subprocess.run(
+    _ = subprocess.run(
         ["magick", "-size", "8x8", "xc:#3366cc", str(src)],
         check=True,
         capture_output=True,

@@ -356,7 +356,7 @@ async def test_restore_event(client: AsyncClient, db_session: AsyncSession):
     event_id = create_response.json()["id"]
 
     # Soft delete
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -425,7 +425,7 @@ async def test_hard_delete_event(client: AsyncClient, db_session: AsyncSession):
     event_id = create_response.json()["id"]
 
     # Soft delete first (required before hard delete)
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -668,7 +668,7 @@ async def test_soft_deleted_event_excluded_from_list(
     event_id = create_response.json()["id"]
 
     # Soft delete
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -701,7 +701,7 @@ async def test_create_event_venue_conflict(
     token = await create_admin_user(db_session)
     venue_id = await create_venue(client, token)
 
-    await client.post(
+    _ = await client.post(
         "/v1/events",
         json={
             "title": "Event A",
@@ -739,7 +739,7 @@ async def test_create_event_coach_conflict(
     venue1_id = await create_venue(client, token, "Venue 1")
     venue2_id = await create_venue(client, token, "Venue 2")
 
-    await client.post(
+    _ = await client.post(
         "/v1/events",
         json={
             "title": "Event A",
@@ -778,7 +778,7 @@ async def test_create_event_no_conflict_different_venue_and_coach(
     venue1_id = await create_venue(client, token, "Venue 1")
     venue2_id = await create_venue(client, token, "Venue 2")
 
-    await client.post(
+    _ = await client.post(
         "/v1/events",
         json={
             "title": "Event A",
@@ -833,7 +833,7 @@ async def test_create_event_no_conflict_with_soft_deleted_event(
     event_id = event_response.json()["id"]
 
     # Soft delete event A
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -861,7 +861,7 @@ async def test_create_event_no_conflict_non_overlapping_time(
     token = await create_admin_user(db_session)
     venue_id = await create_venue(client, token)
 
-    await client.post(
+    _ = await client.post(
         "/v1/events",
         json={
             "title": "Event A",
@@ -911,13 +911,13 @@ async def test_restore_event_blocked_when_venue_deleted(
     event_id = event_response.json()["id"]
 
     # Soft delete the event first
-    await client.delete(
+    _ = await client.delete(
         f"/v1/events/by_id/{event_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
     # Soft delete the venue (succeeds because event is already deleted)
-    await client.delete(
+    _ = await client.delete(
         f"/v1/venues/by_id/{venue_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -951,7 +951,7 @@ async def create_user_and_get_token(
         "/v1/auth/login",
         json={"username": username, "password": "testpass123"},
     )
-    await attach_identity_document(db_session, username)
+    _ = await attach_identity_document(db_session, username)
     _ = await client.post(
         "/v1/users/me/submit-for-review",
         headers={"Authorization": f"Bearer {_pre.json()['accessToken']}"},

@@ -65,7 +65,7 @@ async def test_should_write_audit_row_when_session_charged(
 ):
     """R84: credit movements are auditable, not only visible on the ledger."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     _ = await open_account(client, admin_token, "alice", credits=5)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"
@@ -87,7 +87,7 @@ async def test_should_write_audit_row_when_session_refunded(
 ):
     """R84: the reversal is auditable too — that is the half people query."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     _ = await open_account(client, admin_token, "alice", credits=5)
     event_id, occurrence = await programme_with_member(
         client, admin_token, db_session, "alice"

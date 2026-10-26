@@ -95,7 +95,7 @@ async def _event(
 async def _move_to_past(db: AsyncSession, event_id: int) -> None:
     """Shift the event's only schedule a week back so every occurrence has ended."""
     now = now_utc_ms()
-    await db.execute(
+    _ = await db.execute(
         update(EventSchedule)
         .where(EventSchedule.event_id == event_id)
         .values(start_time=now - 7 * 24 * HOUR, end_time=now - 7 * 24 * HOUR + HOUR)
@@ -136,7 +136,7 @@ async def test_should_list_public_live_events_without_ids_or_usernames(
     await db_session.commit()
     venue_id = await _venue(client, admin)
     shown = await _event(client, admin, venue_id, coach_names=["suraj"])
-    await _event(client, admin, venue_id, title="Private", visibility="private")
+    _ = await _event(client, admin, venue_id, title="Private", visibility="private")
     gone = await _event(client, admin, venue_id, title="Deleted")
     deleted = await client.delete(
         f"/v1/events/by_id/{gone['id']}", headers=_auth(admin)

@@ -575,7 +575,7 @@ async def test_should_return_advisory_findings_and_raise_only_blocking_ones(
     assert advisory.findings[0].gate is ConflictGate.venue
 
     with pytest.raises(EventConflictException):
-        await check_conflicts(
+        _ = await check_conflicts(
             db_session, target, {ConflictGate.venue: GatePolicy.block}
         )
 

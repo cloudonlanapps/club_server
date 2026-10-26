@@ -59,9 +59,9 @@ async def _insert_audit(
 
 async def _seed(db: AsyncSession) -> None:
     # bob as actor
-    await _insert_audit(db, timestamp=100, action="login", actor_username="bob")
+    _ = await _insert_audit(db, timestamp=100, action="login", actor_username="bob")
     # bob as target
-    await _insert_audit(
+    _ = await _insert_audit(
         db,
         timestamp=101,
         action="block_user",
@@ -69,9 +69,9 @@ async def _seed(db: AsyncSession) -> None:
         target_username="bob",
     )
     # unrelated user
-    await _insert_audit(db, timestamp=102, action="login", actor_username="zoe")
+    _ = await _insert_audit(db, timestamp=102, action="login", actor_username="zoe")
     # event 42 own row
-    await _insert_audit(
+    _ = await _insert_audit(
         db,
         timestamp=103,
         action="cancel_event",
@@ -80,7 +80,7 @@ async def _seed(db: AsyncSession) -> None:
         resource_id="42",
     )
     # media-link owned by event 42 (composite resource_id <id>:<tag>:<uuid>)
-    await _insert_audit(
+    _ = await _insert_audit(
         db,
         timestamp=104,
         action="create_event_media_link",
@@ -89,7 +89,7 @@ async def _seed(db: AsyncSession) -> None:
         resource_id="42:cover:uuid-1",
     )
     # tag-deletion owned by event 42 (resource_id <id>:<tag>, #260)
-    await _insert_audit(
+    _ = await _insert_audit(
         db,
         timestamp=105,
         action="delete_event_media_tag",
@@ -98,7 +98,7 @@ async def _seed(db: AsyncSession) -> None:
         resource_id="42:cover",
     )
     # occurrence of event 42 (composite resource_id <id>:<time>)
-    await _insert_audit(
+    _ = await _insert_audit(
         db,
         timestamp=106,
         action="cancel_occurrence",
@@ -107,7 +107,7 @@ async def _seed(db: AsyncSession) -> None:
         resource_id="42:1700000000000",
     )
     # different event
-    await _insert_audit(
+    _ = await _insert_audit(
         db,
         timestamp=107,
         action="cancel_event",

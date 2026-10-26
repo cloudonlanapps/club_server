@@ -315,7 +315,7 @@ class AttendanceService:
             event_id, occurrence_time_utc, membername, actor
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="attendance.marked",
                 recipients=[membername],
@@ -527,7 +527,7 @@ class AttendanceService:
 
         await self.db.flush()
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="attendance.correction_requested",
                 recipients=await self._list_staff_usernames(),
@@ -623,7 +623,7 @@ class AttendanceService:
             "attendance_correction", pending_action_id=record.id
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="attendance.correction_response",
                 recipients=[membername],
@@ -689,7 +689,7 @@ class AttendanceService:
             "attendance_correction", pending_action_id=record_id
         )
 
-        await self._notifications.notify_for_event(
+        _ = await self._notifications.notify_for_event(
             NotificationEvent(
                 type="attendance.correction_response",
                 recipients=[membername],

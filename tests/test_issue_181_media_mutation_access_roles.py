@@ -208,7 +208,7 @@ async def test_restore_owner_allowed(
     owner_token = await create_registered_user(db_session, "alice")
     body = await _upload_as(client, owner_token, access_roles='["self"]')
     mid = body["id"]
-    await client.delete(
+    _ = await client.delete(
         f"/v1/media/by_id/{mid}",
         headers={"Authorization": f"Bearer {owner_token}"},
     )
@@ -230,7 +230,7 @@ async def test_restore_super_admin_allowed(
     super_token = await create_admin_user(db_session)
     body = await _upload_as(client, owner_token, access_roles='["self"]')
     mid = body["id"]
-    await client.delete(
+    _ = await client.delete(
         f"/v1/media/by_id/{mid}",
         headers={"Authorization": f"Bearer {owner_token}"},
     )

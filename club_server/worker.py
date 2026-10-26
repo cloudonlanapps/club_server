@@ -65,7 +65,7 @@ async def stop_worker() -> None:
         _stop_event.set()
     for task_name, task in [("scheduler", _scheduler_task), ("video", _video_task)]:
         if task:
-            task.cancel()
+            _ = task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
@@ -170,7 +170,7 @@ async def _emit_lifecycle_event(
     data: dict[str, str] = {"mediaUuid": media.uuid, "kind": media.media_type}
     if reason_code is not None:
         data["reasonCode"] = reason_code
-    await NotificationService(session).notify_for_event(
+    _ = await NotificationService(session).notify_for_event(
         NotificationEvent(
             type=event_type,
             recipients=[media.uploaded_by],
@@ -283,21 +283,21 @@ async def _run_conversion(media_id: int) -> None:
                 # Keep the original file under its source extension; discard the
                 # transcoded mp4 since the "original" variant resolves to
                 # <uid>.<original_extension>.
-                shutil.move(str(input_path), str(upload_dir / f"{uid}.{extension}"))
+                _ = shutil.move(str(input_path), str(upload_dir / f"{uid}.{extension}"))
                 if converted_mp4.exists():
                     converted_mp4.unlink()
             else:
                 # Replace the original with the transcoded mp4.
                 dest_mp4 = upload_dir / f"{uid}.mp4"
-                shutil.move(str(converted_mp4), str(dest_mp4))
+                _ = shutil.move(str(converted_mp4), str(dest_mp4))
                 media.file_size = dest_mp4.stat().st_size
                 # Original input no longer needed.
                 input_path.unlink(missing_ok=True)
 
             if poster_src.exists():
-                shutil.move(str(poster_src), str(upload_dir / f"{uid}_poster.webp"))
+                _ = shutil.move(str(poster_src), str(upload_dir / f"{uid}_poster.webp"))
             if animated_src.exists():
-                shutil.move(
+                _ = shutil.move(
                     str(animated_src),
                     str(upload_dir / f"{uid}_animated.webp"),
                 )

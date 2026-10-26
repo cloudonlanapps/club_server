@@ -53,8 +53,8 @@ async def test_should_report_usable_credit_for_each_enrolled_member(
 ):
     """R90: the roster answers who can be marked."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
-    await create_member(db_session, "bob")
+    _ = await create_member(db_session, "alice")
+    _ = await create_member(db_session, "bob")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=7)
     _ = await open_account(client, admin_token, "bob", credits=3)
@@ -76,7 +76,7 @@ async def test_should_name_the_account_that_would_pay(
 ):
     """R25/R26: the roster shows the event-bound account, not the general one."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=20)
     bound = await open_account(
@@ -97,7 +97,7 @@ async def test_should_flag_member_as_blocked_when_credit_exhausted(
 ):
     """R42: blocked is derived from the balance, not stored."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     account = await open_account(client, admin_token, "alice", credits=1)
     await assigned(client, admin_token, event_id, "alice")
@@ -117,8 +117,8 @@ async def test_should_list_only_blocked_members_when_state_filtered(
 ):
     """R90: the admin wants the short list, not the whole roster."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
-    await create_member(db_session, "bob")
+    _ = await create_member(db_session, "alice")
+    _ = await create_member(db_session, "bob")
     event_id = await create_event(client, admin_token)
     alice_account = await open_account(client, admin_token, "alice", credits=1)
     _ = await open_account(client, admin_token, "bob", credits=5)
@@ -138,7 +138,7 @@ async def test_should_report_next_expiry_for_each_member(
 ):
     """R90: whose credit lapses next, so it can be chased before it does."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     expires = days_from_now(14)
     _ = await open_account(client, admin_token, "alice", credits=5, valid_until=expires)
@@ -155,7 +155,7 @@ async def test_should_exclude_members_who_are_only_invited(
 ):
     """The roster is who could be marked, not who was asked."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=5)
     invited = await client.post(
@@ -181,7 +181,7 @@ async def test_should_report_bound_credit_when_bound_account_has_expired(
     a disposition before it asks for one.
     """
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     bound = await open_account(
         client, admin_token, "alice", credits=5, event_id=event_id
@@ -204,7 +204,7 @@ async def test_should_report_no_bound_credit_when_member_holds_only_general_cred
 ):
     """R71: general credit is markable but never needs a disposition."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=3)
     await assigned(client, admin_token, event_id, "alice")
@@ -222,7 +222,7 @@ async def test_should_count_only_programme_bound_credit_when_member_holds_both(
 ):
     """boundCredits is the programme's share; general credit stays out of it."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=20)
     _ = await open_account(client, admin_token, "alice", credits=4, event_id=event_id)
@@ -242,7 +242,7 @@ async def test_should_include_member_when_withdrawal_requested(
     """R74: a pending withdrawal leaves the member enrolled and chargeable."""
     admin_token = await create_admin_user(db_session)
     member_token = await create_member(db_session, "alice")
-    await create_member(db_session, "bob")
+    _ = await create_member(db_session, "bob")
     event_id = await create_event(client, admin_token)
     _ = await open_account(client, admin_token, "alice", credits=6, event_id=event_id)
     _ = await open_account(client, admin_token, "bob", credits=2)

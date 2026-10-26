@@ -68,7 +68,7 @@ async def test_should_split_cost_across_accounts_when_one_cannot_cover_it(
 ):
     """R29: the cost is met from accounts in selection order until covered."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     first = await open_account(client, admin_token, "alice", credits=2)
     second = await open_account(client, admin_token, "alice", credits=5)
     event_id, occurrence = await programme_with_member(
@@ -98,7 +98,7 @@ async def test_should_take_nothing_when_accounts_cannot_meet_the_cost(
     never marked for.
     """
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     first = await open_account(client, admin_token, "alice", credits=1)
     second = await open_account(client, admin_token, "alice", credits=1)
     event_id, occurrence = await programme_with_member(
@@ -125,7 +125,7 @@ async def test_should_refund_every_part_when_a_split_charge_is_reversed(
 ):
     """R49: a refund returns to each account in the amount it paid."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     first = await open_account(client, admin_token, "alice", credits=2)
     second = await open_account(client, admin_token, "alice", credits=5)
     event_id, occurrence = await programme_with_member(

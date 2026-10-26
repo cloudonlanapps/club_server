@@ -31,7 +31,7 @@ async def test_should_make_expired_account_usable_when_validity_extended(
 ):
     """R62: extending the window is the only way back from expiry."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=5)
     account_id = account["accountId"]
     await expire_account(db_session, account_id)
@@ -60,7 +60,7 @@ async def test_should_keep_balance_when_account_expires(
 ):
     """R61: expired credits are never destroyed or swept."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=12)
     await expire_account(db_session, account["accountId"])
 
@@ -77,7 +77,7 @@ async def test_should_reject_extension_when_new_end_is_earlier(
 ):
     """R62: an extension moves the end date forwards, not backwards."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(
         client, admin_token, "alice", valid_until=days_from_now(60)
     )
@@ -100,7 +100,7 @@ async def test_should_reject_extension_when_caller_is_coach(
     """R14: adjusting an account is an admin power."""
     admin_token = await create_admin_user(db_session)
     coach_token = await create_coach_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice")
 
     response = await client.post(
@@ -120,7 +120,7 @@ async def test_should_record_extension_on_statement_when_validity_extended(
 ):
     """R81: a validity change belongs on the statement, at amount zero."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=5)
     account_id = account["accountId"]
 
@@ -153,7 +153,7 @@ async def test_should_empty_account_when_whole_grant_reversed(
 ):
     """R58: an admin undoes their own mistake in full."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     account_id = account["accountId"]
 
@@ -176,7 +176,7 @@ async def test_should_reduce_balance_when_part_of_grant_reversed(
 ):
     """R58: a partial reversal corrects a wrong amount."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=10)
     account_id = account["accountId"]
 
@@ -198,7 +198,7 @@ async def test_should_reject_reversal_when_it_exceeds_the_balance(
 ):
     """R59: a grant cannot be reversed beyond what remains unspent."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=3)
 
     response = await client.post(
@@ -218,7 +218,7 @@ async def test_should_never_produce_negative_balance_when_reversed_twice(
 ):
     """R12: a balance can never go below zero."""
     admin_token = await create_admin_user(db_session)
-    await create_member(db_session, "alice")
+    _ = await create_member(db_session, "alice")
     account = await open_account(client, admin_token, "alice", credits=5)
     account_id = account["accountId"]
 

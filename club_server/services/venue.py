@@ -231,7 +231,7 @@ class VenueService:
         if name is not None and name != old_name:
             affected = await self._future_event_ids_at_venue(venue.id)
             if affected:
-                await self._notifications.notify_for_event(
+                _ = await self._notifications.notify_for_event(
                     NotificationEvent(
                         type="venue.renamed",
                         recipients=await self._list_admin_usernames(),

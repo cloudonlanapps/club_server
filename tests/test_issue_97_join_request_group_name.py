@@ -58,7 +58,9 @@ async def test_user_requests_listing_includes_group_name(
     member_token = await create_member_user(db_session, username="amy")
     gid = await _make_manual(client, admin_token, "Hawks")
 
-    await client.post(f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token))
+    _ = await client.post(
+        f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token)
+    )
 
     res = await client.get(
         "/v1/mygroups/by_id/amy/requests", headers=auth(member_token)
@@ -77,7 +79,9 @@ async def test_admin_group_requests_listing_includes_group_name(
     admin_token = await create_admin_user(db_session)
     member_token = await create_member_user(db_session, username="amy")
     gid = await _make_manual(client, admin_token, "Sharks")
-    await client.post(f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token))
+    _ = await client.post(
+        f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token)
+    )
 
     res = await client.get(
         f"/v1/groups/by_id/{gid}/requests", headers=auth(admin_token)
@@ -175,7 +179,7 @@ async def test_eligible_groups_includes_requested_groups_with_flag_true(
     gid_req = await _make_manual(client, admin_token, "Requested")
     gid_open = await _make_manual(client, admin_token, "Open")
 
-    await client.post(
+    _ = await client.post(
         f"/v1/mygroups/by_id/amy/join/{gid_req}", headers=auth(member_token)
     )
 
@@ -264,7 +268,9 @@ async def test_get_my_group_works_when_user_has_pending_request(
     admin_token = await create_admin_user(db_session)
     member_token = await create_member_user(db_session, username="amy")
     gid = await _make_manual(client, admin_token, "InFlight")
-    await client.post(f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token))
+    _ = await client.post(
+        f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token)
+    )
 
     res = await client.get(
         f"/v1/mygroups/by_id/amy/group/{gid}", headers=auth(member_token)
@@ -283,7 +289,7 @@ async def test_get_my_group_works_when_user_is_member(
     admin_token = await create_admin_user(db_session)
     member_token = await create_member_user(db_session, username="amy")
     gid = await _make_manual(client, admin_token, "Mine")
-    await client.post(
+    _ = await client.post(
         f"/v1/groups/by_id/{gid}/members/byname/amy", headers=auth(admin_token)
     )
 
@@ -332,7 +338,7 @@ async def test_get_my_group_forbidden_for_other_user(
     a_token = await create_member_user(db_session, username="amy")
     b_token = await create_member_user(db_session, username="bob")
     gid = await _make_manual(client, admin_token, "Theirs")
-    await client.post(f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(a_token))
+    _ = await client.post(f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(a_token))
 
     res = await client.get(f"/v1/mygroups/by_id/amy/group/{gid}", headers=auth(b_token))
     assert res.status_code == 403
@@ -347,7 +353,9 @@ async def test_get_my_group_allowed_for_admin_or_coach(
     reg_admin = await create_regular_admin_user(db_session, username="ralph")
     member_token = await create_member_user(db_session, username="amy")
     gid = await _make_manual(client, admin_token, "AdminPeek")
-    await client.post(f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token))
+    _ = await client.post(
+        f"/v1/mygroups/by_id/amy/join/{gid}", headers=auth(member_token)
+    )
 
     for tok in (coach_token, reg_admin):
         res = await client.get(f"/v1/mygroups/by_id/amy/group/{gid}", headers=auth(tok))
