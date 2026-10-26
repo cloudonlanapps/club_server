@@ -24,7 +24,7 @@ from tests.helpers import create_admin_user
 
 
 def _ctx(**kwargs: Any) -> SummaryContext:
-    base = dict(
+    base: dict[str, Any] = dict(
         actor="Asha Patil",
         target="Bob Builder",
         resource_label="U10 Practice",

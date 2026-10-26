@@ -304,6 +304,13 @@ def answer_of(evaluation: dict[str, Any], item_id: int) -> dict[str, Any] | None
     return None
 
 
+def require_answer(evaluation: dict[str, Any], item_id: int) -> dict[str, Any]:
+    """The answer to one item in a read evaluation; fails the test if missing."""
+    answer = answer_of(evaluation, item_id)
+    assert answer is not None, f"no answer to item {item_id}"
+    return answer
+
+
 async def publish(client: AsyncClient, token: str, evaluation_id: int) -> None:
     """Walk a draft through saved to published."""
     saved = await client.post(

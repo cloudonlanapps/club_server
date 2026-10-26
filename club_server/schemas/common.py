@@ -69,7 +69,7 @@ class CapabilitiesResponse(CamelCaseModel):
     # Whether a new user uploads an identity document before review (#428).
     identity_verification: bool = True
     default_country_code: str | None = Field(
-        None,
+        default=None,
         description=(
             "The club's country calling code, one to three digits without "
             '"+", for completing a phone number typed without one. Set per '

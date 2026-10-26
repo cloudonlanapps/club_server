@@ -23,7 +23,10 @@ pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
 async def roster(
-    client: AsyncClient, token: str, event_id: int, **params: object
+    client: AsyncClient,
+    token: str,
+    event_id: int,
+    **params: str | int | float | bool | None,
 ) -> list[dict[str, object]]:
     """The credit roster for one programme."""
     response = await client.get(

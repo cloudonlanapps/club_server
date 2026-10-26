@@ -18,7 +18,7 @@ from ..schemas.user import PublicProfileResponse
 from ..schemas.venue import PublicVenueResponse
 from ..utils import generate_event_public_id, generate_venue_public_id, now_utc_ms
 from .event_eligibility import event_lifecycle, event_window
-from .event_listing import _still_running_at
+from .event_listing import still_running_at
 from .media import can_view_media
 from .public_venue import resolve_public_venue_image
 from .staff_listing import StaffListingService, roles_of
@@ -156,7 +156,7 @@ class PublicEventService:
             (await self.db.execute(query.order_by(Event.start_time))).scalars().all()
         )
         if from_time_utc is not None:
-            events = [e for e in events if _still_running_at(e, from_time_utc)]
+            events = [e for e in events if still_running_at(e, from_time_utc)]
         now = now_utc_ms()
         return PaginatedResponse(
             items=[await self.project(e, now) for e in events[offset : offset + limit]],

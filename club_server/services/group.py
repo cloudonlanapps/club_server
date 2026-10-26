@@ -1,6 +1,8 @@
 """Group service for group management operations."""
 
 from collections.abc import Sequence
+from typing import cast
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -485,7 +487,7 @@ class GroupService:
         ):
             ineligible: list[str] = []
             for m in group.members:
-                if m.user is None:
+                if cast(User | None, m.user) is None:
                     continue
                 if not is_eligible_for_semi_auto(m.user, group):
                     ineligible.append(m.membername)

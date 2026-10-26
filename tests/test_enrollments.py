@@ -2730,9 +2730,8 @@ async def _seed_then_cancel(
     # Restore future timestamps (helper moves event to past as its last step).
     event.start_time = future_time_ms(24)
     event.end_time = future_time_ms(25)
-    # Mark cancelled: until_time set, continued_as_event_id NULL.
+    # Mark cancelled: until_time set.
     event.until_time = future_time_ms(0)
-    event.continued_as_event_id = None
     await db_session.flush()
     return event_id
 

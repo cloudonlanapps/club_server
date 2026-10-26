@@ -21,7 +21,7 @@ from ..schemas.broadcast import (
     BroadcastResponse,
 )
 from ..schemas.common import PaginatedResponse
-from ..services.audit import AuditService
+from ..services.audit import AuditService, AuditValue
 from ..services.audit_actions import AuditAction
 from ..services.broadcast import BroadcastService
 
@@ -63,7 +63,7 @@ async def create_broadcast(
     except InvalidAudienceSelectorException as e:
         raise _invalid_audience(e)
 
-    details: dict[str, object] = {
+    details: dict[str, AuditValue] = {
         "audience": data.audience_selector,
         "recipientCount": recipient_count,
     }

@@ -142,7 +142,15 @@ def _role_names(user: User) -> set[str]:
         return set()
 
 
-def can_view_media(media: Media, viewer: User | None) -> bool:
+@dataclass(frozen=True)
+class MediaAccess:
+    """The two columns ``can_view_media`` reads, for a row read without a ``Media``."""
+
+    access_roles: str
+    uploaded_by: str | None
+
+
+def can_view_media(media: Media | MediaAccess, viewer: User | None) -> bool:
     """Return True iff ``viewer`` may see this media row's content/metadata.
 
     Mirrors the per-file gate used by ``GET /v1/media/by_id/{uuid}/download``

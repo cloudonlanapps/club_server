@@ -7,11 +7,14 @@ nobody is removed. A camp's or a one-off's window is counted from a fixed
 start day and does not move, so only programmes are scanned.
 """
 
+from typing import cast
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.enrollment import Enrollment
 from ..db.models.event import Event
+from ..db.models.user import User
 from .event import EventService
 from .event_eligibility import ENROLLED_STATUSES, event_windows, still_meets_criteria
 from .event_types import is_programme
@@ -66,7 +69,7 @@ async def scan_enrollment_eligibility(session: AsyncSession, now: int) -> int:
     admins: list[str] | None = None
     sent = 0
     for enrollment in enrollments:
-        user = enrollment.user
+        user = cast(User | None, enrollment.user)
         if user is None or user.deleted_at is not None:
             continue
         event = programmes[enrollment.event_id]

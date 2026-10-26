@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from fastapi.security import HTTPAuthorizationCredentials
@@ -231,7 +231,9 @@ async def change_password(
     auth_service = AuthService(db)
     audit_service = AuditService(db)
 
-    if not AuthService.verify_password(data.current_password, current_user.password):
+    if not AuthService.verify_password(
+        data.current_password, cast(str, current_user.password)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={

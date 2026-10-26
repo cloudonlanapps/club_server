@@ -3,12 +3,12 @@
 from typing import Any, ClassVar
 from pydantic import ConfigDict
 
-from .common import CamelCaseModel
+from .common import CamelCaseModel, to_camel
 
 
 class SystemPreferenceResponse(CamelCaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
-        alias_generator=CamelCaseModel.model_config["alias_generator"],
+        alias_generator=to_camel,
         populate_by_name=True,
         from_attributes=True,
     )

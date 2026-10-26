@@ -7,6 +7,7 @@ endpoint.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,7 +83,7 @@ async def open_account(
     valid_from: int | None = None,
     valid_until: int | None = None,
     reason: str = "Package purchased",
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """Open a credit account and return the response body.
 
     Asserts a 201 so a caller setting up state fails loudly rather than
@@ -107,7 +108,7 @@ async def open_account(
 
 async def get_account(
     client: AsyncClient, token: str, account_id: str
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """Fetch one account by its code."""
     response = await client.get(
         f"/v1/credits/accounts/{account_id}", headers=auth(token)
@@ -119,11 +120,11 @@ async def get_account(
 async def balance_of(client: AsyncClient, token: str, account_id: str) -> int:
     """Current balance of one account."""
     account = await get_account(client, token, account_id)
-    return int(account["balance"])  # pyright: ignore[reportArgumentType]
+    return int(account["balance"])
 
 
 async def entries_for(
-    client: AsyncClient, token: str, **filters: object
+    client: AsyncClient, token: str, **filters: str | int | float | bool | None
 ) -> list[dict[str, object]]:
     """Ledger entries matching ``filters``."""
     response = await client.get(

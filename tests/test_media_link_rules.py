@@ -297,7 +297,7 @@ async def test_should_refuse_anonymous_caller_on_link_reads_and_writes(
     client: AsyncClient, db_session: AsyncSession, owner: str
 ):
     admin = await create_admin_user(db_session)
-    owners = await _owners(client, admin)
+    owners: dict[str, int | str] = dict(await _owners(client, admin))
     owners["users"] = "admin"
     image = await upload(client, admin)
     base = f"/v1/{owner}/by_id/{owners[owner]}/media"

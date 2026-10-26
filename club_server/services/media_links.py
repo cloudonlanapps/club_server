@@ -26,7 +26,7 @@ from ..exceptions import (
 )
 from ..db.models.evaluation import EvaluationMediaLink
 from ..schemas.media import MediaRef
-from ..services.media import can_view_media
+from ..services.media import MediaAccess, can_view_media
 from .media_link_owners import (
     deleted_owner_keys,
     is_owner_deleted,
@@ -491,15 +491,10 @@ async def search_media_links(
 
     # Filter in Python: the predicate spans uploader-identity + caller roles,
     # which is awkward to express in SQL and the link tables are small.
-    class _MediaShim:
-        def __init__(self, access_roles: str, uploaded_by: str | None):
-            self.access_roles: str = access_roles
-            self.uploaded_by: str | None = uploaded_by
-
     visible = [
         r
         for r in rows
-        if can_view_media(_MediaShim(r["access_roles"], r["uploaded_by"]), viewer)
+        if can_view_media(MediaAccess(r["access_roles"], r["uploaded_by"]), viewer)
     ]
     total = len(visible)
     page = visible[offset : offset + limit]

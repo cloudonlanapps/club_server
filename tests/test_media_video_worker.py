@@ -144,9 +144,13 @@ async def worker_env(
 
     yield db_session
 
-    for task in (worker_mod._video_task, worker_mod._scheduler_task):
+    tasks: list[asyncio.Task[None] | None] = [
+        worker_mod._video_task,
+        worker_mod._scheduler_task,
+    ]
+    for task in tasks:
         if task:
-            task.cancel()
+            _ = task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
@@ -236,6 +240,7 @@ async def test_subprocess_failure_marks_failed_with_stderr(
 
     refreshed = await fetch_media(test_engine, m.id)
     assert refreshed.conversion_status == "failed"
+    assert refreshed.conversion_error is not None
     assert "codec not found" in refreshed.conversion_error
 
 

@@ -32,7 +32,7 @@ def _future(hours: int) -> int:
     return int((datetime.now(timezone.utc) + timedelta(hours=hours)).timestamp() * 1000)
 
 
-BASIC = {
+BASIC: dict[str, Any] = {
     "shortDescription": "Six days of power on ice",
     "stamp": "Christmas Camp!",
     "highlights": ["Skating posture", "Puck handling"],

@@ -241,7 +241,7 @@ async def test_resource_id_without_type_is_422(
 async def _event42(
     client: AsyncClient, token: str, verbose: int | None = None
 ) -> dict[str, Any]:
-    params: dict[str, object] = {"resource_type": "event", "resource_id": "42"}
+    params: dict[str, str | int] = {"resource_type": "event", "resource_id": "42"}
     if verbose is not None:
         params["verbose"] = verbose
     resp = await client.get(ENDPOINT, params=params, headers=auth(token))

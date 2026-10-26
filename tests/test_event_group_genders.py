@@ -21,7 +21,7 @@ from .redesign_helpers import (
     get_event,
     version_of,
 )
-from .test_event_eligibility import _register_member
+from .test_event_eligibility import register_member
 
 THREE = ["male", "other", "prefer_not_to_say"]
 
@@ -35,7 +35,7 @@ async def _members(client: AsyncClient, admin: str, db_session: AsyncSession) ->
         ("pnts", "prefer_not_to_say"),
         ("nogender", None),
     ):
-        _ = await _register_member(client, admin, username, db_session, gender=gender)
+        _ = await register_member(client, admin, username, db_session, gender=gender)
 
 
 async def _event_eligible(client: AsyncClient, admin: str, event_id: int) -> set[str]:

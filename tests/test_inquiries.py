@@ -188,6 +188,7 @@ async def test_should_email_the_inquiry_address_and_notify_admins(
 
     assert len(ConsoleEmailSender.outbox) == 1
     sent = ConsoleEmailSender.outbox[0]
+    assert sent.text is not None
     assert sent.to == "query@example.com"
     assert "Pat Visitor" in sent.text and "beginner sessions" in sent.text
     assert "pat@example.com" in sent.text
@@ -437,6 +438,7 @@ async def test_should_email_an_inquiry_without_a_message_with_no_message_line(
 
     assert len(ConsoleEmailSender.outbox) == 1
     sent = ConsoleEmailSender.outbox[0]
+    assert sent.text is not None
     assert "Pat Visitor" in sent.text
     assert "ageGroup: U12" in sent.text
     assert "None" not in sent.text and "None" not in sent.html

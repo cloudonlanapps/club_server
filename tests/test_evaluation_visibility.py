@@ -5,7 +5,6 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .evaluation_helpers import (
-    answer_of,
     auth,
     create_evaluation_response,
     create_general_evaluation,
@@ -17,6 +16,7 @@ from .evaluation_helpers import (
     put_answer,
     qa_item,
     rating_item,
+    require_answer,
 )
 from .helpers import (
     create_admin_user,
@@ -104,7 +104,7 @@ async def test_should_show_published_evaluation_to_subject(
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["template"]["name"] == "General review"
-    assert answer_of(body, public_id)["valueNum"] == 4
+    assert require_answer(body, public_id)["valueNum"] == 4
 
     listed = await client.get(
         "/v1/myevaluations/by_id/alice", headers=auth(alice_token)
@@ -174,7 +174,7 @@ async def test_should_show_the_coach_note_on_a_public_item_to_the_member(
     )
 
     assert response.status_code == 200, response.text
-    assert answer_of(response.json(), public_id)["coachNote"] == "Strong edges"
+    assert require_answer(response.json(), public_id)["coachNote"] == "Strong edges"
 
 
 @pytest.mark.asyncio
@@ -194,8 +194,8 @@ async def test_should_show_the_effective_owner_every_field(
 
     read = await get_evaluation(client, coach_token, evaluation_id)
 
-    assert answer_of(read, public_id)["coachNote"] == "Strong edges"
-    assert answer_of(read, private_id)["valueText"] == "Talk to the parents"
+    assert require_answer(read, public_id)["coachNote"] == "Strong edges"
+    assert require_answer(read, private_id)["valueText"] == "Talk to the parents"
 
 
 @pytest.mark.asyncio

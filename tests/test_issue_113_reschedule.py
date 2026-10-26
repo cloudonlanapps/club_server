@@ -56,7 +56,7 @@ async def _camp(
     organizer: str | None = None,
     coaches: list[str] | None = None,
 ) -> int:
-    body = {
+    body: dict[str, Any] = {
         "title": "Camp",
         "type": "camp",
         "visibility": "public",

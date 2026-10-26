@@ -3486,7 +3486,6 @@ async def _cancel_event_series(
         await db_session.execute(_sel(Event).where(Event.id == event_id))
     ).scalar_one()
     event.until_time = until_time_utc
-    event.continued_as_event_id = None
     await db_session.commit()
 
 

@@ -1,6 +1,7 @@
 """Tests for #182 — terminal legacy ``uploaded_media`` cleanup helper."""
 
 import shutil
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -17,7 +18,7 @@ from .helpers import create_registered_user
 
 
 @pytest.fixture
-def upload_dir(tmp_path: Path) -> Path:
+def upload_dir(tmp_path: Path) -> Iterator[Path]:
     d = tmp_path / "uploads"
     d.mkdir()
     yield d

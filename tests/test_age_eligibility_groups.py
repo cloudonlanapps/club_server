@@ -1,6 +1,6 @@
 """Age-based eligibility on groups (#16, eligibility_requirements.md)."""
 
-from typing import Any
+from typing import Any, TypedDict
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +11,9 @@ from .eligibility_helpers import EIGHTEEN, FIVE, edge_births, window_on
 from .helpers import create_admin_user, create_member_user
 from .redesign_helpers import auth
 
-BAND = {"minAge": FIVE, "maxAge": EIGHTEEN}
+Band = TypedDict("Band", {"minAge": dict[str, int], "maxAge": dict[str, int]})
+
+BAND: Band = {"minAge": FIVE, "maxAge": EIGHTEEN}
 
 
 async def create_group(

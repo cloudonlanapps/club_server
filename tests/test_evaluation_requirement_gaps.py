@@ -1,6 +1,7 @@
 """Evidence for evaluation rules no earlier test proved in full (#402, #535)."""
 
 import json
+from typing import cast
 
 import pytest
 from httpx import AsyncClient
@@ -259,7 +260,11 @@ async def test_should_audit_each_traced_move_with_actor_and_ip(
         select(AuditLog).where(AuditLog.resource_id == str(created.json()["id"]))
     )
     trace = {
-        (row.action, row.actor_username, json.loads(row.details)["ip_address"])
+        (
+            row.action,
+            row.actor_username,
+            json.loads(cast(str, row.details))["ip_address"],
+        )
         for row in result.scalars().all()
         if row.resource_type == "evaluation"
     }

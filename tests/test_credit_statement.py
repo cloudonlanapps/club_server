@@ -20,7 +20,10 @@ pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
 async def my_statement(
-    client: AsyncClient, token: str, username: str = "alice", **params: object
+    client: AsyncClient,
+    token: str,
+    username: str = "alice",
+    **params: str | int | float | bool | None,
 ) -> dict[str, Any]:
     """The member's statement page, as the member reads it."""
     response = await client.get(
@@ -30,7 +33,9 @@ async def my_statement(
     return response.json()
 
 
-async def ledger(client: AsyncClient, token: str, **params: object) -> dict[str, Any]:
+async def ledger(
+    client: AsyncClient, token: str, **params: str | int | float | bool | None
+) -> dict[str, Any]:
     """The staff ledger page."""
     response = await client.get(
         "/v1/credits/entries", params=params, headers=auth(token)

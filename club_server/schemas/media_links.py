@@ -15,7 +15,7 @@ OwnerType = Literal["user", "event", "group", "venue"]
 
 
 def _validate_tag(v: str) -> str:
-    if not isinstance(v, str) or not TAG_PATTERN.match(v):
+    if not TAG_PATTERN.match(v):
         raise ValueError("tag must match ^[A-Za-z0-9_-]{1,64}$")
     return v
 
@@ -23,8 +23,6 @@ def _validate_tag(v: str) -> str:
 def _validate_metadata(v: str | None) -> str | None:
     if v is None:
         return None
-    if not isinstance(v, str):
-        raise ValueError("metadata must be a string")
     if len(v) > METADATA_MAX_LEN:
         raise ValueError(f"metadata length must be ≤{METADATA_MAX_LEN}")
     return v

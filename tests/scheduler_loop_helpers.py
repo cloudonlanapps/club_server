@@ -44,7 +44,7 @@ class _TickSignal:
 
 
 async def run_loop_once(
-    session_factory: async_sessionmaker[AsyncSession], tick_seconds: float = 1.0
+    session_factory: async_sessionmaker[AsyncSession], tick_seconds: int = 1
 ) -> None:
     """Start the loop, wait for its first tick to finish, cancel it (#34)."""
     signal = _TickSignal(session_factory)

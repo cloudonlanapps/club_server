@@ -377,7 +377,7 @@ async def test_should_answer_409_then_report_when_programme_and_camp_share_a_slo
     _ = await create_camp(
         client, admin, other_venue, start=monday, count=3, acceptConflicts=True
     )
-    programme_over_camp = {
+    programme_over_camp: dict[str, Any] = {
         "start": monday,
         "end": monday + HOUR_MS,
         "rrule": "FREQ=WEEKLY;BYDAY=MO",

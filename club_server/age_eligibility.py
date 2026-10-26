@@ -37,8 +37,8 @@ class Age(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
     years: int = Field(..., ge=0, le=MAX_AGE_YEARS)
-    months: int = Field(0, ge=0, le=MAX_AGE_MONTHS)
-    days: int = Field(0, ge=0, le=MAX_AGE_DAYS)
+    months: int = Field(default=0, ge=0, le=MAX_AGE_MONTHS)
+    days: int = Field(default=0, ge=0, le=MAX_AGE_DAYS)
 
     def as_tuple(self) -> tuple[int, int, int]:
         """Years, months, days — the order two ages are compared in."""

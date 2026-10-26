@@ -7,7 +7,8 @@ compared — and answered by the type's own service. The lifecycle verbs
 enrollment administration in ``routers/event_enrollments.py``.
 """
 
-from typing import Annotated
+import dataclasses
+from typing import Annotated, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -70,7 +71,7 @@ from ..schemas.event import (
 from ..schemas.enrollment import EnrollmentListResponse
 from ..schemas.group import EligibleUserInfo
 from ..services.attendance import AttendanceService
-from ..services.audit import AuditService
+from ..services.audit import AuditService, AuditValue
 from ..services.audit_actions import AuditAction
 from ..services.camp import CampService
 from ..services.conflict_gates import (
@@ -284,7 +285,7 @@ _SCHEDULE_EXCEPTIONS = (
 )
 
 
-def _raise_http(exc: Exception) -> None:
+def _raise_http(exc: Exception) -> NoReturn:
     mapped = _schedule_error(exc)
     if mapped is None:
         raise exc
@@ -347,7 +348,7 @@ async def check_user_conflicts(
     for username in data.usernames:
         report = await check_conflicts(
             db,
-            ScheduleTarget(**{**base.__dict__, "membername": username}),
+            dataclasses.replace(base, membername=username),
             {ConflictGate.member: GatePolicy.advise},
         )
         if report.findings:
@@ -755,7 +756,7 @@ async def reschedule_event(
         )
     except _SCHEDULE_EXCEPTIONS as e:
         _raise_http(e)
-    details: dict[str, object | None] = {
+    details: dict[str, AuditValue] = {
         "start_time_utc": data.start_time_utc,
         "end_time_utc": data.end_time_utc,
         "rrule": data.rrule,

@@ -8,6 +8,8 @@ Q & A questions closing the layout at its top level, which prints after the
 table as written blocks (R64a).
 """
 
+from typing import cast
+
 from ..schemas.evaluation import EvaluationAnswerResponse, EvaluationMemberView
 from ..schemas.evaluation_item import (
     EvaluationInfoItem,
@@ -107,7 +109,8 @@ def body_blocks(view: EvaluationMemberView, base_url: str) -> list[EvaluationPdf
             flow.add(flow.items[entry], None)
         else:
             flow.section(entry)
-    for entry in layout[table_end:]:
+    # closing_qa_count counts only trailing int entries.
+    for entry in cast(list[int], layout[table_end:]):
         item = flow.items[entry]
         if isinstance(item, EvaluationQaItem):
             flow.written_answer(item)

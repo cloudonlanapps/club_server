@@ -10,7 +10,7 @@ from typing import Any
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import attach_identity_document, create_admin_user, create_coach_user
@@ -41,8 +41,8 @@ async def _create_event(
     organizer_name: str | None = None,
     coach_names: list[str] | None = None,
     accept_conflicts: bool = False,
-) -> "tuple[int, int]":
-    """Return (status_code, event_id or 0)."""
+) -> tuple[int, int, Response]:
+    """Return (status_code, event_id or 0, response)."""
     body: dict[str, Any] = {
         "title": title,
         "type": type_,

@@ -53,7 +53,7 @@ async def _camp(
     coaches: list[str] | None = None,
 ) -> int:
     venue_id = await _venue(client, token)
-    body = {
+    body: dict[str, object] = {
         "title": "Camp",
         "type": "camp",
         "visibility": "public",

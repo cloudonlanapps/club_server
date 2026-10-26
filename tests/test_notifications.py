@@ -67,7 +67,7 @@ async def create_user_and_get_token(
         json={"username": username, "password": "testpass123"},
     )
 
-    if db_session is not None and clear_lifecycle_notifications:
+    if clear_lifecycle_notifications:
         _ = await db_session.execute(
             delete(Notification).where(
                 Notification.type.in_(

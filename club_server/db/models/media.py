@@ -49,7 +49,7 @@ class Media(Base):
         nullable=False,
         default='["public"]',
     )
-    is_encrypted: Mapped[bool] = mapped_column(
+    is_encrypted: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=0,

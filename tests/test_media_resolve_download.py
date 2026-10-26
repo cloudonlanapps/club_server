@@ -9,8 +9,12 @@ is configured). They construct a lightweight media stand-in and monkeypatch
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from club_server.db.models.media import Media
 
 from club_server.exceptions import DecryptionFailedException
 from club_server.services import media as media_module
@@ -19,7 +23,7 @@ from club_server.services.media import MediaService
 
 def _service() -> MediaService:
     # resolve_download is synchronous and never touches the DB session.
-    return MediaService(db=None)
+    return MediaService(db=cast(AsyncSession, None))
 
 
 def _media(
@@ -27,12 +31,15 @@ def _media(
     is_encrypted: bool,
     mime_type: str = "image/png",
     encryption_meta: str | None = None,
-) -> SimpleNamespace:
-    return SimpleNamespace(
-        is_encrypted=is_encrypted,
-        mime_type=mime_type,
-        original_mime_type=mime_type,
-        encryption_meta=encryption_meta,
+) -> Media:
+    return cast(
+        Media,
+        SimpleNamespace(
+            is_encrypted=is_encrypted,
+            mime_type=mime_type,
+            original_mime_type=mime_type,
+            encryption_meta=encryption_meta,
+        ),
     )
 
 

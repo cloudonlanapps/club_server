@@ -21,10 +21,10 @@ def test_camel_case_model_forbids_undeclared_fields():
     class Sample(CamelCaseModel):
         known_field: str
 
-    assert Sample(knownField="ok").known_field == "ok"
+    assert Sample.model_validate({"knownField": "ok"}).known_field == "ok"
 
     with pytest.raises(ValueError) as excinfo:
-        _ = Sample(knownField="ok", surpriseField="nope")
+        _ = Sample.model_validate({"knownField": "ok", "surpriseField": "nope"})
     assert "surpriseField" in str(excinfo.value)
 
 

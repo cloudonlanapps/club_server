@@ -24,6 +24,7 @@ from .evaluation_helpers import (
     put_answer,
     qa_item,
     rating_item,
+    require_answer,
 )
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .media_helpers import (
@@ -206,7 +207,7 @@ async def test_should_detach_evidence_when_an_answer_is_cleared(
         headers=auth(coach_token),
     )
     assert attached.status_code == 201, attached.text
-    before = answer_of(
+    before = require_answer(
         await get_evaluation(client, coach_token, evaluation_id), ids["rating"]
     )
     assert [e["mediaUuid"] for e in before["evidence"]] == [media["uuid"]]

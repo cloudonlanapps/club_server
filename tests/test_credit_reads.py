@@ -23,7 +23,12 @@ from .redesign_helpers import auth
 pytestmark = pytest.mark.usefixtures("credit_enabled")
 
 
-async def _get(client: AsyncClient, token: str, path: str, **params: object):
+async def _get(
+    client: AsyncClient,
+    token: str,
+    path: str,
+    **params: str | int | float | bool | None,
+):
     response = await client.get(path, params=params, headers=auth(token))
     assert response.status_code == 200, response.text
     return response.json()

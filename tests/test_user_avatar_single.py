@@ -250,7 +250,11 @@ async def test_should_name_the_replaced_avatar_in_the_audit_row_of_the_link(
         .all()
     )
     assert len(rows) == 2
-    first, second = (json.loads(row.details) for row in rows)
+    details: list[str] = []
+    for row in rows:
+        assert row.details is not None
+        details.append(row.details)
+    first, second = (json.loads(d) for d in details)
     assert "replacedMediaUuids" not in first
     assert second["mediaUuid"] == new["uuid"]
     assert second["replacedMediaUuids"] == [old["uuid"]]

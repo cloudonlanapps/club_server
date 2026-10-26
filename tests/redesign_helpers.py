@@ -71,7 +71,7 @@ async def create_event(
     rrule: str | None = None,
     title: str | None = None,
     expected_status: int = 201,
-    **extra: object,
+    **extra: Any,
 ) -> dict[str, Any]:
     """Create an event of ``event_type`` and return the response body.
 
@@ -101,7 +101,7 @@ async def create_programme(
     start: int | None = None,
     end: int | None = None,
     rrule: str = EVERY_DAY,
-    **extra: object,
+    **extra: Any,
 ) -> dict[str, Any]:
     """Create a programme whose first occurrence is ``start`` (default +2 days)."""
     start = start if start is not None else at(days=2)
@@ -125,7 +125,7 @@ async def create_camp(
     start: int | None = None,
     end: int | None = None,
     count: int = 5,
-    **extra: object,
+    **extra: Any,
 ) -> dict[str, Any]:
     """Create a daily camp of ``count`` days starting at ``start`` (default +2 days)."""
     start = start if start is not None else at(days=2)
@@ -148,7 +148,7 @@ async def create_oneoff(
     *,
     start: int | None = None,
     end: int | None = None,
-    **extra: object,
+    **extra: Any,
 ) -> dict[str, Any]:
     """Create a one-off event starting at ``start`` (default +2 days)."""
     start = start if start is not None else at(days=2)

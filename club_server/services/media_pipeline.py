@@ -54,10 +54,6 @@ def normalize_access_roles(raw: list[str] | None) -> list[str]:
     """
     if raw is None:
         return list(DEFAULT_ACCESS_ROLES)
-    if not isinstance(raw, list):
-        raise InvalidAccessRolesException(
-            "access_roles must be a JSON array of strings"
-        )
     if len(raw) == 0:
         raise InvalidAccessRolesException("access_roles cannot be empty")
     unknown = [r for r in raw if r not in ALLOWED_ACCESS_ROLES]

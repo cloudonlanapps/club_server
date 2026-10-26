@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytest
 from httpx import AsyncClient
@@ -1225,6 +1226,7 @@ async def test_cancel_already_cancelled_rejected_for_all_types(
 
         # A one-off is dropped (no effective time); a camp is cancelled from
         # its first occurrence start.
+        payload: dict[str, Any]
         if body["type"] == "oneOff":
             path, payload = f"/v1/events/by_id/{event_id}/drop", {"reason": "first"}
             payload["version"] = await oneoff_occurrence_version(

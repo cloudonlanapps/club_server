@@ -1,6 +1,7 @@
 """Router for v2 media endpoints (#161). Parallel to ``routers.uploads``."""
 
 import json
+from pathlib import Path
 from typing import Annotated, Any, cast
 
 from fastapi import (
@@ -556,7 +557,7 @@ async def download_media(
         PUBLIC_DOWNLOAD_CACHE if can_view_media(media, None) else PRIVATE_DOWNLOAD_CACHE
     )
     return plain_download_response(
-        request, result.file_path, result.media_type, cache_control
+        request, cast(Path, result.file_path), result.media_type, cache_control
     )
 
 

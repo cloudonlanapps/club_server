@@ -70,7 +70,9 @@ async def test_should_reject_update_when_evaluation_is_published(
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "INVALID_STATE"
     read = await get_evaluation(client, coach_token, evaluation_id)
-    assert answer_of(read, item_id)["valueNum"] == 2
+    answer = answer_of(read, item_id)
+    assert answer is not None
+    assert answer["valueNum"] == 2
 
 
 @pytest.mark.asyncio
@@ -113,7 +115,9 @@ async def test_should_allow_editing_after_withdrawal_and_revert(
     assert response.status_code == 200, response.text
     read = await get_evaluation(client, coach_token, evaluation_id)
     assert read["status"] == "draft"
-    assert answer_of(read, item_id)["valueNum"] == 3
+    answer = answer_of(read, item_id)
+    assert answer is not None
+    assert answer["valueNum"] == 3
 
 
 @pytest.mark.asyncio
@@ -211,8 +215,10 @@ async def test_should_replace_an_answer_when_written_again(
     assert response.status_code == 200, response.text
     read = await get_evaluation(client, coach_token, evaluation_id)
     assert len(read["answers"]) == 1
-    assert answer_of(read, item_id)["valueNum"] == 5
-    assert answer_of(read, item_id)["coachNote"] == "Better"
+    answer = answer_of(read, item_id)
+    assert answer is not None
+    assert answer["valueNum"] == 5
+    assert answer["coachNote"] == "Better"
 
 
 @pytest.mark.asyncio

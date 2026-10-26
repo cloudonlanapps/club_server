@@ -1,6 +1,6 @@
 """Age-based eligibility on events (#16, eligibility_requirements.md)."""
 
-from typing import Any
+from typing import Any, TypedDict
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +27,9 @@ from .redesign_helpers import (
     version_of,
 )
 
-BAND = {"minAge": FIVE, "maxAge": EIGHTEEN}
+Band = TypedDict("Band", {"minAge": dict[str, int], "maxAge": dict[str, int]})
+
+BAND: Band = {"minAge": FIVE, "maxAge": EIGHTEEN}
 WINDOW_FIELDS = ("dobOnOrAfterUtc", "dobOnOrBeforeUtc", "eligibilityReferenceDayUtc")
 
 
