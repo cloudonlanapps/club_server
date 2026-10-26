@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -34,7 +34,7 @@ def _reject_until_time_utc(data: Any) -> Any:
     """
     if isinstance(data, dict) and ("until_time_utc" in data or "untilTimeUtc" in data):
         raise ValueError("untilTimeUtc may only be set via the lifecycle endpoints")
-    return data
+    return cast(Any, data)
 
 
 def _event_service_kwargs(model: CamelCaseModel) -> dict[str, object]:

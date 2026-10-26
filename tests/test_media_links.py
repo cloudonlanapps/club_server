@@ -512,8 +512,8 @@ async def test_cross_owner_search_member_forbidden(
 async def test_tag_full_limit(
     client: AsyncClient,
     db_session: AsyncSession,
-    monkeypatch,
-):
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from club_server.config import settings
 
     monkeypatch.setattr(settings, "media_max_links_per_owner_tag", 2)
@@ -546,8 +546,8 @@ async def test_tag_full_limit(
 async def test_too_many_tags_limit(
     client: AsyncClient,
     db_session: AsyncSession,
-    monkeypatch,
-):
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from club_server.config import settings
 
     monkeypatch.setattr(settings, "media_max_tags_per_owner", 2)

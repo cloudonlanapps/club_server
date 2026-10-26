@@ -49,12 +49,12 @@ async def list_roster_credit(
     event_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     _current_user: Annotated[User, Depends(require_admin_or_coach())],
-    state: str | None = Query(
-        None, description='Restrict to "blocked" or "expiringSoon".'
-    ),
-    expiring_before_utc: int | None = Query(None, alias="expiringBeforeUtc"),
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    state: Annotated[
+        str | None, Query(description='Restrict to "blocked" or "expiringSoon".')
+    ] = None,
+    expiring_before_utc: Annotated[int | None, Query(alias="expiringBeforeUtc")] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> PaginatedResponse[MemberCreditStatusResponse]:
     """Credit standing of every enrolled member on a programme.
 

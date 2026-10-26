@@ -1,7 +1,7 @@
 """Who writes templates, and their unique names (#535, R46, R49a)."""
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .evaluation_helpers import (
@@ -202,7 +202,7 @@ async def test_should_refuse_hard_delete_of_a_template_to_a_coach(
 # R49a — a live template's name is unique ------------------------------------
 
 
-def _name_taken(response) -> None:
+def _name_taken(response: Response) -> None:
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "TEMPLATE_NAME_TAKEN"
 

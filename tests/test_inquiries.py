@@ -38,7 +38,7 @@ def _ready_token() -> str:
     return issue_form_token(issued_at_ms=now_utc_ms() - 10_000)
 
 
-def _body(**overrides) -> dict[str, Any]:
+def _body(**overrides: Any) -> dict[str, Any]:
     return {
         "kind": "contact",
         "name": "Pat Visitor",
@@ -362,7 +362,7 @@ async def test_should_not_write_submissions_to_the_audit_log(
 # ── an inquiry without a message (#41) ─────────────────────────────────────
 
 
-def _body_without_message(**overrides) -> dict[str, Any]:
+def _body_without_message(**overrides: Any) -> dict[str, Any]:
     body = _body(**overrides)
     del body["message"]
     return body

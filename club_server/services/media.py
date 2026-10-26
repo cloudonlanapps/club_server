@@ -319,18 +319,18 @@ class MediaService:
 
     async def _handle_image(
         self,
-        uid,
-        filename,
-        extension,
-        mime_type,
-        preserve_original,
-        uploaded_by,
-        input_path,
-        tmp_dir,
-        upload_dir,
-        now,
-        access_roles_json,
-        encrypt,
+        uid: str,
+        filename: str,
+        extension: str,
+        mime_type: str,
+        preserve_original: bool,
+        uploaded_by: str,
+        input_path: Path,
+        tmp_dir: Path,
+        upload_dir: Path,
+        now: int,
+        access_roles_json: str,
+        encrypt: bool,
     ) -> Media:
         if preserve_original:
             staged = tmp_dir / f"{uid}.{extension}"
@@ -351,7 +351,7 @@ class MediaService:
             plaintext = staged.read_bytes()
             ciphertext, meta_json = enc.encrypt_payload(plaintext)
             dest = upload_dir / f"{dest_name}.enc"
-            dest.write_bytes(ciphertext)
+            _ = dest.write_bytes(ciphertext)
             encryption_meta = meta_json
             is_encrypted = 1
             encryption_version = enc.ENCRYPTION_VERSION
@@ -393,18 +393,18 @@ class MediaService:
 
     async def _handle_pdf(
         self,
-        uid,
-        filename,
-        extension,
-        mime_type,
-        preserve_original,
-        uploaded_by,
-        input_path,
-        tmp_dir,
-        upload_dir,
-        now,
-        access_roles_json,
-        encrypt,
+        uid: str,
+        filename: str,
+        extension: str,
+        mime_type: str,
+        preserve_original: bool,
+        uploaded_by: str,
+        input_path: Path,
+        tmp_dir: Path,
+        upload_dir: Path,
+        now: int,
+        access_roles_json: str,
+        encrypt: bool,
     ) -> Media:
         if preserve_original:
             staged_pdf = tmp_dir / f"{uid}.pdf"
@@ -426,10 +426,10 @@ class MediaService:
             pdf_plain = staged_pdf.read_bytes()
             ciphertext, meta_json = enc.encrypt_payload(pdf_plain)
             dest_pdf = upload_dir / f"{uid}.pdf.enc"
-            dest_pdf.write_bytes(ciphertext)
+            _ = dest_pdf.write_bytes(ciphertext)
             if poster_src is not None:
                 poster_cipher = enc.encrypt_poster(poster_src.read_bytes(), meta_json)
-                (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
+                _ = (upload_dir / f"{uid}_poster.png.enc").write_bytes(poster_cipher)
             encryption_meta = meta_json
             is_encrypted = 1
             encryption_version = enc.ENCRYPTION_VERSION
@@ -473,18 +473,18 @@ class MediaService:
 
     async def _handle_video(
         self,
-        uid,
-        filename,
-        extension,
-        mime_type,
-        preserve_original,
-        uploaded_by,
-        input_path,
-        tmp_dir,
-        upload_dir,
-        now,
-        conversion_params_json,
-        access_roles_json,
+        uid: str,
+        filename: str,
+        extension: str,
+        mime_type: str,
+        preserve_original: bool,
+        uploaded_by: str,
+        input_path: Path,
+        tmp_dir: Path,
+        upload_dir: Path,
+        now: int,
+        conversion_params_json: str | None,
+        access_roles_json: str,
     ) -> Media:
         # Stage the uploaded bytes at a stable, worker-discoverable path so the
         # background video worker can find them after the request commits.
@@ -642,7 +642,7 @@ class MediaService:
     ) -> tuple[Media, list[str]]:
         normalized = normalize_access_roles(access_roles)
         media = await self.get(media_id)
-        old = json.loads(media.access_roles) if media.access_roles else []
+        old: list[str] = json.loads(media.access_roles) if media.access_roles else []
         media.access_roles = json.dumps(normalized)
         media.updated_at = now_utc_ms()
         await self.db.flush()

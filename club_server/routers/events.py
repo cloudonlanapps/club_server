@@ -12,6 +12,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..db.models.event import Event
 from ..db.models.user import User
 from ..dependencies import (
     get_current_active_user,
@@ -682,7 +683,7 @@ async def cancel_event(
     return await event_response(db, event)
 
 
-def _verbs_of(event) -> set[EventVerb]:
+def _verbs_of(event: Event) -> set[EventVerb]:
     from ..services.event_types import offers
 
     return {verb for verb in EventVerb if offers(event, verb)}

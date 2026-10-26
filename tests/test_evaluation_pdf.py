@@ -48,12 +48,12 @@ class _Setup:
         public_id: int,
         evidence_uuid: str,
     ):
-        self.admin = admin
-        self.coach = coach
-        self.alice = alice
-        self.evaluation_id = evaluation_id
-        self.public_id = public_id
-        self.evidence_uuid = evidence_uuid
+        self.admin: str = admin
+        self.coach: str = coach
+        self.alice: str = alice
+        self.evaluation_id: int = evaluation_id
+        self.public_id: int = public_id
+        self.evidence_uuid: str = evidence_uuid
 
 
 async def _evaluation(

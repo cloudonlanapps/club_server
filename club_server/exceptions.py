@@ -1,6 +1,6 @@
 """Centralized exception definitions for the club_server application."""
 
-from typing import Any
+from typing import Any, ClassVar
 
 
 # =============================================================================
@@ -22,8 +22,8 @@ class NothingToRestoreException(Exception):
     """Raised when restoring an item that is not soft-deleted (#520, #526)."""
 
     def __init__(self, entity: str, ident: str | int):
-        self.entity = entity
-        self.ident = ident
+        self.entity: str = entity
+        self.ident: str | int = ident
         super().__init__(
             f"{entity} {ident} is not deleted; there is nothing to restore"
         )
@@ -33,8 +33,8 @@ class HardDeleteNeedsSoftDeleteException(Exception):
     """Raised when hard-deleting an item that is not soft-deleted (#526)."""
 
     def __init__(self, entity: str, ident: str | int):
-        self.entity = entity
-        self.ident = ident
+        self.entity: str = entity
+        self.ident: str | int = ident
         super().__init__(
             f"{entity} {ident} must be soft-deleted before it is hard-deleted"
         )
@@ -207,7 +207,7 @@ class InvalidOneOffRruleException(Exception):
     """
 
     def __init__(self, rrule: str):
-        self.rrule = rrule
+        self.rrule: str = rrule
         super().__init__(f"A one-off carries no recurrence rule: {rrule}")
 
 
@@ -296,10 +296,10 @@ class EventConflictException(Exception):
     is the conflict report built from them.
     """
 
-    code = "SCHEDULE_CONFLICT"
+    code: ClassVar[str] = "SCHEDULE_CONFLICT"
 
     def __init__(self, findings: list[Any]):
-        self.findings = findings
+        self.findings: list[Any] = findings
         super().__init__("The schedule clashes with other events")
 
 
@@ -1017,7 +1017,7 @@ class MediaNotFoundException(Exception):
     """Raised when a /v1/media record (#161) is not found."""
 
     def __init__(self, ident: str | int):
-        self.ident = ident
+        self.ident: str | int = ident
         super().__init__(f"Media not found: {ident}")
 
 
@@ -1025,8 +1025,8 @@ class MediaConversionFailedException(Exception):
     """Raised when an uploaded image or PDF cannot be converted (#521)."""
 
     def __init__(self, media_type: str, reason: str):
-        self.media_type = media_type
-        self.reason = reason
+        self.media_type: str = media_type
+        self.reason: str = reason
         super().__init__(f"The {media_type} could not be processed: {reason}")
 
 
@@ -1038,7 +1038,7 @@ class MediaFileMissingException(Exception):
     """
 
     def __init__(self, ident: str | int):
-        self.ident = ident
+        self.ident: str | int = ident
         super().__init__(f"Media artifact missing on disk: {ident}")
 
 
@@ -1046,10 +1046,10 @@ class MediaLinkNotFoundException(Exception):
     """Raised when a (owner, tag, media_uuid) link is not found (#162)."""
 
     def __init__(self, owner_type: str, owner_id: str | int, tag: str, media_uuid: str):
-        self.owner_type = owner_type
-        self.owner_id = owner_id
-        self.tag = tag
-        self.media_uuid = media_uuid
+        self.owner_type: str = owner_type
+        self.owner_id: str | int = owner_id
+        self.tag: str = tag
+        self.media_uuid: str = media_uuid
         super().__init__(
             f"Media link not found: {owner_type}={owner_id} tag={tag} media={media_uuid}"
         )
@@ -1059,8 +1059,8 @@ class OwnerDeletedException(Exception):
     """Raised when writing a link on a soft-deleted owner (#517)."""
 
     def __init__(self, owner_type: str, owner_id: object):
-        self.owner_type = owner_type
-        self.owner_id = owner_id
+        self.owner_type: str = owner_type
+        self.owner_id: object = owner_id
         super().__init__(
             f"{owner_type} {owner_id} is deleted; its media links are read-only"
         )
@@ -1070,10 +1070,10 @@ class MediaLinkExistsException(Exception):
     """Raised on duplicate (owner, tag, media_uuid) link insert (#162)."""
 
     def __init__(self, owner_type: str, owner_id: str | int, tag: str, media_uuid: str):
-        self.owner_type = owner_type
-        self.owner_id = owner_id
-        self.tag = tag
-        self.media_uuid = media_uuid
+        self.owner_type: str = owner_type
+        self.owner_id: str | int = owner_id
+        self.tag: str = tag
+        self.media_uuid: str = media_uuid
         super().__init__(
             f"Media link already exists: {owner_type}={owner_id} tag={tag} media={media_uuid}"
         )
@@ -1083,10 +1083,10 @@ class MediaLinkTagFullException(Exception):
     """Raised when (owner, tag) reaches MEDIA_MAX_LINKS_PER_OWNER_TAG (#162)."""
 
     def __init__(self, owner_type: str, owner_id: str | int, tag: str, limit: int):
-        self.owner_type = owner_type
-        self.owner_id = owner_id
-        self.tag = tag
-        self.limit = limit
+        self.owner_type: str = owner_type
+        self.owner_id: str | int = owner_id
+        self.tag: str = tag
+        self.limit: int = limit
         super().__init__(
             f"Tag {tag} on {owner_type}={owner_id} is full (limit {limit})"
         )
@@ -1096,9 +1096,9 @@ class MediaLinkTooManyTagsException(Exception):
     """Raised when an owner reaches MEDIA_MAX_TAGS_PER_OWNER distinct tags (#162)."""
 
     def __init__(self, owner_type: str, owner_id: str | int, limit: int):
-        self.owner_type = owner_type
-        self.owner_id = owner_id
-        self.limit = limit
+        self.owner_type: str = owner_type
+        self.owner_id: str | int = owner_id
+        self.limit: int = limit
         super().__init__(
             f"{owner_type}={owner_id} has reached the maximum {limit} distinct media tags"
         )
@@ -1108,8 +1108,8 @@ class MediaInUseException(Exception):
     """Raised when media soft-delete is attempted while any link references it (#162)."""
 
     def __init__(self, media_uuid: str, links: list[dict[str, Any]]):
-        self.media_uuid = media_uuid
-        self.links = links
+        self.media_uuid: str = media_uuid
+        self.links: list[dict[str, Any]] = links
         super().__init__(f"Media {media_uuid} is in use by {len(links)} link(s)")
 
 
@@ -1143,7 +1143,7 @@ class CreditAccountNotFoundException(Exception):
     """Raised when no credit account carries the given code (#294)."""
 
     def __init__(self, code: str):
-        self.code = code
+        self.code: str = code
         super().__init__(f"No credit account with id {code}")
 
 
@@ -1154,8 +1154,8 @@ class CreditNotApplicableException(Exception):
     subsystem."""
 
     def __init__(self, event_id: int, event_type: str):
-        self.event_id = event_id
-        self.event_type = event_type
+        self.event_id: int = event_id
+        self.event_type: str = event_type
         super().__init__(
             f"Event {event_id} is a {event_type}; only programmes consume credit"
         )
@@ -1165,7 +1165,7 @@ class SuperAdminCannotHoldCreditException(Exception):
     """Raised when credit would be granted to the super admin (#519, R18b)."""
 
     def __init__(self, username: str):
-        self.username = username
+        self.username: str = username
         super().__init__(f"{username} is the super admin and cannot hold credit")
 
 
@@ -1173,7 +1173,7 @@ class InvalidCreditAmountException(Exception):
     """Raised when a credit amount is not a positive whole number (#294, R19)."""
 
     def __init__(self, credits: int):
-        self.credits = credits
+        self.credits: int = credits
         super().__init__(
             f"Credit amount must be a positive whole number, got {credits}"
         )
@@ -1191,8 +1191,8 @@ class InvalidOccurrenceTimeException(Exception):
     """Raised when a time is not an occurrence of the event's schedule (#470)."""
 
     def __init__(self, event_id: int, occurrence_time_utc: int):
-        self.event_id = event_id
-        self.occurrence_time_utc = occurrence_time_utc
+        self.event_id: int = event_id
+        self.occurrence_time_utc: int = occurrence_time_utc
         super().__init__(
             f"{occurrence_time_utc} is not an occurrence of event {event_id}"
         )
@@ -1202,9 +1202,9 @@ class InsufficientCreditException(Exception):
     """Raised when a member has no usable credit for a programme (#294, R35, R41)."""
 
     def __init__(self, membername: str, event_id: int, required: int):
-        self.membername = membername
-        self.event_id = event_id
-        self.required = required
+        self.membername: str = membername
+        self.event_id: int = event_id
+        self.required: int = required
         super().__init__(
             f"User '{membername}' has no usable credit for event {event_id} "
             f"({required} required)"
@@ -1215,9 +1215,9 @@ class InsufficientBalanceException(Exception):
     """Raised when a reversal exceeds what remains unspent (#294, R59)."""
 
     def __init__(self, code: str, balance: int, requested: int):
-        self.code = code
-        self.balance = balance
-        self.requested = requested
+        self.code: str = code
+        self.balance: int = balance
+        self.requested: int = requested
         super().__init__(
             f"Account {code} holds {balance} credits; cannot reverse {requested}"
         )
@@ -1227,7 +1227,7 @@ class CreditAccountClosedException(Exception):
     """Raised when an operation targets an account already drained and closed (#294)."""
 
     def __init__(self, code: str):
-        self.code = code
+        self.code: str = code
         super().__init__(f"Credit account {code} is closed")
 
 
@@ -1239,9 +1239,9 @@ class CreditDispositionRequiredException(Exception):
     stranded in an account bound to a programme the member has left."""
 
     def __init__(self, membername: str, event_id: int, balance: int):
-        self.membername = membername
-        self.event_id = event_id
-        self.balance = balance
+        self.membername: str = membername
+        self.event_id: int = event_id
+        self.balance: int = balance
         super().__init__(
             f"User '{membername}' holds {balance} credits bound to event "
             f"{event_id}; supply a credit disposition to remove them"

@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy import distinct, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import InstrumentedAttribute
 
 from ..config import settings
 from ..constants import USER_AVATAR_TAG
@@ -44,7 +45,13 @@ OWNER_REGISTRY: dict[str, tuple[Any, str]] = {
 
 
 def _link_to_response(
-    link, media: Media, owner_deleted: bool = False
+    link: UserMediaLink
+    | EventMediaLink
+    | GroupMediaLink
+    | VenueMediaLink
+    | EvaluationMediaLink,
+    media: Media,
+    owner_deleted: bool = False,
 ) -> dict[str, Any]:
     """A link row: what the link says, and the media it points at.
 
@@ -69,14 +76,18 @@ class MediaLinkService:
     def __init__(self, db: AsyncSession, owner_type: str):
         if owner_type not in OWNER_REGISTRY:
             raise ValueError(f"Unknown owner_type: {owner_type}")
-        self.db = db
-        self.owner_type = owner_type
+        self.db: AsyncSession = db
+        self.owner_type: str = owner_type
+        self.model: Any
+        self.owner_col_name: str
         self.model, self.owner_col_name = OWNER_REGISTRY[owner_type]
-        self.owner_col = getattr(self.model, self.owner_col_name)
+        self.owner_col: InstrumentedAttribute[Any] = getattr(
+            self.model, self.owner_col_name
+        )
 
     async def list_grouped(
         self,
-        owner_id,
+        owner_id: str | int,
         viewer: User | None,
         media_type: str | None = None,
     ) -> dict[str, list[dict[str, Any]]]:
@@ -101,7 +112,7 @@ class MediaLinkService:
 
     async def list_by_tag(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         viewer: User | None,
         media_type: str | None = None,
@@ -124,7 +135,7 @@ class MediaLinkService:
 
     async def get(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         media_uuid: str,
         viewer: User | None,
@@ -158,7 +169,7 @@ class MediaLinkService:
         owner_deleted = await is_owner_deleted(self.db, self.owner_type, owner_id)
         return _link_to_response(link, media, owner_deleted)
 
-    async def _get_row(self, owner_id, tag: str, media_uuid: str):
+    async def _get_row(self, owner_id: str | int, tag: str, media_uuid: str):
         q = select(self.model).where(
             self.owner_col == owner_id,
             self.model.tag == tag,
@@ -168,7 +179,7 @@ class MediaLinkService:
 
     async def create(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         media_uuid: str,
         metadata: str | None,
@@ -312,7 +323,7 @@ class MediaLinkService:
 
     async def update_metadata(
         self,
-        owner_id,
+        owner_id: str | int,
         tag: str,
         media_uuid: str,
         metadata: str | None,
@@ -335,7 +346,9 @@ class MediaLinkService:
         ).scalar_one()
         return _link_to_response(link, media), old
 
-    async def delete_one(self, owner_id, tag: str, media_uuid: str) -> dict[str, Any]:
+    async def delete_one(
+        self, owner_id: str | int, tag: str, media_uuid: str
+    ) -> dict[str, Any]:
         await refuse_write_when_owner_deleted(self.db, self.owner_type, owner_id)
         link = await self._get_row(owner_id, tag, media_uuid)
         if link is None:
@@ -355,7 +368,7 @@ class MediaLinkService:
         await self.db.flush()
         return payload
 
-    async def delete_tag(self, owner_id, tag: str) -> list[str]:
+    async def delete_tag(self, owner_id: str | int, tag: str) -> list[str]:
         await refuse_write_when_owner_deleted(self.db, self.owner_type, owner_id)
         rows = (
             (
@@ -479,9 +492,9 @@ async def search_media_links(
     # Filter in Python: the predicate spans uploader-identity + caller roles,
     # which is awkward to express in SQL and the link tables are small.
     class _MediaShim:
-        def __init__(self, access_roles, uploaded_by):
-            self.access_roles = access_roles
-            self.uploaded_by = uploaded_by
+        def __init__(self, access_roles: str, uploaded_by: str | None):
+            self.access_roles: str = access_roles
+            self.uploaded_by: str | None = uploaded_by
 
     visible = [
         r

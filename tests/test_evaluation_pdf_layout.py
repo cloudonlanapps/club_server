@@ -34,12 +34,12 @@ def _none(n: int) -> list[int | None]:
     return [None] * n
 
 
-def _item(**fields):
+def _item(**fields: Any):
     """A template item from its API fields."""
     return template_item_adapter.validate_python({"question": "Q", "id": 1, **fields})
 
 
-def _answer(**fields) -> EvaluationAnswerResponse:
+def _answer(**fields: Any) -> EvaluationAnswerResponse:
     return EvaluationAnswerResponse(item_id=1, **fields)
 
 

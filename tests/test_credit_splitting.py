@@ -14,6 +14,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from club_server.db.models.event import Event
 from club_server.services import credit_charge
 
 from .credit_helpers import auth, balance_of, create_member, open_account
@@ -26,7 +27,11 @@ pytestmark = pytest.mark.usefixtures("credit_enabled")
 @pytest.fixture
 def session_costs_three(monkeypatch: pytest.MonkeyPatch) -> None:
     """Charge three credits per session instead of one."""
-    monkeypatch.setattr(credit_charge, "session_cost_for", lambda _event: 3)
+
+    def cost_of_three(_event: Event) -> int:
+        return 3
+
+    monkeypatch.setattr(credit_charge, "session_cost_for", cost_of_three)
     return None
 
 

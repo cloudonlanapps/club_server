@@ -7,7 +7,7 @@ view the item (media:R44, R46), with 404 when they cannot (media:R45).
 
 from typing import Any
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import (
@@ -30,12 +30,12 @@ async def _record(client: AsyncClient, token: str, media_id: int) -> dict[str, A
     return response.json()
 
 
-def _assert_forbidden(response) -> None:
+def _assert_forbidden(response: Response) -> None:
     assert response.status_code == 403, response.text
     assert response.json()["detail"]["code"] == "INSUFFICIENT_PERMISSION"
 
 
-def _assert_not_found(response) -> None:
+def _assert_not_found(response: Response) -> None:
     assert response.status_code == 404, response.text
     assert response.json()["detail"]["code"] == "MEDIA_NOT_FOUND"
 

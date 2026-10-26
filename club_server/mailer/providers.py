@@ -10,6 +10,8 @@ best-effort.
 
 import asyncio
 import logging
+from collections.abc import Callable
+from typing import cast
 
 from .sender import EmailMessage, EmailSender, SendResult
 
@@ -19,11 +21,11 @@ logger = logging.getLogger("club_server.mailer")
 class ResendSender(EmailSender):
     """Transactional sender backed by the Resend API."""
 
-    name = "resend"
+    name: str = "resend"
 
     def __init__(self, api_key: str, from_email: str):
-        self._api_key = api_key
-        self._from = from_email
+        self._api_key: str = api_key
+        self._from: str = from_email
 
     def _send_sync(self, message: EmailMessage) -> str | None:
         import resend
@@ -52,18 +54,18 @@ class ResendSender(EmailSender):
 class BrevoSender(EmailSender):
     """Broadcast sender backed by the Brevo (sib-api-v3-sdk) API."""
 
-    name = "brevo"
+    name: str = "brevo"
 
     def __init__(self, api_key: str, from_email: str, from_name: str):
-        self._api_key = api_key
-        self._from_email = from_email
-        self._from_name = from_name
+        self._api_key: str = api_key
+        self._from_email: str = from_email
+        self._from_name: str = from_name
 
     def _send_sync(self, message: EmailMessage) -> str | None:
         import sib_api_v3_sdk
 
         config = sib_api_v3_sdk.Configuration()
-        config.api_key["api-key"] = self._api_key
+        cast(dict[str, str], config.api_key)["api-key"] = self._api_key
         api = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(config))
         payload = sib_api_v3_sdk.SendSmtpEmail(
             sender={"email": self._from_email, "name": self._from_name},
@@ -72,7 +74,8 @@ class BrevoSender(EmailSender):
             html_content=message.html,
             text_content=message.text or None,
         )
-        resp = api.send_transac_email(payload)
+        send = cast(Callable[[object], object], api.send_transac_email)
+        resp = send(payload)
         return getattr(resp, "message_id", None)
 
     async def send(self, message: EmailMessage) -> SendResult:

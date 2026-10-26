@@ -7,7 +7,7 @@ names its event, and a published one its review date (the publication date).
 """
 
 from .evaluation_pdf_block import EvaluationPdfBlock
-from .evaluation_pdf_canvas import EvaluationPdfCanvas
+from .evaluation_pdf_canvas import Draw, EvaluationPdfCanvas
 from .evaluation_pdf_layout import (
     ACCENT,
     BODY,
@@ -70,7 +70,7 @@ def _field(label: str, parts: list[str], after: float) -> EvaluationPdfBlock:
         values = parts[0::2]
         slot = (CONTENT_WIDTH - label_width - sum(joins)) / len(values)
 
-        def value(text: str):
+        def value(text: str) -> Draw:
             return lambda s, vx, vy: s.text_box(
                 vx, vy, slot, text, size=HAND, colour=PEN, family=HAND_FONT
             )
@@ -101,7 +101,7 @@ def _field(label: str, parts: list[str], after: float) -> EvaluationPdfBlock:
                 )
             else:
                 width = slot
-                value(part)(c, left, bottom - heights[i // 2])
+                _ = value(part)(c, left, bottom - heights[i // 2])
                 c.hline(left, left + slot, bottom)
             left += width
         return bottom + CELL + after

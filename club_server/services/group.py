@@ -270,7 +270,7 @@ class GroupService:
         result = await self.db.execute(query)
         groups = result.scalars().all()
 
-        items = []
+        items: list[GroupResponse] = []
         for g in groups:
             count = await self._get_member_count(g)
             items.append(await self.to_response(g, count))
@@ -350,7 +350,7 @@ class GroupService:
         result = await self.db.execute(query)
         users = result.scalars().all()
 
-        members = []
+        members: list[GroupMember] = []
         for u in users:
             gm = GroupMember(group_id=group.id, membername=u.username)
             gm.user = u
@@ -483,7 +483,7 @@ class GroupService:
             and group.kind in (KIND_MANUAL, KIND_SEMI_AUTO)
             and len(group.members) > 0
         ):
-            ineligible = []
+            ineligible: list[str] = []
             for m in group.members:
                 if m.user is None:
                     continue
@@ -775,7 +775,7 @@ class GroupService:
 
         matching_auto = [g for g in auto_groups_all if _user_matches_criteria(user, g)]
 
-        responses = []
+        responses: list[GroupResponse] = []
         for g in explicit_groups:
             responses.append(await self.to_response(g, len(g.members)))
         for g in matching_auto:

@@ -58,7 +58,7 @@ async def _venue(client: AsyncClient, admin: str) -> int:
 
 
 async def _event(
-    client: AsyncClient, admin: str, venue_id: int, **extra
+    client: AsyncClient, admin: str, venue_id: int, **extra: Any
 ) -> dict[str, Any]:
     start = now_utc_ms() + 48 * HOUR
     body = {

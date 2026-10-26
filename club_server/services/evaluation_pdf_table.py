@@ -56,9 +56,13 @@ class _Flow:
     """Collects the table's blocks and the written answers that follow it."""
 
     def __init__(self, view: EvaluationMemberView, base_url: str):
-        self.items = {item.id: item for item in view.template.items}
-        self.answers = {answer.item_id: answer for answer in view.answers}
-        self.base_url = base_url
+        self.items: dict[int | None, EvaluationTemplateItemSchema] = {
+            item.id: item for item in view.template.items
+        }
+        self.answers: dict[int, EvaluationAnswerResponse] = {
+            answer.item_id: answer for answer in view.answers
+        }
+        self.base_url: str = base_url
         self.table: list[EvaluationPdfBlock] = []
         self.written: list[EvaluationPdfBlock] = []
 

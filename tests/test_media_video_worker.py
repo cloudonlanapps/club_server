@@ -9,13 +9,15 @@ import asyncio
 import json
 import shutil
 import uuid as uuid_mod
+from collections.abc import AsyncGenerator, Iterable
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from club_server import worker as worker_mod
 from club_server.config import settings
@@ -71,7 +73,7 @@ async def seed_video(
     return media
 
 
-async def fetch_media(test_engine, media_id: int) -> Media:
+async def fetch_media(test_engine: AsyncEngine, media_id: int) -> Media:
     """Read a media row from a fresh session to see committed worker writes."""
     maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as session:
@@ -79,7 +81,7 @@ async def fetch_media(test_engine, media_id: int) -> Media:
         return result.scalar_one()
 
 
-def _output_prefix(args) -> str:
+def _output_prefix(args: Iterable[str]) -> str:
     args_list = list(args)
     output_file = args_list[args_list.index("--output") + 1]
     return str(Path(output_file).with_suffix(""))
@@ -88,7 +90,7 @@ def _output_prefix(args) -> str:
 def make_success_side_effect():
     """Subprocess mock that materializes the expected output files."""
 
-    async def side_effect(*args, **_kwargs):
+    async def side_effect(*args: str, **_kwargs: Any) -> AsyncMock:
         prefix = _output_prefix(args)
         _ = Path(f"{prefix}.mp4").write_bytes(b"fake mp4")
         _ = Path(f"{prefix}_poster.webp").write_bytes(b"fake poster")
@@ -102,7 +104,7 @@ def make_success_side_effect():
 
 
 def make_failure_side_effect(stderr: bytes = b"ffmpeg blew up"):
-    async def side_effect(*_args, **_kwargs):
+    async def side_effect(*_args: str, **_kwargs: Any) -> AsyncMock:
         proc = AsyncMock()
         proc.returncode = 1
         proc.communicate = AsyncMock(return_value=(b"", stderr))
@@ -112,7 +114,9 @@ def make_failure_side_effect(stderr: bytes = b"ffmpeg blew up"):
 
 
 @pytest_asyncio.fixture
-async def worker_env(test_engine, db_session):
+async def worker_env(
+    test_engine: AsyncEngine, db_session: AsyncSession
+) -> AsyncGenerator[AsyncSession, None]:
     """Reset worker module state, ensure upload dir exists, seed FK user."""
     db_session.add(
         User(
@@ -158,10 +162,10 @@ async def worker_env(test_engine, db_session):
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 @pytest.mark.requirement("media:R16")
 async def test_successful_conversion_writes_variants_and_marks_completed(
-    mock_exec,
-    worker_env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    worker_env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     """Happy path: subprocess succeeds, variants land in media dir, status=completed."""
     db = worker_env
     m = await seed_video(db, create_staged_input=True)
@@ -185,10 +189,10 @@ async def test_successful_conversion_writes_variants_and_marks_completed(
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 @pytest.mark.requirement("media:R16")
 async def test_preserve_original_keeps_source_and_drops_mp4(
-    mock_exec,
-    worker_env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    worker_env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     """preserve_original=True keeps the source extension and discards converted mp4."""
     db = worker_env
     m = await seed_video(
@@ -218,10 +222,10 @@ async def test_preserve_original_keeps_source_and_drops_mp4(
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 @pytest.mark.requirement("media:R17")
 async def test_subprocess_failure_marks_failed_with_stderr(
-    mock_exec,
-    worker_env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    worker_env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     db = worker_env
     m = await seed_video(db, create_staged_input=True)
     await db.commit()
@@ -237,7 +241,9 @@ async def test_subprocess_failure_marks_failed_with_stderr(
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R17")
-async def test_missing_staged_input_marks_failed(worker_env, test_engine):
+async def test_missing_staged_input_marks_failed(
+    worker_env: AsyncSession, test_engine: AsyncEngine
+) -> None:
     db = worker_env
     m = await seed_video(db, create_staged_input=False)
     await db.commit()
@@ -253,7 +259,9 @@ async def test_missing_staged_input_marks_failed(worker_env, test_engine):
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R18")
-async def test_deleted_row_is_skipped(worker_env, test_engine):
+async def test_deleted_row_is_skipped(
+    worker_env: AsyncSession, test_engine: AsyncEngine
+) -> None:
     db = worker_env
     m = await seed_video(db, deleted_at=now_utc_ms(), create_staged_input=True)
     await db.commit()
@@ -270,10 +278,10 @@ async def test_deleted_row_is_skipped(worker_env, test_engine):
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 @pytest.mark.requirement("media:R18")
 async def test_already_completed_row_is_skipped(
-    mock_exec,
-    worker_env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    worker_env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     db = worker_env
     m = await seed_video(
         db,
@@ -292,9 +300,9 @@ async def test_already_completed_row_is_skipped(
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R19")
 async def test_recover_stuck_jobs_resets_processing_to_pending(
-    worker_env,
-    test_engine,
-):
+    worker_env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     db = worker_env
     m1 = await seed_video(db, conversion_status="processing")
     m2 = await seed_video(db, conversion_status="processing")
@@ -317,7 +325,9 @@ async def test_recover_stuck_jobs_resets_processing_to_pending(
 
 @pytest.mark.asyncio
 @pytest.mark.requirement("media:R15")
-async def test_claim_next_pending_marks_processing(worker_env, test_engine):
+async def test_claim_next_pending_marks_processing(
+    worker_env: AsyncSession, test_engine: AsyncEngine
+) -> None:
     db = worker_env
     m = await seed_video(db, create_staged_input=True)
     await db.commit()
@@ -336,10 +346,10 @@ async def test_claim_next_pending_marks_processing(worker_env, test_engine):
 @patch("club_server.worker.asyncio.create_subprocess_exec")
 @pytest.mark.requirement("media:R15")
 async def test_loop_processes_pending_then_idles(
-    mock_exec,
-    worker_env,
-    test_engine,
-):
+    mock_exec: AsyncMock,
+    worker_env: AsyncSession,
+    test_engine: AsyncEngine,
+) -> None:
     """Drive the loop directly: a pending row completes, then the loop idles."""
     db = worker_env
     m = await seed_video(db, create_staged_input=True)

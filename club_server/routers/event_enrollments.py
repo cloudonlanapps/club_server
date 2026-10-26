@@ -5,6 +5,7 @@ Split from ``routers/events.py`` so each router stays within the file-size
 limit; the paths are unchanged.
 """
 
+from collections.abc import Awaitable, Callable
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -45,7 +46,7 @@ async def _apply_to_each_member(
     actor_username: str,
     audit_action: AuditAction,
     event_id: int,
-    action,
+    action: Callable[[str], Awaitable[None]],
     audit_details: dict[str, Any] | None = None,
     ip_address: str | None = None,
 ) -> None:

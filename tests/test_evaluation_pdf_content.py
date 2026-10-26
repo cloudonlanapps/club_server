@@ -56,7 +56,7 @@ async def _draft(
     layout: list[Any],
     *,
     name: str = "Spring review",
-    **extra,
+    **extra: Any,
 ) -> tuple[str, str, int, list[int]]:
     """Admin and coach tokens, a draft of alice on `layout`, and its item ids."""
     admin = await create_admin_user(db_session)
@@ -70,7 +70,9 @@ async def _draft(
     return admin, coach, evaluation_id, ids
 
 
-async def _answer(client, coach, evaluation_id, item_id, **body) -> None:
+async def _answer(
+    client: AsyncClient, coach: str, evaluation_id: int, item_id: int, **body: Any
+) -> None:
     written = await put_answer(client, coach, evaluation_id, item_id, **body)
     assert written.status_code == 200, written.text
 

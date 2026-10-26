@@ -52,7 +52,7 @@ class ConsoleEmailSender(EmailSender):
     isolate runs.
     """
 
-    name = "console"
+    name: str = "console"
 
     #: Every message "sent" by any ConsoleEmailSender instance, in order.
     #: Shared at the class level so tests can inspect sends regardless of which

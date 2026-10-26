@@ -27,7 +27,7 @@ def star_svg(*, filled: bool, colour: str) -> str:
     """A five-pointed star, filled with ``colour`` or outlined in it."""
     centre = SVG_BOX / 2
     outer = centre - STAR_EDGE
-    points = []
+    points: list[str] = []
     for i in range(STAR_POINTS * 2):
         radius = outer if i % 2 == 0 else outer * STAR_INNER
         angle = -math.pi / 2 + i * math.pi / STAR_POINTS

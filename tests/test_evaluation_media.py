@@ -101,12 +101,15 @@ class _Setup:
         tags: list[str],
         media: dict[str, object],
     ):
-        self.admin = admin
-        self.coach = coach
-        self.alice = alice
-        self.evaluation_id = evaluation_id
+        self.admin: str = admin
+        self.coach: str = coach
+        self.alice: str = alice
+        self.evaluation_id: int = evaluation_id
+        self.public_tag: str
+        self.private_tag: str
+        self.no_evidence_tag: str
         self.public_tag, self.private_tag, self.no_evidence_tag = tags
-        self.media = media
+        self.media: dict[str, object] = media
 
     @property
     def base(self) -> str:

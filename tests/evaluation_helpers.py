@@ -1,7 +1,7 @@
 """Shared builders for the evaluation suites (#302, #535)."""
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -155,7 +155,7 @@ def flat_layout(layout: list[Any]) -> list[int]:
     ids: list[int] = []
     for entry in layout:
         if isinstance(entry, dict):
-            ids.extend(entry["items"])
+            ids.extend(cast(list[int], entry["items"]))
         else:
             ids.append(entry)
     return ids

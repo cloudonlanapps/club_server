@@ -216,7 +216,9 @@ async def test_should_keep_the_old_avatar_when_auditing_the_new_link_fails(
     new = await upload(client, alice, access_roles=PRIVATE_ROLES)
     seen: list[tuple[list[str], list[str]]] = []
 
-    async def fail_once_the_old_file_is_deleted(db: AsyncSession, *args, **kwargs):
+    async def fail_once_the_old_file_is_deleted(
+        db: AsyncSession, *args: Any, **kwargs: Any
+    ):
         seen.append(await _avatar_state(db))
         raise RuntimeError("audit log went away")
 

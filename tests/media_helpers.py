@@ -56,7 +56,7 @@ def pdf_bytes() -> bytes:
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>",
     ]
     out = b"%PDF-1.4\n"
-    offsets = []
+    offsets: list[int] = []
     for number, body in enumerate(objects, start=1):
         offsets.append(len(out))
         out += f"{number} 0 obj\n".encode() + body + b"\nendobj\n"

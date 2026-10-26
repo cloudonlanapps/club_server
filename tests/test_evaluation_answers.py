@@ -6,7 +6,7 @@ R15: saving checks required answers and required coach notes.
 R22a: clearing an answer detaches its evidence.
 """
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from httpx import AsyncClient
@@ -104,7 +104,9 @@ async def test_should_accept_an_answer_of_its_items_kind(
     )
     assert answer is not None
     value = answer[field]
-    assert (sorted(value) if isinstance(value, list) else value) == expected
+    assert (
+        sorted(cast(list[Any], value)) if isinstance(value, list) else value
+    ) == expected
 
 
 REFUSED: list[tuple[str, str, dict[str, Any]]] = [

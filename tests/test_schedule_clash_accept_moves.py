@@ -197,7 +197,7 @@ async def _movable(client: AsyncClient, db_session: AsyncSession, event_type: st
     return admin, busy, quiet, occupied, moved
 
 
-async def _reschedule(client: AsyncClient, token: str, event_id: int, **body):
+async def _reschedule(client: AsyncClient, token: str, event_id: int, **body: Any):
     body.setdefault("version", await version_of(client, token, event_id))
     return await client.post(
         f"/v1/events/by_id/{event_id}/reschedule", json=body, headers=auth(token)

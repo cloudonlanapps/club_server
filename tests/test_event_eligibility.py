@@ -557,7 +557,7 @@ async def test_sessions_empty_list_rejected_422(
 ):
     admin_token = await create_admin_user(db_session)
     venue_id = await _create_venue(client, admin_token)
-    body = {
+    body: dict[str, Any] = {
         "title": "Camp",
         "type": "camp",
         "venueId": venue_id,

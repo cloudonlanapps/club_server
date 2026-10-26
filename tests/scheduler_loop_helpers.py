@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from club_server.services.scheduler import scheduler_loop
 
@@ -15,8 +15,8 @@ class _TickSession:
     """A tick's session that reports when the loop has closed it."""
 
     def __init__(self, session: AsyncSession, closed: asyncio.Event) -> None:
-        self._session = session
-        self._closed = closed
+        self._session: AsyncSession = session
+        self._closed: asyncio.Event = closed
 
     async def __aenter__(self) -> AsyncSession:
         return await self._session.__aenter__()
@@ -35,15 +35,17 @@ class _TickSignal:
     so the close is the end of the tick however long the scans took.
     """
 
-    def __init__(self, session_factory) -> None:
-        self._session_factory = session_factory
-        self.tick_done = asyncio.Event()
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory: async_sessionmaker[AsyncSession] = session_factory
+        self.tick_done: asyncio.Event = asyncio.Event()
 
     def __call__(self) -> _TickSession:
         return _TickSession(self._session_factory(), self.tick_done)
 
 
-async def run_loop_once(session_factory, tick_seconds: float = 1.0) -> None:
+async def run_loop_once(
+    session_factory: async_sessionmaker[AsyncSession], tick_seconds: float = 1.0
+) -> None:
     """Start the loop, wait for its first tick to finish, cancel it (#34)."""
     signal = _TickSignal(session_factory)
     task = asyncio.create_task(scheduler_loop(signal, tick_seconds=tick_seconds))

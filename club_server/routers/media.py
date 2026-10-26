@@ -1,7 +1,7 @@
 """Router for v2 media endpoints (#161). Parallel to ``routers.uploads``."""
 
 import json
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from fastapi import (
     APIRouter,
@@ -141,7 +141,7 @@ def _parse_access_roles(raw: str | None) -> list[str] | None:
         raise InvalidAccessRolesException("accessRoles must be a JSON array of strings")
     if not isinstance(decoded, list):
         raise InvalidAccessRolesException("accessRoles must be a JSON array of strings")
-    return decoded
+    return cast(list[str], decoded)
 
 
 @router.get("", response_model=PaginatedResponse[MediaResponse])
@@ -443,7 +443,7 @@ async def _resolve_optional_user(request: Request, db: AsyncSession) -> User | N
     return user
 
 
-def _enforce_download_guard(media, viewer: User | None) -> None:
+def _enforce_download_guard(media: Media, viewer: User | None) -> None:
     if can_view_media(media, viewer):
         return
     if viewer is None:

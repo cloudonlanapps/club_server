@@ -26,7 +26,7 @@ from typing import Any
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from club_server.db.models.attendance import AttendanceRecord, AttendanceStatus
 from club_server.db.models.enrollment import Enrollment, EnrollmentStatus
@@ -101,7 +101,9 @@ async def _notifications_for(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def loop_session_factory(test_engine):
+async def loop_session_factory(
+    test_engine: AsyncEngine,
+) -> async_sessionmaker[AsyncSession]:
     """Build a session factory bound to the per-test test_engine.
 
     Cannot reuse the per-test ``db_session`` fixture because the loop
@@ -115,7 +117,7 @@ async def loop_session_factory(test_engine):
 @pytest.mark.requirement("notifications:R85")
 @pytest.mark.asyncio
 async def test_loop_emits_upcoming_event_reminder(
-    db_session: AsyncSession, loop_session_factory
+    db_session: AsyncSession, loop_session_factory: async_sessionmaker[AsyncSession]
 ):
     _ = await create_member_user(db_session, "amy")
     start = future_ms(23)  # inside 24h window
@@ -136,7 +138,7 @@ async def test_loop_emits_upcoming_event_reminder(
 @pytest.mark.requirement("notifications:R92")
 @pytest.mark.asyncio
 async def test_loop_emits_pending_mark_reminder(
-    db_session: AsyncSession, loop_session_factory
+    db_session: AsyncSession, loop_session_factory: async_sessionmaker[AsyncSession]
 ):
     _ = await create_admin_user(db_session)
     _ = await create_coach_user(db_session, "co")
@@ -160,7 +162,7 @@ async def test_loop_emits_pending_mark_reminder(
 @pytest.mark.requirement("notifications:R94")
 @pytest.mark.asyncio
 async def test_loop_emits_absence_streak_warning(
-    db_session: AsyncSession, loop_session_factory
+    db_session: AsyncSession, loop_session_factory: async_sessionmaker[AsyncSession]
 ):
     _ = await create_admin_user(db_session)
     _ = await create_member_user(db_session, "amy")
@@ -240,7 +242,9 @@ async def _boom(*_args: Any, **_kwargs: Any) -> int:
 
 @pytest.mark.asyncio
 async def test_should_run_daily_scans_when_credit_sweep_fails(
-    db_session: AsyncSession, loop_session_factory, monkeypatch: pytest.MonkeyPatch
+    db_session: AsyncSession,
+    loop_session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr(
         "club_server.services.scheduler.sweep_credit_settlements", _boom
@@ -260,7 +264,9 @@ async def test_should_run_daily_scans_when_credit_sweep_fails(
 
 @pytest.mark.asyncio
 async def test_should_run_hourly_scans_when_upcoming_scan_fails(
-    db_session: AsyncSession, loop_session_factory, monkeypatch: pytest.MonkeyPatch
+    db_session: AsyncSession,
+    loop_session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr("club_server.services.scheduler.scan_upcoming_events", _boom)
     _ = await create_admin_user(db_session)
@@ -282,7 +288,7 @@ async def test_should_run_hourly_scans_when_upcoming_scan_fails(
 @pytest.mark.requirement("groups:R84")
 @pytest.mark.asyncio
 async def test_loop_reports_a_semi_auto_member_who_no_longer_matches(
-    db_session: AsyncSession, loop_session_factory
+    db_session: AsyncSession, loop_session_factory: async_sessionmaker[AsyncSession]
 ):
     """The daily cadence runs the group-eligibility scan (#17)."""
     from club_server.db.models.group import Group, GroupMember
@@ -307,7 +313,7 @@ async def test_loop_reports_a_semi_auto_member_who_no_longer_matches(
 @pytest.mark.requirement("eligibility:R21")
 @pytest.mark.asyncio
 async def test_loop_reports_a_programme_member_who_no_longer_matches(
-    db_session: AsyncSession, loop_session_factory
+    db_session: AsyncSession, loop_session_factory: async_sessionmaker[AsyncSession]
 ):
     """The daily cadence runs the enrolment-eligibility scan (#19)."""
     from sqlalchemy import update
@@ -343,7 +349,9 @@ async def _slow(*_args: Any, **_kwargs: Any) -> int:
 
 @pytest.mark.asyncio
 async def test_should_see_every_scan_of_the_first_tick_when_a_scan_is_slow(
-    db_session: AsyncSession, loop_session_factory, monkeypatch: pytest.MonkeyPatch
+    db_session: AsyncSession,
+    loop_session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
 ):
     """The harness waits for the tick, not for a fixed time (#34)."""
     monkeypatch.setattr("club_server.services.scheduler.scan_upcoming_events", _slow)

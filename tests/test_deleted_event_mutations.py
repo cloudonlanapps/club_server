@@ -7,7 +7,7 @@ and its members were notified.
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_member_user
@@ -42,7 +42,7 @@ async def _restore(client: AsyncClient, token: str, event_id: int) -> None:
     assert response.json()["deletedAtUtc"] is None
 
 
-def _assert_event_not_found(response) -> None:
+def _assert_event_not_found(response: Response) -> None:
     assert response.status_code == 404, response.text
     assert response.json()["detail"]["code"] == "EVENT_NOT_FOUND"
 

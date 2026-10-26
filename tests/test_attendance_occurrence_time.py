@@ -8,7 +8,7 @@ event answers 404, as marking already did.
 
 from typing import Any
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_member_user
@@ -64,7 +64,7 @@ async def _request_leave(client: AsyncClient, token: str, event_id: int, slot: i
     )
 
 
-def _assert_invalid_occurrence_time(response) -> None:
+def _assert_invalid_occurrence_time(response: Response) -> None:
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "INVALID_OCCURRENCE_TIME"
 

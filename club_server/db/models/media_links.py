@@ -6,6 +6,8 @@ to API clients as ``metadata`` (SQLAlchemy reserves the ``metadata``
 attribute name on declarative classes).
 """
 
+from typing import Any
+
 from sqlalchemy import (
     BigInteger,
     ForeignKey,
@@ -38,7 +40,7 @@ class UserMediaLink(Base):
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         PrimaryKeyConstraint("username", "tag", "media_uuid", name="pk_user_media"),
         Index("idx_user_media_media_uuid", "media_uuid"),
         Index("idx_user_media_username_tag", "username", "tag"),
@@ -63,7 +65,7 @@ class EventMediaLink(Base):
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         PrimaryKeyConstraint("event_id", "tag", "media_uuid", name="pk_event_media"),
         Index("idx_event_media_media_uuid", "media_uuid"),
         Index("idx_event_media_event_tag", "event_id", "tag"),
@@ -88,7 +90,7 @@ class GroupMediaLink(Base):
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         PrimaryKeyConstraint("group_id", "tag", "media_uuid", name="pk_group_media"),
         Index("idx_group_media_media_uuid", "media_uuid"),
         Index("idx_group_media_group_tag", "group_id", "tag"),
@@ -113,7 +115,7 @@ class VenueMediaLink(Base):
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         PrimaryKeyConstraint("venue_id", "tag", "media_uuid", name="pk_venue_media"),
         Index("idx_venue_media_media_uuid", "media_uuid"),
         Index("idx_venue_media_venue_tag", "venue_id", "tag"),

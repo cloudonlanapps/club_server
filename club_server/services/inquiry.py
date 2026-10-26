@@ -8,7 +8,9 @@ accepted and discarded (a bot should not learn it was caught).
 import base64
 import hashlib
 import hmac
-from sqlalchemy import delete, func, or_, select
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -220,7 +222,7 @@ async def purge_expired_inquiries(session: AsyncSession, now: int) -> int:
             )
         )
     )
-    return result.rowcount or 0
+    return cast(CursorResult[Any], result).rowcount or 0
 
 
 def kind_label(kind: str) -> str:

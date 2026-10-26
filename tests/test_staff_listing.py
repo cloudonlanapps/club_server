@@ -66,7 +66,7 @@ async def _seed(client: AsyncClient, db_session: AsyncSession) -> str:
 
 
 async def _curate(
-    client: AsyncClient, admin: str, username: str, **body
+    client: AsyncClient, admin: str, username: str, **body: Any
 ) -> dict[str, Any]:
     response = await client.put(
         f"/v1/admin/staff-listing/{username}", json=body, headers=_auth(admin)

@@ -7,7 +7,7 @@ point at something the site cannot fetch. It is stored as a uuid and
 published as a descriptor (#424).
 """
 
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,12 +34,13 @@ async def validate_preference_value(db: AsyncSession, key: str, value: Any) -> N
         raise InvalidPreferenceValueException(key, "must be a JSON object")
     if key == SITE_MEDIA_KEY:
         if not isinstance(value, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) for k, v in value.items()
+            isinstance(k, str) and isinstance(v, str)
+            for k, v in cast(dict[Any, Any], value).items()
         ):
             raise InvalidPreferenceValueException(
                 key, "must map purpose strings to media uuids"
             )
-        for purpose, media_uuid in value.items():
+        for purpose, media_uuid in cast(dict[str, str], value).items():
             media = (
                 await db.execute(
                     select(Media).where(
@@ -56,14 +57,14 @@ class ClubInfoService:
 
     def __init__(self, db: AsyncSession):
         self.db: AsyncSession = db
-        self._prefs = SystemPreferenceService(db)
+        self._prefs: SystemPreferenceService = SystemPreferenceService(db)
 
     async def _document(self, key: str) -> dict[str, Any]:
         try:
             value = await self._prefs.get_value(key)
         except SystemPreferenceNotFoundException:
             return {}
-        return value if isinstance(value, dict) else {}
+        return cast(dict[str, Any], value) if isinstance(value, dict) else {}
 
     async def _site_media(self) -> dict[str, MediaRef]:
         """Each slot as a descriptor, skipping any the site could not fetch.

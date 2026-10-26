@@ -7,6 +7,7 @@ time, and the sparse `changes` notification payload.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytest
 from httpx import AsyncClient
@@ -73,7 +74,9 @@ async def _camp(
     return r.json()["id"]
 
 
-async def _reschedule(client: AsyncClient, token: str, event_id: int, occ: int, **body):
+async def _reschedule(
+    client: AsyncClient, token: str, event_id: int, occ: int, **body: Any
+):
     body.setdefault("version", await occurrence_version(client, token, event_id, occ))
     return await client.post(
         f"/v1/events/by_id/{event_id}/occurrences/{occ}/reschedule",

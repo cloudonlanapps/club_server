@@ -13,7 +13,7 @@ version too (#13); ``test_cutoff_version_camp.py`` and
 
 from typing import Any
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_coach_user, create_regular_admin_user
@@ -39,7 +39,7 @@ async def _setup(client: AsyncClient, db_session: AsyncSession) -> tuple[str, st
     return admin, second, venue
 
 
-def _stale_body(response) -> dict[str, Any]:
+def _stale_body(response: Response) -> dict[str, Any]:
     assert response.status_code == 409, response.text
     detail = response.json()["detail"]
     assert detail["code"] == "STALE_VERSION"

@@ -51,7 +51,7 @@ class EvaluationPdfCanvas(FPDF):
         self.set_compression(False)
         self.set_auto_page_break(False)
         self.set_margins(0, 0, 0)
-        self.c_margin = 0
+        self.c_margin: float = 0
         for family, style, file in FONT_FILES:
             self.add_font(family, style, str(FONT_DIR / file))
         self._scratch: EvaluationPdfCanvas | None = None
@@ -134,7 +134,13 @@ class EvaluationPdfCanvas(FPDF):
     # Lines, fills and pictures ----------------------------------------
 
     def hline(
-        self, x1: float, x2: float, y: float, *, colour: str = RULE, width=HAIRLINE
+        self,
+        x1: float,
+        x2: float,
+        y: float,
+        *,
+        colour: str = RULE,
+        width: float = HAIRLINE,
     ) -> None:
         """A horizontal rule."""
         self.set_draw_color(*rgb(colour))
@@ -142,7 +148,13 @@ class EvaluationPdfCanvas(FPDF):
         self.line(x1, y, x2, y)
 
     def vline(
-        self, x: float, y1: float, y2: float, *, colour: str = RULE, width=HAIRLINE
+        self,
+        x: float,
+        y1: float,
+        y2: float,
+        *,
+        colour: str = RULE,
+        width: float = HAIRLINE,
     ) -> None:
         """A vertical rule."""
         self.set_draw_color(*rgb(colour))

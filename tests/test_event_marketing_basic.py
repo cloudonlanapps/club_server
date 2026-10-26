@@ -41,7 +41,12 @@ BASIC = {
 
 
 async def _create(
-    client: AsyncClient, token: str, venue_id: int, *, event_type: str = "camp", **extra
+    client: AsyncClient,
+    token: str,
+    venue_id: int,
+    *,
+    event_type: str = "camp",
+    **extra: Any,
 ) -> dict[str, Any]:
     start = _future(48)
     body = {

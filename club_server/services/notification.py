@@ -1,9 +1,9 @@
 """Notification service for notification management."""
 
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
-from sqlalchemy import Select, and_, delete, or_, select
+from sqlalchemy import ColumnElement, CursorResult, Select, and_, delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.attendance import AttendanceRecord, AttendanceStatus
@@ -474,7 +474,7 @@ class NotificationService:
                 "clear_actionable requires pending_action_id or pending_action_key"
             )
 
-        match_clauses = []
+        match_clauses: list[ColumnElement[bool]] = []
         if pending_action_id is not None:
             match_clauses.append(Notification.pending_action_id == pending_action_id)
         if pending_action_key is not None:
@@ -486,7 +486,7 @@ class NotificationService:
         )
         result = await self.db.execute(stmt)
         await self.db.flush()
-        return result.rowcount or 0
+        return cast(CursorResult[Any], result).rowcount or 0
 
     async def clear_actionable_by_key(self, pending_action_key: str) -> int:
         """Delete every actionable notification whose ``pending_action_key``
@@ -501,7 +501,7 @@ class NotificationService:
         )
         result = await self.db.execute(stmt)
         await self.db.flush()
-        return result.rowcount or 0
+        return cast(CursorResult[Any], result).rowcount or 0
 
     async def delete_notification(
         self, notification_id: int, username: str | None = None

@@ -9,6 +9,8 @@ headers.
 """
 
 import hashlib
+from collections.abc import AsyncIterable
+from typing import cast
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -40,7 +42,10 @@ class PublicCacheMiddleware(BaseHTTPMiddleware):
         if response.status_code != 200:
             return response
 
-        body = b"".join([chunk async for chunk in response.body_iterator])
+        # call_next hands back starlette's _StreamingResponse, whose body
+        # iterator yields the bytes of each http.response.body message.
+        body_iterator = cast(AsyncIterable[bytes], response.body_iterator)
+        body = b"".join([chunk async for chunk in body_iterator])
         etag = _etag_for(body)
         headers = dict(response.headers)
         headers["Cache-Control"] = f"public, max-age={PUBLIC_MAX_AGE_SECONDS}"

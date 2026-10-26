@@ -8,7 +8,7 @@ removing one → 422 `OWNER_DELETED`.
 
 from typing import Any
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .helpers import create_admin_user, create_coach_user, create_member_user
@@ -74,7 +74,7 @@ async def _assert_links_unchanged(
     assert rows[0]["ownerDeleted"] is True
 
 
-def _assert_owner_deleted(response) -> None:
+def _assert_owner_deleted(response: Response) -> None:
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "OWNER_DELETED"
 

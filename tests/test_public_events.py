@@ -70,7 +70,7 @@ async def _event(
     visibility: str = "public",
     start_in_hours: int = 48,
     coach_names: list[str] | None = None,
-    **extra,
+    **extra: Any,
 ) -> dict[str, Any]:
     start = now_utc_ms() + start_in_hours * HOUR
     body = {
@@ -176,7 +176,7 @@ async def test_should_filter_by_type_featured_venue_and_window(
     past = await _event(client, admin, rink, title="Past", event_type="oneOff")
     await _move_to_past(db_session, past["id"])
 
-    async def titles(**params) -> list[str]:
+    async def titles(**params: Any) -> list[str]:
         response = await client.get("/v1/public/events", params=params)
         assert response.status_code == 200, response.text
         return [i["title"] for i in response.json()["items"]]
