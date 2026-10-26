@@ -85,7 +85,7 @@ async def _moved_ends(db: AsyncSession, event: Event) -> dict[int, int]:
     )
     return {
         slot: end
-        for slot, end in result.tuples().all()
+        for slot, end in result.all()
         if end is not None and schedule_for_slot(event, slot) is not None
     }
 
