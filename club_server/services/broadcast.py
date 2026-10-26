@@ -318,7 +318,7 @@ class BroadcastService:
                 User.deleted_at.is_(None),
             )
         )
-        return {username: email for username, email in rows.all()}
+        return {username: email for username, email in rows.all() if email is not None}
 
     async def list_broadcasts(
         self, offset: int = 0, limit: int = 20

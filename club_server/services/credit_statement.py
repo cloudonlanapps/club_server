@@ -57,7 +57,7 @@ def _running_figures(membername: str | None):
 
 async def page_statement(
     db: AsyncSession,
-    stmt: Select[tuple[CreditEntry]],
+    stmt: Select[CreditEntry],
     *,
     membername: str | None,
     order: StatementOrder,

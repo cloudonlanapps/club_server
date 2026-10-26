@@ -120,7 +120,7 @@ async def list_my_entries(
     (#449), so a page read newest first still shows what was left.
     """
     require_self_or_staff(username, current_user)
-    stmt: Select[tuple[CreditEntry]] = (
+    stmt: Select[CreditEntry] = (
         select(CreditEntry)
         .join(CreditAccount, CreditAccount.id == CreditEntry.account_id)
         .where(CreditAccount.membername == username)
