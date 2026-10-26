@@ -70,6 +70,7 @@ everything in this section is what an SDK update has to absorb.
 - Accept `ownerType=evaluation` on `GET /v1/media/links` and filter by it, whether or not the evaluations module is on; it answered 422 `INVALID_OWNER_TYPE` (#489).
 - Hand the evaluation templates a hard-deleted user created, live or soft-deleted, to the super admin who deleted them (`createdBy`), as their events are; they were deleted with the user, and the user's hard delete answered 500 when an evaluation used one (#490).
 - Refuse a rating item whose scale holds more than 10 values — a range's `rateMax - rateMin + 1` or the number of `rateValues` — with 422 on `POST /v1/evaluations/templates`, `PATCH /v1/evaluations/templates/by_id/{template_id}`, `POST …/items` and `PUT …/items/{item_id}`; nothing is written. A template stored with a larger scale still reads (#63).
+- Answer `PATCH /v1/evaluations/by_id/{evaluation_id}/media/{tag}/{media_uuid}` with the updated link, as a `GET` of it returns; it answered a two-element list `[link, oldMetadata]` (#77).
 
 ### Bug fixes: scheduler and credit
 
