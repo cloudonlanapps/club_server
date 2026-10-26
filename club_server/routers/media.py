@@ -493,6 +493,10 @@ async def download_media(
     """
     service = MediaService(db)
     media = await service.get_by_uuid(uuid)
+    # Access first: a caller the file does not admit learns nothing about it,
+    # not its conversion state nor its type (#80).
+    viewer = await _resolve_optional_user(request, db)
+    _enforce_download_guard(media, viewer)
 
     if media.conversion_status in ("pending", "processing"):
         raise HTTPException(
@@ -519,9 +523,6 @@ async def download_media(
                 ),
             },
         )
-
-    viewer = await _resolve_optional_user(request, db)
-    _enforce_download_guard(media, viewer)
 
     file_path = resolve_media_file_path(media, variant)
     if not file_path.exists():
