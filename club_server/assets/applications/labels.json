@@ -1,0 +1,249 @@
+{
+  "_comment": "Default text of the application form's standard labels, one entry per label id. Ships with the server; a template may override any entry (label_overrides). Marathi is taken word for word from an existing printed registration form wherever that form has the label. `_review` lists the languages whose text was written for this catalogue and still needs a fluent reader's check.",
+  "section.personal": {
+    "en": "Personal information",
+    "mr": "वैयक्तिक माहिती",
+    "hi": "व्यक्तिगत जानकारी",
+    "_review": [
+      "hi"
+    ]
+  },
+  "section.sports": {
+    "en": "Sports details",
+    "mr": "क्रीडा माहिती",
+    "hi": "खेल संबंधी जानकारी",
+    "_review": [
+      "hi"
+    ]
+  },
+  "section.guardian": {
+    "en": "Parent / guardian contact (for minors)",
+    "mr": "पालकांचा संपर्क (अल्पवयीनांसाठी)",
+    "hi": "माता-पिता / अभिभावक संपर्क (नाबालिगों के लिए)",
+    "_review": [
+      "hi"
+    ]
+  },
+  "section.selections": {
+    "en": "Additional selections",
+    "mr": "अतिरिक्त पर्याय",
+    "hi": "अतिरिक्त विकल्प",
+    "_review": [
+      "mr",
+      "hi"
+    ]
+  },
+  "section.declaration": {
+    "en": "Declaration",
+    "mr": "घोषणा",
+    "hi": "घोषणा",
+    "_review": [
+      "hi"
+    ]
+  },
+  "section.terms": {
+    "en": "Rules & regulations",
+    "mr": "नियम व अटी",
+    "hi": "नियम और शर्तें",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.full_name": {
+    "en": "Full name",
+    "mr": "पूर्ण नाव",
+    "hi": "पूरा नाम",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.date_of_birth": {
+    "en": "Date of birth",
+    "mr": "जन्मतारीख",
+    "hi": "जन्म तिथि",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.age_category": {
+    "en": "Age group",
+    "mr": "वयोगट",
+    "hi": "आयु वर्ग",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.gender": {
+    "en": "Gender",
+    "mr": "लिंग",
+    "hi": "लिंग",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.address": {
+    "en": "Address",
+    "mr": "पत्ता",
+    "hi": "पता",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.phone": {
+    "en": "Contact number",
+    "mr": "संपर्क क्रमांक",
+    "hi": "संपर्क नंबर",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.email": {
+    "en": "Email ID",
+    "mr": "ईमेल आयडी",
+    "hi": "ईमेल आईडी",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.nationality": {
+    "en": "Nationality",
+    "mr": "राष्ट्रीयत्व",
+    "hi": "राष्ट्रीयता",
+    "_review": [
+      "mr",
+      "hi"
+    ]
+  },
+  "field.preferred_language": {
+    "en": "Preferred language",
+    "mr": "पसंतीची भाषा",
+    "hi": "पसंदीदा भाषा",
+    "_review": [
+      "mr",
+      "hi"
+    ]
+  },
+  "field.member_id": {
+    "en": "Member ID",
+    "mr": "सभासद क्रमांक",
+    "hi": "सदस्य आईडी",
+    "_review": [
+      "mr",
+      "hi"
+    ]
+  },
+  "field.membership_date": {
+    "en": "Member since",
+    "mr": "सभासदत्व दिनांक",
+    "hi": "सदस्यता तिथि",
+    "_review": [
+      "mr",
+      "hi"
+    ]
+  },
+  "field.club_district": {
+    "en": "Club / District",
+    "mr": "क्लब / जिल्हा",
+    "hi": "क्लब / ज़िला",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.preferred_position": {
+    "en": "Preferred position",
+    "mr": "पसंतीचे स्थान",
+    "hi": "पसंदीदा पोज़ीशन",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.past_experience": {
+    "en": "Past experience",
+    "mr": "पूर्व अनुभव",
+    "hi": "पिछला अनुभव",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.guardian_name": {
+    "en": "Parent / guardian name",
+    "mr": "पालकाचे नाव",
+    "hi": "अभिभावक का नाम",
+    "_review": [
+      "hi"
+    ]
+  },
+  "field.guardian_relation": {
+    "en": "Relationship",
+    "mr": "नाते",
+    "hi": "संबंध",
+    "_review": [
+      "mr",
+      "hi"
+    ]
+  },
+  "field.guardian_phone": {
+    "en": "Parent contact number",
+    "mr": "पालक संपर्क क्रमांक",
+    "hi": "अभिभावक संपर्क नंबर",
+    "_review": [
+      "hi"
+    ]
+  },
+  "gender.male": {
+    "en": "Male",
+    "mr": "पुरुष",
+    "hi": "पुरुष",
+    "_review": [
+      "hi"
+    ]
+  },
+  "gender.female": {
+    "en": "Female",
+    "mr": "महिला",
+    "hi": "महिला",
+    "_review": [
+      "hi"
+    ]
+  },
+  "gender.other": {
+    "en": "Other",
+    "mr": "इतर",
+    "hi": "अन्य",
+    "_review": [
+      "hi"
+    ]
+  },
+  "photo": {
+    "en": "Passport size photo",
+    "mr": "पासपोर्ट फोटो",
+    "hi": "पासपोर्ट साइज़ फोटो",
+    "_review": [
+      "hi"
+    ]
+  },
+  "sign.player": {
+    "en": "Signature of player",
+    "mr": "खेळाडूची सही",
+    "hi": "खिलाड़ी के हस्ताक्षर",
+    "_review": [
+      "hi"
+    ]
+  },
+  "sign.guardian": {
+    "en": "Parent / guardian signature",
+    "mr": "पालक सही",
+    "hi": "अभिभावक के हस्ताक्षर",
+    "_review": [
+      "hi"
+    ]
+  },
+  "sign.date": {
+    "en": "Date",
+    "mr": "दिनांक",
+    "hi": "दिनांक",
+    "_review": [
+      "hi"
+    ]
+  }
+}

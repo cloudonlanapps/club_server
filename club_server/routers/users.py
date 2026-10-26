@@ -47,6 +47,7 @@ from ..exceptions import (
 from ..schemas.group import GroupResponse
 from ..services.audit import AuditService
 from ..services.club_info import ClubInfoService
+from ..services.extended_profile import check_profile_edit_access
 from ..services.staff_listing import StaffListingService
 from ..services.audit_actions import AuditAction
 from ..services.group import GroupService
@@ -214,9 +215,13 @@ async def update_user(
     username: str,
     data: UserUpdate,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_authenticated_user)],
 ):
-    """Update user profile. Users can update their own profile; admins can update any profile."""
+    """Update user profile. Users can update their own profile; admins can update any profile.
+
+    A user not yet approved may set only their own extended fields (#92).
+    """
+    check_profile_edit_access(data, username, current_user)
     require_self_or_admin(username, current_user)
 
     user_service = UserService(db)

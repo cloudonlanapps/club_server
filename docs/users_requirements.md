@@ -283,3 +283,74 @@ Vocabulary:
   over the super-admin standing — writes an audit row naming the actor
   and the user acted on.
 
+
+## Extended profile
+
+Optional fields for clubs whose application forms ask for more than the
+profile above holds. The deploy setting `EXTENDED_PROFILE_ENABLED`
+(reported as `extendedProfile`, platform R14a) tells the app whether to
+show them; the server stores and returns them whatever it says, so the
+schema does not vary with configuration.
+
+- **R63** [✅] A user can set their own extended fields, and an
+  admin anyone's: `clubDistrict`, `preferredPosition`, `pastExperience`,
+  `nationality`, `preferredLanguage` and `guardian` (`name`, `relation`,
+  `phone`, each optional). Each is optional; null clears it, and a field
+  left out keeps its value (R36a). They are stored whether or not the
+  setting is on.
+- **R63a** [✅] The extended fields and the membership date are
+  part of the private profile (R48, R48a); the basic profile (R47) does
+  not carry them.
+- **R63b** [X] A coach or member editing another user's extended
+  fields → 403 (R34a), and nothing is changed.
+- **R64** [X] A preferred position must be the `value` of one of
+  the club's positions, and a preferred language one of its languages
+  (R67) → 422 `INVALID_PROFILE_OPTION` naming the `field`, and nothing is
+  changed. A value whose option is removed later stays as it is, is
+  still returned, and may be sent again unchanged.
+- **R65** [X] The guardian's phone is checked as the user's own
+  phone is (at most 20 characters), and the guardian takes no field but
+  `name`, `relation` and `phone` → 422.
+- **R66** [✅] A user not yet approved (`registered` or `pending`)
+  can set their own extended fields, and only those: any other field, or
+  another user's profile → 403 `ACCOUNT_NOT_ACTIVE`, as before.
+
+### Membership date
+
+- **R67** [X] Only an admin can set or clear a user's
+  `membershipDateUtc` (a date, sent as a UTC midnight, R9): a user
+  editing their own → 403 `PROTECTED_FIELDS` naming it, and nothing is
+  changed.
+- **R68** [✅] Approving a user whose membership date is blank
+  sets it to the club's calendar day of the approval; a date already set
+  is kept.
+- **R68a** [✅] An account an admin creates gets its creation day
+  as membership date; an account that registers has none until it is
+  approved.
+- **R68b** [✅] The migration that adds the date fills it, for
+  each user who was approved through a review request, with the club's
+  calendar day of the earliest approving request, and leaves it blank
+  for everyone else (bootstrapped admins, older imports, users not yet
+  approved).
+
+### Profile options
+
+The club's lists of positions and languages, the system preference
+`profile_options`: `{"positions": [{"value", "label": {lang: text}}],
+"languages": [name, …]}`. A position carries its name in each language a
+form may print it in; a language is a plain name.
+
+- **R69** [✅] Any signed-in user, approved or not, can read the
+  profile options at `GET /v1/system/preferences/profile_options`; both
+  lists are empty until an admin writes them. An anonymous caller → 401.
+- **R69a** [✅] An admin can replace them with `PUT` on the same
+  path, and the write is audited as every preference write is
+  (platform R7). A coach or member → 403, and nothing is stored.
+- **R69b** [X] A write is checked: every position has a
+  non-empty `value` and at least one non-empty label, no two positions
+  share a value, and the languages are non-empty and distinct → 422, and
+  nothing is stored. A super admin writing the key through
+  `/v1/admin/preferences/profile_options` is checked the same way.
+- **R69c** [X] With `EXTENDED_PROFILE_ENABLED` off the write
+  answers 503 `EXTENDED_PROFILE_DISABLED`; the read and the profile
+  fields answer as when it is on.

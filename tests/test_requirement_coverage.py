@@ -10,7 +10,7 @@ a subset of the suite with ``-k`` cannot make it fail spuriously.
 
 Scope: every rule carrying a status marker in the programme, one-off,
 lifecycle, marketing, public, groups, credit, notifications, media,
-users, auth, platform and evaluation documents, plus the rules in the
+users, auth, platform, evaluation and applications documents, plus the rules in the
 camp, attendance and enrollment documents that the #384 redesign changes.
 """
 
@@ -39,6 +39,7 @@ FULLY_SCOPED_DOCS: dict[str, str] = {
     "platform": "platform_requirements.md",
     "evaluation": "evaluation_requirements.md",
     "eligibility": "eligibility_requirements.md",
+    "applications": "applications_requirements.md",
 }
 
 PARTIALLY_SCOPED_DOCS: dict[str, tuple[str, frozenset[str]]] = {

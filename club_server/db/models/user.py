@@ -60,6 +60,17 @@ class User(Base):
     gender: Mapped[str | None] = mapped_column(Text, nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     achievements: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Extended profile (#92, users R63–R68b): optional, stored whatever
+    # EXTENDED_PROFILE_ENABLED says. ``guardian`` is JSON text like
+    # ``address``; ``membership_date`` is a UTC-midnight date like
+    # ``date_of_birth``.
+    club_district: Mapped[str | None] = mapped_column(Text, nullable=True)
+    preferred_position: Mapped[str | None] = mapped_column(Text, nullable=True)
+    past_experience: Mapped[str | None] = mapped_column(Text, nullable=True)
+    nationality: Mapped[str | None] = mapped_column(Text, nullable=True)
+    preferred_language: Mapped[str | None] = mapped_column(Text, nullable=True)
+    guardian: Mapped[str | None] = mapped_column(Text, nullable=True)
+    membership_date: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     is_public_profile: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0", nullable=False
     )

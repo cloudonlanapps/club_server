@@ -1,5 +1,6 @@
 from .admin import router as admin_router
 from .admin_preferences import router as admin_preferences_router
+from .profile_options import router as profile_options_router
 from .auth import router as auth_router
 from .users import router as users_router
 from .groups import router as groups_router
@@ -37,6 +38,8 @@ from .mycredits import router as mycredits_router
 from .evaluations import router as evaluations_router
 from .evaluation_lifecycle import router as evaluation_lifecycle_router
 from .evaluation_templates import router as evaluation_templates_router
+from .applications import router as applications_router
+from .application_forms import router as application_forms_router
 from .evaluation_template_items import router as evaluation_template_items_router
 from .evaluation_answers import router as evaluation_answers_router
 from .myevaluations import router as myevaluations_router
@@ -45,6 +48,7 @@ from .evaluation_media import router as evaluation_media_router
 __all__ = [
     "admin_router",
     "admin_preferences_router",
+    "profile_options_router",
     "auth_router",
     "users_router",
     "groups_router",
@@ -80,6 +84,8 @@ __all__ = [
     "evaluations_router",
     "evaluation_lifecycle_router",
     "evaluation_templates_router",
+    "applications_router",
+    "application_forms_router",
     "evaluation_template_items_router",
     "evaluation_answers_router",
     "myevaluations_router",
