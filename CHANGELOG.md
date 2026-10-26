@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 (2026-10-26)
 
-Changes since `IHM_RELEASE_0_5`. The SDK was verified against that tag;
-everything in this section is what an SDK update has to absorb.
+Changes since `IHM_RELEASE_0_5`, including 1.0.0 (`RELEASE_VERSION_1_0_0`),
+which had no section of its own. The SDK was verified against
+`IHM_RELEASE_0_5`; everything in this section is what an SDK update has to
+absorb. club_sdk, club_cli and club_client 1.2.0 are the matching releases.
 
 ### Breaking Changes
 
