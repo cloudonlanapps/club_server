@@ -26,9 +26,10 @@ anything via `uv run --frozen <cmd>`; `--frozen` stops `uv` from rewriting
 `uv.lock` as a side effect (#310). Only `uv add` / `uv lock` change the
 lockfile, which is committed.
 
-**API docs:** with a dev server running (see README), Swagger UI is at
-`http://localhost:8101/docs` and the schema at `/openapi.json`. Use these, not
-source-grep, when verifying endpoint shape for SDK-facing work.
+**API docs:** with a dev server running (see README) and `API_DOCS_ENABLED=true`
+(off by default, #78), Swagger UI is at `http://localhost:8101/docs` and the
+schema at `/openapi.json`. Use these, not source-grep, when verifying
+endpoint shape for SDK-facing work.
 
 ## Architecture
 
