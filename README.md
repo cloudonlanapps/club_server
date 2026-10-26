@@ -3,7 +3,8 @@
 FastAPI backend for club management. This README covers running the server on
 a developer machine. Tests are documented in [`tests/README.md`](tests/README.md),
 the contribution workflow in [`CONTRIBUTING.md`](CONTRIBUTING.md), and the API
-in the running server's `/docs`.
+in the running server's `/docs` (served when `API_DOCS_ENABLED` is on, as
+the development set below has it).
 
 ## Prerequisites
 
@@ -40,7 +41,7 @@ uv run --frozen uvicorn club_server.main:app --host 0.0.0.0 --port 8101
 |---|---|
 | API base | `http://localhost:8101/v1` |
 | Health | `http://localhost:8101/health` |
-| OpenAPI / Swagger | `http://localhost:8101/docs` |
+| OpenAPI / Swagger | `http://localhost:8101/docs` (with `API_DOCS_ENABLED=true`) |
 | Super-admin login | `sudo` / `devboot` |
 | Cluster | `./start_db.sh --stop --data-dir ~/.local/share/club_server/dev` stops it |
 
@@ -75,6 +76,8 @@ Required (no in-code default; the server refuses to start without them):
 | `EMAIL_FROM_TRANSACTIONAL`, `EMAIL_FROM_BROADCAST` | `*@localhost.invalid` |
 | `EMAIL_THEME_COLOR` | `#E8772E` |
 
+And for the API docs below: `API_DOCS_ENABLED=true` (optional; off by default).
+
 Club identity deliberately has no default in code: an instance that omits it
 fails at startup rather than inheriting another club's name (#311).
 
@@ -94,8 +97,10 @@ code; any other value stops the server at startup), `ENCRYPTION_KEY` (base64 of 
 answer 503 without it), `TRANSACTIONAL_EMAIL_PROVIDER`
 and `BROADCAST_EMAIL_PROVIDER` (`console`, i.e. print instead of send; `resend`
 / `brevo` need `RESEND_API_KEY` / `BREVO_API_KEY`), `EMAIL_LOGO_PATH`,
-`EMAIL_AFFILIATION`. The full list with types is the two
-`Settings` classes.
+`EMAIL_AFFILIATION`, `API_DOCS_ENABLED` (off; on, the server serves Swagger UI
+at `/docs`, ReDoc at `/redoc` and the schema at `/openapi.json`, which are
+404 otherwise; an empty value is off. The dev and test stacks turn it on).
+The full list with types is the two `Settings` classes.
 
 Dev credentials: `POSTGRES_PASSWORD` (`devpass`; the local cluster is
 `--auth=trust`, so the value only appears in the URL), `BOOTSTRAP_PASSWORD`
