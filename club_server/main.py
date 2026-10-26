@@ -113,6 +113,11 @@ class StaticFilesCORSMiddleware(BaseHTTPMiddleware):
     Note: Static files are public resources, so we use permissive CORS.
     Safari video requests may not send Origin header (Sec-Fetch-Mode: no-cors),
     so we allow all origins for static files.
+
+    It is the outermost middleware, so its headers are the last word: the
+    main CORSMiddleware would otherwise add ``Allow-Credentials`` and its own
+    ``Expose-Headers`` depending on the request's origin (#79). A static file
+    is never fetched with credentials, and a wildcard origin cannot carry them.
     """
 
     async def dispatch(
@@ -130,14 +135,16 @@ class StaticFilesCORSMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Expose-Headers"] = (
                 "Content-Length, Content-Range"
             )
-            # Cache static files for 1 day (videos, images are immutable by path)
-            response.headers["Cache-Control"] = "public, max-age=86400"
+            if "Access-Control-Allow-Credentials" in response.headers:
+                del response.headers["Access-Control-Allow-Credentials"]
+            # Cache a file that was served for 1 day (videos, images are
+            # immutable by path); a 404 or an error is not cached as public.
+            if 200 <= response.status_code < 300 or response.status_code == 304:
+                response.headers["Cache-Control"] = "public, max-age=86400"
 
         return response
 
 
-# Add static files CORS middleware first (runs last, after response is created)
-app.add_middleware(StaticFilesCORSMiddleware)
 # Cache headers and conditional 304s on the public surface (#297).
 app.add_middleware(PublicCacheMiddleware)
 
@@ -149,6 +156,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Added last, so it wraps the two above and sets the final headers on /static/.
+app.add_middleware(StaticFilesCORSMiddleware)
 
 
 # Global exception handler for consistent error responses
