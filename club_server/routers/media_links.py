@@ -41,13 +41,6 @@ EnsureFn = Callable[[AsyncSession, Any], Awaitable[None]]
 # ---------- helpers ----------
 
 
-def _link_404() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail={"code": "MEDIA_LINK_NOT_FOUND", "message": "Media link not found"},
-    )
-
-
 def _owner_404(code: str, message: str) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,

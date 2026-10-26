@@ -204,7 +204,7 @@ async def test_issue_285_encrypts_pdf_without_poster(db_session, media_dir, kek)
     media = await _seed_pdf(db_session, media_dir, poster=None)
     uid = media.uuid
 
-    result, did_encrypt = await MediaService(db_session).encrypt_in_place(uid)
+    _result, did_encrypt = await MediaService(db_session).encrypt_in_place(uid)
 
     assert did_encrypt is True
     assert (media_dir / f"{uid}.pdf.enc").exists()

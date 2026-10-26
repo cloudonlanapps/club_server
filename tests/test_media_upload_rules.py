@@ -15,7 +15,7 @@ from club_server.db.models.media import Media
 from .helpers import create_admin_user, create_member_user
 from .media_helpers import (
     auth,
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     mp4_bytes,
     pdf_bytes,
     png_bytes,

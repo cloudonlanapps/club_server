@@ -44,13 +44,6 @@ from ..utils import get_client_ip
 router = APIRouter(prefix="/groups", tags=["Groups"])
 
 
-def _group_not_found(group_id: int) -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail={"code": "GROUP_NOT_FOUND", "message": f"Group {group_id} not found"},
-    )
-
-
 def _auto_not_joinable(group_id: int) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

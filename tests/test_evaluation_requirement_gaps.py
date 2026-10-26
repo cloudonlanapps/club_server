@@ -28,7 +28,7 @@ from .evaluation_helpers import (
 )
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .media_helpers import (
-    clean_upload_dir,  # noqa: F401  (fixture, used by name)
+    clean_upload_dir as clean_upload_dir,  # noqa: F401  (fixture, used by name)
     upload,
 )
 

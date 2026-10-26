@@ -768,7 +768,7 @@ async def test_list_user_occurrences_includes_public_event_occurrences(
     user_token = await create_user_and_get_token(
         client, admin_token, "testuser", db_session
     )
-    public_event_id, start_time = await create_public_event(client, admin_token)
+    public_event_id, _start_time = await create_public_event(client, admin_token)
 
     from_time = future_time_ms(0)
     to_time = future_time_ms(48)
@@ -1220,7 +1220,7 @@ async def test_future_occurrence_hidden_for_removed_member(
         client, admin_token, "carol", db_session
     )
 
-    event_id, start_time = await create_event_and_enroll(client, admin_token, "carol")
+    event_id, _start_time = await create_event_and_enroll(client, admin_token, "carol")
     # Mark removed (terminal status) without changing event times — event stays in the future.
     await _set_enrollment_timestamps(
         db_session,

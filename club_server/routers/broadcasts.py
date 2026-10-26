@@ -28,16 +28,6 @@ from ..services.broadcast import BroadcastService
 router = APIRouter(prefix="/broadcasts", tags=["broadcasts"])
 
 
-def _not_found(broadcast_id: int) -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail={
-            "code": "BROADCAST_NOT_FOUND",
-            "message": f"Broadcast {broadcast_id} not found",
-        },
-    )
-
-
 def _invalid_audience(exc: InvalidAudienceSelectorException) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
