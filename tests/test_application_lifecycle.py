@@ -183,13 +183,35 @@ async def test_should_refuse_save_when_title_or_declaration_is_missing(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
-    created = await create_application(client, admin, {"languages": ["en"]})
+    created = await create_application(
+        client, admin, {"languages": ["en"], "formFooter": {"en": "Play fair."}}
+    )
     await db_session.commit()
 
     response = await move(client, admin, created["id"], "save")
 
     assert response.status_code == 422
     assert response.json()["detail"]["details"]["missing"] == ["title", "declaration"]
+    assert await status_of(client, admin, created["id"]) == "draft"
+
+
+@pytest.mark.requirement("applications:R9")
+@pytest.mark.asyncio
+async def test_should_refuse_save_when_form_footer_missing(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    body = template_body()
+    del body["formFooter"]
+    created = await create_application(client, admin, body)
+    await db_session.commit()
+
+    response = await move(client, admin, created["id"], "save")
+
+    assert response.status_code == 422, response.text
+    detail = response.json()["detail"]
+    assert detail["code"] == "APPLICATION_INCOMPLETE"
+    assert detail["details"]["missing"] == ["formFooter"]
     assert await status_of(client, admin, created["id"]) == "draft"
 
 
@@ -205,6 +227,7 @@ async def test_should_save_an_english_only_template_when_its_texts_are_english(
         {
             "title": {"en": "Season registration"},
             "declaration": {"clause": "declaration.camp"},
+            "formFooter": {"en": "Play fair."},
             "header": [{"en": "City Rink"}],
         },
     )

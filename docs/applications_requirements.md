@@ -68,8 +68,8 @@ signed-in user whose account is `registered`, `pending` or `active`
 
 ## Saving and the lifecycle
 
-- **R9** [✅] Save refuses a template whose title or declaration is
-  missing, or whose title, declaration, footer line, terms, notes,
+- **R9** [✅] Save refuses a template whose title, declaration or
+  footer line is missing, or whose title, declaration, footer line, terms, notes,
   selections or label overrides lack a print language (header items and
   age-category names may stay English only) → 422 `APPLICATION_INCOMPLETE`
   naming each text and the language; it stays a draft.

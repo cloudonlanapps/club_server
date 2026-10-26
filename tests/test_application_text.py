@@ -239,12 +239,25 @@ def test_should_name_a_missing_title_or_declaration_when_checked():
 
 
 @pytest.mark.requirement("applications:R9")
+def test_should_name_a_missing_form_footer_when_checked():
+    doc = resolve(
+        template(
+            title={"en": "x", "mr": "य"}, declaration={"clause": "declaration.trial"}
+        ),
+        LIB,
+    )
+
+    assert incomplete(doc) == ["formFooter"]
+
+
+@pytest.mark.requirement("applications:R9")
 def test_should_find_nothing_missing_when_english_only_template_is_complete():
     doc = resolve(
         {
             "languages": ["en"],
             "title": {"en": "Trial"},
             "declaration": {"clause": "declaration.camp"},
+            "form_footer": {"en": "Play fair"},
         },
         LIB,
     )

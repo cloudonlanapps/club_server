@@ -185,13 +185,13 @@ def resolve(template: JsonDict, lib: JsonDict) -> JsonDict:
 
 # Texts every print language must have before a template can be saved, as
 # the API names them. The rest (header items, age labels) may stay English
-# only: names and numbers. The title and the declaration must be there at all.
+# only: names and numbers. Each of these must be there at all.
 REQUIRED_TEXTS = {
     "title": "title",
     "declaration": "declaration",
     "form_footer": "formFooter",
 }
-PRESENT_TEXTS = frozenset({"title", "declaration"})
+PRESENT_TEXTS = frozenset(REQUIRED_TEXTS)
 
 
 def incomplete(template: JsonDict) -> list[str]:
