@@ -194,7 +194,11 @@ async def test_should_reject_duplicate_attachment_of_same_media_and_tag(
 async def test_should_update_attachment_metadata(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """Metadata on a link is editable without detaching and re-attaching."""
+    """Metadata on a link is editable without detaching and re-attaching.
+
+    The PATCH answers with the updated link, the same object a GET of it
+    returns (#77).
+    """
     s = await _setup(client, db_session)
     attached = await _attach(client, s, s.public_tag)
     assert attached.status_code == 201
@@ -211,6 +215,7 @@ async def test_should_update_attachment_metadata(
     )
     assert read.status_code == 200
     assert read.json()["metadata"] == "after"
+    assert response.json() == read.json()
 
 
 @pytest.mark.asyncio

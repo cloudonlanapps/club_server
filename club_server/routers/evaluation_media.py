@@ -173,11 +173,12 @@ async def patch_link(
     """Update a link's metadata. Tag and mediaUuid are its identity."""
     _ = await load_evaluation(db, evaluation_id, current_user, write=True)
     try:
-        return await MediaLinkService(db, OWNER_TYPE).update_metadata(
+        payload, _old = await MediaLinkService(db, OWNER_TYPE).update_metadata(
             evaluation_id, tag, media_uuid, body.metadata
         )
     except Exception as exc:
         raise map_link_errors(exc)
+    return payload
 
 
 @router.delete("/{tag}/{media_uuid}", status_code=status.HTTP_204_NO_CONTENT)
