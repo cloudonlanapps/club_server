@@ -152,7 +152,7 @@ async def _load_overrides(
             OccurrenceOverride.new_start_time,
         ).where(OccurrenceOverride.event_id.in_(event_ids))
     )
-    for event_id, slot, status, new_start in rows.tuples().all():
+    for event_id, slot, status, new_start in rows.all():
         loaded[event_id][slot] = (status, new_start)
     return loaded
 
