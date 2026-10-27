@@ -53,13 +53,14 @@ Users (with roles: admin/coach/member/guardian), Groups, Events and their Schedu
 
 ### Optional modules
 
-Four modules are switched per deployment. All default to off, and while off
+Five modules are switched per deployment. All default to off, and while off
 their routes stay registered and answer 503 (the extended profile: see below), so the published
 API does not vary with configuration:
 
 - **Credit system** — `CREDIT_SYSTEM_ENABLED`; `docs/credit_system_requirements.md`.
 - **Evaluations** — `EVALUATIONS_ENABLED`; `docs/evaluation_requirements.md`.
 - **Extended profile** — `EXTENDED_PROFILE_ENABLED`; `docs/users_requirements.md` R63–R69c. Only the `profile_options` write answers 503 while it is off: the fields themselves are stored and returned whatever it says.
+- **Event marketing** — `EVENT_MARKETING_ENABLED`; `docs/event_marketing_requirements.md`. Only the extended block (`/events/by_id/{id}/marketing` and `/public/events/.../marketing`) is gated: the four basic presentation fields on the event are always available.
 - **Applications** — `APPLICATIONS_ENABLED`, reported on only with `IDENTITY_VERIFICATION_REQUIRED` too; `docs/applications_requirements.md`. The PDF code is `services/application_pdf_*`, with the label catalogue and clause library in `assets/applications/`.
 
 ### Requirement markers in tests
