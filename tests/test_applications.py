@@ -47,6 +47,7 @@ async def listed_ids(client: AsyncClient, token: str, query: str = "") -> list[i
         ("POST", "/1/save"),
         ("POST", "/1/duplicate"),
         ("GET", "/1/preview"),
+        ("GET", "/1/blank-form"),
         ("GET", "/1/form"),
         ("GET", "/1/form/ravi"),
         ("GET", "/labels"),
