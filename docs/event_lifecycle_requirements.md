@@ -1,9 +1,8 @@
 # Event lifecycle — Requirements
 
 **Status: implemented (#384).** Written 2026-09-03 as the first action from
-the independent requirement review (`reviews/events_requirements_review_1.md` F1.1,
-F2.7, F4.2, F5.2; `reviews/enrollment_requirements_review_1.md` E2, E3;
-`reviews/attendance_requirements_review_1.md` A1). `services/lifecycle.py` is the
+the independent review of the events, enrollment and attendance requirements.
+`services/lifecycle.py` is the
 one implementation of L12 and L14; the changes it implied for the other
 documents have been made.
 

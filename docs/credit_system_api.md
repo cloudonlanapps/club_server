@@ -242,8 +242,8 @@ ledger, so there is nothing to edit and nothing to delete.
 | `POST /events/by_id/{id}/enrollments/assign` | new 422 `INSUFFICIENT_CREDIT` | R35–R38 |
 | `.../enrollments/assign-trial` | same | R35–R38 |
 | `.../enrollments/approve` | same | R35–R38 |
-| `POST /myevents/by_id/{username}/{id}/request` | same | R35–R38 |
-| `POST /myevents/by_id/{username}/{id}/accept` | same | R35–R38 |
+| `POST /myevents/by_id/{username}/{id}/enrollments/request` | same | R35–R38 |
+| `POST /myevents/by_id/{username}/{id}/enrollments/accept` | same | R35–R38 |
 | `POST .../occurrences/{t}/attendance` | **breaking**: 204 → 200 with a per-member report | R41b, R41c |
 | `POST .../enrollments/remove` | **breaking**: body gains a required `creditDisposition` when the member holds a bound balance | R71 |
 | `POST .../enrollments/approve-withdraw` | same | R73 |
