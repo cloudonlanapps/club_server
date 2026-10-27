@@ -31,15 +31,24 @@ from .application_text import filled, incomplete, lacking, printable, unknown_ga
 FROZEN_OPTIONS = "profile_options"
 # ... and of the library's formats and choices its facts were printed with.
 FROZEN_FORMATS = "fact_formats"
+# ... and of the club's labels it was measured with (#133).
+FROZEN_LABELS = "labels"
 
 
-def missing_texts(template: JsonDict) -> list[JsonDict]:
-    """Texts, and label overrides, missing print languages (R9)."""
+def missing_texts(
+    template: JsonDict, all_labels: JsonDict | None = None
+) -> list[JsonDict]:
+    """Texts, label overrides and the club's labels a template does not
+    override, missing print languages (R9, #133)."""
     langs: list[str] = template["languages"]
     found = incomplete(template)
     overrides: JsonDict = template.get("label_overrides") or {}
     for key, value in overrides.items():
         entry = lacking(f"labelOverrides.{key}", value, langs)
+        if entry:
+            found.append(entry)
+    for key, value in (all_labels or {}).items():
+        entry = None if key in overrides else lacking(f"labels.{key}", value, langs)
         if entry:
             found.append(entry)
     return found
@@ -51,21 +60,39 @@ def fact_formats() -> JsonDict:
     return {"formats": lib["formats"], "choices": lib["choices"]}
 
 
-def decide_layout(template: JsonDict, options: JsonDict, today: date) -> JsonDict:
-    """The layout to store on save, measured on the filled texts, with the
-    options and fact formats it was measured with (R9b, R13, R14, R16, R17)."""
+def decide_layout(
+    template: JsonDict,
+    options: JsonDict,
+    today: date,
+    club_labels: JsonDict | None = None,
+) -> JsonDict:
+    """The layout to store on save, measured on the filled texts with the
+    club's labels (the catalogue's when none are given), with the options,
+    fact formats and labels it was measured with (R9b, R13, R14, R16, R17)."""
+    all_labels = labels() if club_labels is None else club_labels
     document = printable(template)
-    missing = missing_texts(document)
+    missing = missing_texts(document, all_labels)
     if missing:
         raise ApplicationIncompleteException(missing)
     unknown = unknown_gaps(template)
     if unknown:
         raise ApplicationUnknownFactException(unknown)
     formats = fact_formats()
-    decided = check(filled(document, formats), labels(), options, today)
+    decided = check(filled(document, formats), all_labels, options, today)
     decided[FROZEN_OPTIONS] = options
     decided[FROZEN_FORMATS] = formats
+    decided[FROZEN_LABELS] = all_labels
     return decided
+
+
+def drawn_labels(stored: JsonDict | None, live: JsonDict | None) -> JsonDict:
+    """The labels a form is drawn with: the stored layout's frozen copy, the
+    catalogue for a layout saved before #133 (it was measured with it), or
+    ``live`` (the club's, else the catalogue) for a draft."""
+    if stored is not None:
+        frozen: JsonDict | None = stored.get(FROZEN_LABELS)
+        return frozen if frozen is not None else labels()
+    return live if live is not None else labels()
 
 
 def frozen_options(stored: JsonDict | None, live: JsonDict) -> JsonDict:
@@ -112,6 +139,7 @@ def draw(
     stored: JsonDict | None,
     preview: bool = False,
     publish_id: str | None = None,
+    live_labels: JsonDict | None = None,
 ) -> bytes:
     """One form as PDF bytes, drawn in full.
 
@@ -122,7 +150,15 @@ def draw(
     """
     return bytes(
         form_builder(
-            template, member, options, logo, today, stored, preview, publish_id
+            template,
+            member,
+            options,
+            logo,
+            today,
+            stored,
+            preview,
+            publish_id,
+            live_labels=live_labels,
         )
         .build()
         .output()
@@ -156,11 +192,12 @@ def form_builder(
     preview: bool,
     publish_id: str | None,
     blank: bool = False,
+    live_labels: JsonDict | None = None,
 ) -> ApplicationFormBuilder:
     """The builder that draws one form: from the stored layout, or measured
     for ``member`` when there is none (a draft's preview)."""
     document = _document(template, stored)
-    all_labels = labels()
+    all_labels = drawn_labels(stored, live_labels)
     if stored:
         layout, extra = stored_layout(document, all_labels, options, today, stored)
     else:

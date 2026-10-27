@@ -34,6 +34,14 @@ from ..utils import now_utc_ms
 from .application_document import options_document, template_document
 from .application_drawing import ApplicationDrawingService
 from .application_form import decide_layout
+from .application_labels import club_labels
+from .application_languages import (
+    check_offered,
+    check_written,
+    club_languages,
+    kept,
+    shown,
+)
 from .audit import AuditService
 from .audit_actions import AuditAction
 from .evaluation_pdf_logo import club_logo
@@ -61,6 +69,8 @@ LIST_FIELDS = frozenset(
     {"header", "age_categories", "selections", "terms", "terms_notes"}
 )
 DICT_FIELDS = frozenset({"facts", "label_overrides"})
+# The fields holding printed texts, shown in the club's languages (#133).
+TEXT_FIELDS = tuple(f for f in CONTENT_FIELDS if f not in ("languages", "facts"))
 
 
 def _stored(value: Any) -> Any:
@@ -86,11 +96,17 @@ def _empty(field: str) -> Any:
 
 
 def application_response(
-    application: Application, fitting_categories: list[int] | None = None
+    application: Application,
+    club: list[str],
+    fitting_categories: list[int] | None = None,
 ) -> ApplicationResponse:
-    """A template as returned; a member's read adds the categories they fit."""
+    """A template as returned, its texts in the club's languages ``club``
+    (applications R30); a member's read adds the categories they fit."""
     content: dict[str, Any] = {
-        field: getattr(application, field) for field in CONTENT_FIELDS
+        field: shown(getattr(application, field), club)
+        if field in TEXT_FIELDS
+        else getattr(application, field)
+        for field in CONTENT_FIELDS
     }
     stored = application.layout
     layout = (
@@ -152,15 +168,20 @@ class ApplicationService:
             .offset(offset)
             .limit(limit)
         )
+        club = await club_languages(self.db)
         return PaginatedResponse(
-            items=[application_response(a) for a in rows.scalars().all()],
+            items=[application_response(a, club) for a in rows.scalars().all()],
             total=total.scalar_one(),
             offset=offset,
             limit=limit,
         )
 
     async def create(self, content: ApplicationContent, created_by: str) -> Application:
-        """A new draft (R2)."""
+        """A new draft, printing in the club's languages (R2, R29)."""
+        club = await club_languages(self.db)
+        check_offered(content.languages, club)
+        for field in TEXT_FIELDS:
+            check_written(_stored(getattr(content, field)), club)
         now = now_utc_ms()
         application = Application(
             status=DRAFT,
@@ -178,17 +199,30 @@ class ApplicationService:
     async def update(
         self, application_id: int, changes: ApplicationUpdate
     ) -> Application:
-        """Replace the fields sent; a draft only (R3)."""
+        """Replace the fields sent; a draft only (R3). A text sent keeps its
+        stored translations in languages the club has removed (R30)."""
         application = await self.get_or_raise(application_id)
         if application.status != DRAFT:
             raise InvalidStateException(
                 f"Only a draft application can be edited (it is {application.status})"
             )
-        for field in changes.model_fields_set:
-            value = getattr(changes, field)
-            setattr(
-                application, field, _empty(field) if value is None else _stored(value)
-            )
+        club = await club_languages(self.db)
+        if changes.languages is not None:
+            check_offered(changes.languages, club)
+        sent = {
+            field: _stored(getattr(changes, field))
+            for field in changes.model_fields_set
+        }
+        for field, new in sent.items():
+            if field in TEXT_FIELDS:
+                check_written(new, club)
+        for field, new in sent.items():
+            if new is None:
+                setattr(application, field, _empty(field))
+                continue
+            if field in TEXT_FIELDS:
+                new = kept(new, getattr(application, field), club)
+            setattr(application, field, new)
         application.updated_at = now_utc_ms()
         await self.db.flush()
         await self.db.refresh(application)
@@ -238,12 +272,14 @@ class ApplicationService:
             raise ApplicationTransitionException(application.status, action)
         details: dict[str, str | int | None] = {"applicationId": application.id}
         if action == "save":
+            check_offered(list(application.languages), await club_languages(self.db))
             options = options_document(await ProfileOptionsService(self.db).read())
             application.layout = await asyncio.to_thread(
                 decide_layout,
                 template_document(application),
                 options,
                 day_to_date(club_today()),
+                await club_labels(self.db),
             )
         if action == "revert":
             application.layout = None

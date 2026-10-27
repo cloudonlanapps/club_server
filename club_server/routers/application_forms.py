@@ -21,6 +21,7 @@ from ..dependencies import (
 )
 from ..schemas.application import ApplicationResponse
 from ..services.application import ApplicationService, application_response
+from ..services.application_languages import club_languages
 from ..services.application_downloads import ApplicationDownloadService
 from ..services.application_rules import PREVIEW_MEMBER
 from ..utils import get_client_ip
@@ -70,7 +71,7 @@ async def _move(
         )
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
-    return application_response(application)
+    return application_response(application, await club_languages(db))
 
 
 @router.post("/{application_id}/save", response_model=ApplicationResponse)
@@ -134,7 +135,7 @@ async def duplicate_application(
         )
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
-    return application_response(copy)
+    return application_response(copy, await club_languages(db))
 
 
 @router.get(

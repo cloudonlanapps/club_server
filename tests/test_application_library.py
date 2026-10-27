@@ -1,10 +1,10 @@
 """The club's library of texts, and the clauses list (#126, applications R7, R7a).
 
-A club keeps its own texts beside the built-in clauses: each has a kind (one
-of the built-in clauses' kinds), a short name and its text per language,
-gaps allowed. They are club-wide: one library for every template. Admins
-write and read them; ``GET /v1/applications/clauses`` lists the built-in
-clauses and the club's texts together, each marked with its source.
+A club keeps its own texts, the built-in clauses seeded among them (#133):
+each has a kind (one of the built-in clauses' kinds), a short name and its
+text per language, gaps allowed. They are club-wide: one library for every
+template. Admins write and read them; ``GET /v1/applications/clauses`` lists
+the same texts.
 """
 
 from typing import Any, get_args
@@ -47,10 +47,12 @@ async def create_text(
 
 
 async def listed(client: AsyncClient, token: str) -> list[dict[str, Any]]:
+    """The texts the club wrote: the library less the seeded built-in
+    clauses, which ``test_application_library_seed.py`` covers (#133)."""
     response = await client.get(LIBRARY, headers=auth(token))
     assert response.status_code == 200, response.text
     items: list[dict[str, Any]] = response.json()
-    return items
+    return [item for item in items if item["key"] is None]
 
 
 async def non_admin(db_session: AsyncSession, role: str) -> str:
@@ -288,7 +290,7 @@ async def test_should_refuse_the_club_library_when_caller_is_anonymous(
 @pytest.mark.requirement("applications:R7")
 @pytest.mark.requirement("applications:R7a")
 @pytest.mark.asyncio
-async def test_should_list_builtin_clauses_and_club_texts_together_when_admin_asks(
+async def test_should_list_seeded_and_club_texts_together_when_admin_asks(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -302,30 +304,18 @@ async def test_should_list_builtin_clauses_and_club_texts_together_when_admin_as
 
     assert response.status_code == 200, response.text
     clauses = response.json()["clauses"]
-    builtin = [c for c in clauses if c["source"] == "builtin"]
-    club = [c for c in clauses if c["source"] == "club"]
-    assert len(builtin) + len(club) == len(clauses)
-    assert {c["kind"] for c in builtin} == set(get_args(LibraryTextKind))
-    matches = next(c for c in builtin if c["key"] == "rule.matches")
-    assert matches["id"] is None
+    seeded = [c for c in clauses if c["key"] is not None]
+    club = [c for c in clauses if c["key"] is None]
+    assert {c["kind"] for c in seeded} == set(get_args(LibraryTextKind))
+    matches = next(c for c in seeded if c["key"] == "rule.matches")
+    assert isinstance(matches["id"], int)
     assert matches["kind"] == "rule"
-    assert matches["gaps"] == {"dates": "date_range", "venue": "name"}
     assert matches["text"]["en"] == (
         "Tournament matches will take place from {dates} at {venue}."
     )
-    assert [c["id"] for c in club] == [first["id"], second["id"]]
-    assert club[0] == {
-        "source": "club",
-        "id": first["id"],
-        "key": None,
-        "kind": "selection",
-        "name": "Attend the matches",
-        "gaps": None,
-        "heading": None,
-        "text": first["text"],
-    }
+    assert club == [first, second]
     assert club[1]["heading"] == {"en": "Kit"}
-    assert clauses.index(club[0]) > clauses.index(builtin[-1])  # built-in first
+    assert clauses.index(club[0]) > clauses.index(seeded[-1])  # oldest first
 
 
 @pytest.mark.requirement("applications:R7a")
@@ -340,4 +330,4 @@ async def test_should_drop_a_club_text_from_the_clauses_list_when_deleted(
     response = await client.get(CLAUSES, headers=auth(admin))
 
     assert response.status_code == 200, response.text
-    assert [c for c in response.json()["clauses"] if c["source"] == "club"] == []
+    assert created["id"] not in [c["id"] for c in response.json()["clauses"]]

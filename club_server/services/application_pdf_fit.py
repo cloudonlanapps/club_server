@@ -9,6 +9,7 @@ long, and stored with one spread. Ported from the prototype.
 """
 
 import io
+from typing import Any
 from datetime import date
 
 from PIL import Image
@@ -75,7 +76,12 @@ def worst_case_member(options: JsonDict) -> JsonDict:
     every club position chosen and every club language listed (#106)."""
     member = dict(WORST_CASE_MEMBER)
     positions: list[JsonDict] = options.get("positions") or []
-    languages: list[str] = list(options.get("languages") or [])
+    # A language is {code, name} since #133, a name in options frozen before.
+    entries: list[Any] = list(options.get("languages") or [])
+    languages: list[str] = [
+        str(e["name"]) if isinstance(e, dict) else str(e)  # pyright: ignore[reportUnknownArgumentType]
+        for e in entries
+    ]
     member["preferred_positions"] = [p["value"] for p in positions]
     member["preferred_languages"] = (
         languages or WORST_CASE_MEMBER["preferred_languages"]

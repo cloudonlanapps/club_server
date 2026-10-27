@@ -34,13 +34,21 @@ TERM_PARTS = ("heading", "body")
 NOTE_PARTS = ("text", "attribution")
 
 
+def formatted_in(lang: str, lib: JsonDict) -> str:
+    """``lang``, or English when the library has no formats for it: a club
+    language added later prints its facts as English does (#133, R31)."""
+    return lang if lang in lib["formats"]["months"] else ENGLISH
+
+
 def fmt_day(d: date, lang: str, lib: JsonDict) -> str:
     """A date in ``lang``: "19 November 2026"."""
+    lang = formatted_in(lang, lib)
     return f"{d.day} {lib['formats']['months'][lang][d.month - 1]} {d.year}"
 
 
 def fmt_range(start: date, end: date, lang: str, lib: JsonDict) -> str:
     """A range in ``lang``: "1–15 November 2026", "1 ते 15 नोव्हेंबर 2026"."""
+    lang = formatted_in(lang, lib)
     months = lib["formats"]["months"][lang]
     word = lib["formats"]["range_word"][lang]
     if word == "–" and (start.month, start.year) != (end.month, end.year):
@@ -54,6 +62,7 @@ def fmt_range(start: date, end: date, lang: str, lib: JsonDict) -> str:
 
 def fmt_time(value: str, lang: str, lib: JsonDict) -> str:
     """A time with its part of the day: "6:00 am", "सकाळी 6:00"."""
+    lang = formatted_in(lang, lib)
     h, m = (int(x) for x in value.split(":"))
     part = lib["formats"]["day_parts"][lang][
         0 if h < NOON else 1 if h < AFTERNOON_END else 2 if h < EVENING_END else 3
@@ -95,8 +104,11 @@ def fact_text(fact: JsonDict, lang: str, lib: JsonDict) -> str:
             raise ApplicationReferenceException(
                 f"no choice {unknown[0]!r} in the library"
             )
-        words = [lib["choices"][c][lang] for c in fact["value"]]
-        joiner = lib["formats"]["and"][lang]
+        words = [
+            lib["choices"][c].get(lang) or lib["choices"][c][ENGLISH]
+            for c in fact["value"]
+        ]
+        joiner = lib["formats"]["and"][formatted_in(lang, lib)]
         return (
             words[0]
             if len(words) == 1

@@ -1,8 +1,7 @@
-"""The clauses list and the club's library of texts (#126, applications R7, R7a).
+"""The clauses list and the club's library of texts (#126, #133, applications R7–R7b).
 
-``GET /applications/clauses`` lists the built-in clauses and the club's
-texts together, each marked with its source, for the editor to paste as
-written. Admins create, read, edit and delete the club's texts under
+``GET /applications/clauses`` lists the club's library texts, the built-in
+clauses seeded into it among them, for the editor to paste as written. Admins create, read, edit and delete the club's texts under
 ``/applications/library``. While the module is off every route answers 503
 ``APPLICATIONS_DISABLED``.
 """
@@ -16,8 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
 from ..dependencies import get_db, require_admin, require_applications_enabled
-from ..schemas.application import ApplicationClausesResponse
 from ..schemas.application_library import (
+    ApplicationClausesResponse,
     ApplicationLibraryTextCreate,
     ApplicationLibraryTextResponse,
     ApplicationLibraryTextUpdate,
@@ -26,6 +25,7 @@ from ..services.application_library import (
     ApplicationLibraryService,
     library_text_response,
 )
+from ..services.application_languages import club_languages
 from . import application_errors as err
 
 router = APIRouter(
@@ -40,7 +40,7 @@ Admin = Annotated[User, Depends(require_admin())]
 
 @router.get("/clauses", response_model=ApplicationClausesResponse)
 async def get_clauses(db: Db, _current_user: Admin) -> ApplicationClausesResponse:
-    """The built-in clauses, then the club's texts, for the editor (R7, R7a)."""
+    """The club's library texts, for the editor (R7, R7b)."""
     return await ApplicationLibraryService(db).clauses()
 
 
@@ -50,7 +50,8 @@ async def list_library_texts(
 ) -> list[ApplicationLibraryTextResponse]:
     """Every club text, oldest first (R7a)."""
     rows = await ApplicationLibraryService(db).list_all()
-    return [library_text_response(row) for row in rows]
+    club = await club_languages(db)
+    return [library_text_response(row, club) for row in rows]
 
 
 @router.post(
@@ -62,8 +63,11 @@ async def create_library_text(
     payload: ApplicationLibraryTextCreate, db: Db, current_user: Admin
 ) -> ApplicationLibraryTextResponse:
     """Add a club text (R7a)."""
-    row = await ApplicationLibraryService(db).create(payload, current_user.username)
-    return library_text_response(row)
+    try:
+        row = await ApplicationLibraryService(db).create(payload, current_user.username)
+    except err.DOMAIN_ERRORS as exc:
+        raise err.to_http(exc)
+    return library_text_response(row, await club_languages(db))
 
 
 @router.get("/library/{text_id}", response_model=ApplicationLibraryTextResponse)
@@ -75,7 +79,7 @@ async def get_library_text(
         row = await ApplicationLibraryService(db).get_or_raise(text_id)
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
-    return library_text_response(row)
+    return library_text_response(row, await club_languages(db))
 
 
 @router.patch("/library/{text_id}", response_model=ApplicationLibraryTextResponse)
@@ -89,7 +93,7 @@ async def update_library_text(
         raise err.to_http(exc)
     except ValidationError as exc:
         raise RequestValidationError(exc.errors())
-    return library_text_response(row)
+    return library_text_response(row, await club_languages(db))
 
 
 @router.delete("/library/{text_id}", status_code=status.HTTP_204_NO_CONTENT)

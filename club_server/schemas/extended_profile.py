@@ -13,11 +13,13 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    field_validator,
     model_validator,
 )
 
 from ..db.models.user import User
 from .common import CamelCaseModel, to_camel
+from .language import ENGLISH, code_for_name, is_language_code
 
 NonEmptyText = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
@@ -60,14 +62,20 @@ class Guardian(CamelCaseModel):
     phone: str | None = Field(None, max_length=20)
 
 
-ENGLISH = "en"
+def _code(value: str) -> str:
+    if not is_language_code(value):
+        raise ValueError(f"{value!r} is not a language code")
+    return value
+
+
+LanguageCodeText = Annotated[str, AfterValidator(_code)]
 
 
 class ProfilePosition(CamelCaseModel):
     """One of the club's positions: its stored value and its name per language.
 
-    The name needs English, and each key is a language of the application
-    form's label catalogue, so a form prints it in every print language that
+    The name needs English, and each key is one of the club's languages
+    (``ProfileOptions``), so a form prints it in every print language that
     has one and in English otherwise (users R69b, #103).
     """
 
@@ -75,37 +83,65 @@ class ProfilePosition(CamelCaseModel):
     label: dict[NonEmptyText, NonEmptyText] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _languages(self) -> "ProfilePosition":
-        # Imported here: the catalogue lives in the services package, which
-        # imports the schemas.
-        from ..services.application_catalogue import catalogue_languages
-
+    def _english(self) -> "ProfilePosition":
         if ENGLISH not in self.label:
             raise ValueError(f"position {self.value!r} has no English label")
-        unknown = sorted(set(self.label) - set(catalogue_languages()))
-        if unknown:
-            raise ValueError(
-                f"position {self.value!r} has labels in unknown languages: "
-                + ", ".join(unknown)
-            )
         return self
+
+
+class ProfileLanguage(CamelCaseModel):
+    """One of the club's languages: its code (translations are keyed by it)
+    and its name, which a member chooses (#133)."""
+
+    code: LanguageCodeText
+    name: NonEmptyText
 
 
 class ProfileOptions(CamelCaseModel):
     """The ``profile_options`` preference: the club's positions and languages
-    (users R69–R69b)."""
+    (users R69–R69b, applications R28). English is always a language."""
 
     positions: list[ProfilePosition]
-    languages: list[NonEmptyText]
+    languages: list[ProfileLanguage]
+
+    @field_validator("languages", mode="before")
+    @classmethod
+    def _coded(cls, value: Any) -> Any:
+        """A language written by name alone takes its code (#133)."""
+        if not isinstance(value, list):
+            return value
+        entries: list[Any] = value  # pyright: ignore[reportUnknownVariableType]
+        return [
+            {"code": code_for_name(e), "name": e} if isinstance(e, str) else e
+            for e in entries
+        ]
 
     @model_validator(mode="after")
     def _distinct(self) -> "ProfileOptions":
         values = [position.value for position in self.positions]
         if len(set(values)) != len(values):
             raise ValueError("two positions share a value")
-        if len(set(self.languages)) != len(self.languages):
+        codes = self.codes()
+        if len(set(codes)) != len(codes):
+            raise ValueError("a language code is listed twice")
+        names = [language.name for language in self.languages]
+        if len(set(names)) != len(names):
             raise ValueError("a language is listed twice")
+        if ENGLISH not in codes:
+            raise ValueError("English (en) is always one of the languages")
+        for position in self.positions:
+            unknown = sorted(set(position.label) - set(codes))
+            if unknown:
+                raise ValueError(
+                    f"position {position.value!r} has labels in languages the "
+                    + "club does not have: "
+                    + ", ".join(unknown)
+                )
         return self
+
+    def codes(self) -> list[str]:
+        """The club's language codes, in order."""
+        return [language.code for language in self.languages]
 
 
 # Schema field → ``users`` column, for each extended field.

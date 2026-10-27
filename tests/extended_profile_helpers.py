@@ -15,7 +15,12 @@ OPTIONS: dict[str, Any] = {
         {"value": "Forward", "label": {"en": "Forward", "mr": "फॉरवर्ड"}},
         {"value": "Goalie", "label": {"en": "Goalie", "hi": "गोलकीपर"}},
     ],
-    "languages": ["English", "Marathi"],
+    # Each language a code and a name; a position's labels are in them (#133).
+    "languages": [
+        {"code": "en", "name": "English"},
+        {"code": "mr", "name": "Marathi"},
+        {"code": "hi", "name": "Hindi"},
+    ],
 }
 
 EXTENDED: dict[str, Any] = {

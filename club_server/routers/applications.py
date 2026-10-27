@@ -21,14 +21,17 @@ from ..dependencies import (
 )
 from ..schemas.application import (
     ApplicationCreate,
+    ApplicationLabelResponse,
     ApplicationLabelsResponse,
+    ApplicationLabelUpdate,
     ApplicationResponse,
     ApplicationStatus,
     ApplicationUpdate,
 )
 from ..schemas.common import PaginatedResponse
 from ..services.application import ApplicationService, application_response
-from ..services.application_catalogue import catalogue_languages, labels
+from ..services.application_languages import club_languages, shown
+from ..services.application_labels import ApplicationLabelService, club_labels
 from ..services.application_downloads import ApplicationDownloadService
 from . import application_errors as err
 
@@ -41,10 +44,34 @@ router = APIRouter(
 
 @router.get("/labels", response_model=ApplicationLabelsResponse)
 async def get_labels(
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     _current_user: Annotated[User, Depends(require_admin())],
 ) -> ApplicationLabelsResponse:
-    """The label catalogue, to pre-fill the editor (R8)."""
-    return ApplicationLabelsResponse(languages=catalogue_languages(), labels=labels())
+    """The label catalogue in the club's languages, to pre-fill the editor
+    (R8, R30)."""
+    club = await club_languages(db)
+    stored = await club_labels(db)
+    return ApplicationLabelsResponse(
+        languages=club, labels={k: shown(v, club) for k, v in stored.items()}
+    )
+
+
+@router.patch("/labels/{key}", response_model=ApplicationLabelResponse)
+async def update_label(
+    key: str,
+    payload: ApplicationLabelUpdate,
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+    current_user: Annotated[User, Depends(require_admin())],
+) -> ApplicationLabelResponse:
+    """Change a label's text in the club's languages (R8a)."""
+    try:
+        row = await ApplicationLabelService(db).update(
+            key, payload.text, current_user.username
+        )
+    except err.DOMAIN_ERRORS as exc:
+        raise err.to_http(exc)
+    club = await club_languages(db)
+    return ApplicationLabelResponse(key=row.key, text=shown(row.text, club))
 
 
 @router.get("", response_model=PaginatedResponse[ApplicationResponse])
@@ -76,7 +103,9 @@ async def get_application(
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
     return application_response(
-        application, service.fitting_for(current_user, application)
+        application,
+        await club_languages(db),
+        service.fitting_for(current_user, application),
     )
 
 
@@ -89,8 +118,13 @@ async def create_application(
     current_user: Annotated[User, Depends(require_admin())],
 ) -> ApplicationResponse:
     """Create a draft (R2)."""
-    application = await ApplicationService(db).create(payload, current_user.username)
-    return application_response(application)
+    try:
+        application = await ApplicationService(db).create(
+            payload, current_user.username
+        )
+    except err.DOMAIN_ERRORS as exc:
+        raise err.to_http(exc)
+    return application_response(application, await club_languages(db))
 
 
 @router.patch("/{application_id}", response_model=ApplicationResponse)
@@ -105,7 +139,7 @@ async def update_application(
         application = await ApplicationService(db).update(application_id, payload)
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
-    return application_response(application)
+    return application_response(application, await club_languages(db))
 
 
 @router.delete("/{application_id}", response_model=ApplicationResponse)
@@ -119,4 +153,4 @@ async def delete_application(
         application = await ApplicationService(db).soft_delete(application_id)
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
-    return application_response(application)
+    return application_response(application, await club_languages(db))

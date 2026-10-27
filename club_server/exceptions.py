@@ -1577,6 +1577,27 @@ class ApplicationIncompleteException(Exception):
         super().__init__(f"Texts missing a print language: {named}")
 
 
+class ApplicationLabelNotFoundException(Exception):
+    """Raised when a label key is not one of the catalogue's (#133)."""
+
+    key: str
+
+    def __init__(self, key: str):
+        self.key = key
+        super().__init__(f"Label {key!r} not found")
+
+
+class ApplicationLanguageNotOfferedException(Exception):
+    """Raised when a template prints in a language the club does not have
+    (#133, applications R29); ``languages`` names them."""
+
+    languages: list[str]
+
+    def __init__(self, languages: list[str]):
+        self.languages = languages
+        super().__init__("The club has no such language: " + ", ".join(languages))
+
+
 class ApplicationUnknownFactException(Exception):
     """Raised when a save finds ``{gap}``s naming no fact of the template (#126).
 

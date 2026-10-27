@@ -106,7 +106,7 @@ async def test_should_print_a_position_in_english_when_it_has_no_second_language
                 {"value": "fwd", "label": {"en": "Forward"}},
                 {"value": "gk", "label": {"en": "Goalie", "mr": "गोलकीपर"}},
             ],
-            "languages": [],
+            "languages": ["English", "Marathi"],  # the club's (#133)
         },
     )
     published = await published_application(client, admin)  # prints en + mr

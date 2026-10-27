@@ -28,7 +28,14 @@ from .helpers import (
     create_user_with_status,
 )
 
-EMPTY: dict[str, Any] = {"positions": [], "languages": []}
+# Never written: no positions, and English and Marathi (#133).
+EMPTY: dict[str, Any] = {
+    "positions": [],
+    "languages": [
+        {"code": "en", "name": "English"},
+        {"code": "mr", "name": "Marathi"},
+    ],
+}
 
 
 async def read_options(client: AsyncClient, token: str) -> dict[str, Any]:
@@ -42,7 +49,7 @@ async def read_options(client: AsyncClient, token: str) -> dict[str, Any]:
 @pytest.mark.parametrize(
     "reader", ["admin", "coach", "member", "registered", "pending"]
 )
-async def test_should_read_empty_lists_when_options_were_never_written(
+async def test_should_read_no_positions_and_the_default_languages_when_never_written(
     client: AsyncClient, db_session: AsyncSession, reader: str
 ):
     tokens = {
@@ -170,21 +177,25 @@ async def test_should_refuse_profile_options_write_when_caller_is_anonymous(
 
 
 INVALID_OPTIONS: list[Any] = [
-    {"positions": [{"value": "", "label": {"en": "Blank"}}], "languages": []},
-    {"positions": [{"value": "Forward", "label": {}}], "languages": []},
-    {"positions": [{"value": "Forward", "label": {"en": ""}}], "languages": []},
+    {"positions": [{"value": "", "label": {"en": "Blank"}}], "languages": ["English"]},
+    {"positions": [{"value": "Forward", "label": {}}], "languages": ["English"]},
+    {
+        "positions": [{"value": "Forward", "label": {"en": ""}}],
+        "languages": ["English"],
+    },
     {
         "positions": [
             {"value": "Forward", "label": {"en": "Forward"}},
             {"value": "Forward", "label": {"en": "Striker"}},
         ],
-        "languages": [],
+        "languages": ["English"],
     },
     {"positions": [], "languages": ["English", ""]},
     {"positions": [], "languages": ["English", "English"]},
     {"positions": []},
-    {"positions": [], "languages": [], "tiers": ["Gold"]},
-    {"positions": [{"value": "Forward"}], "languages": []},
+    {"positions": [], "languages": ["English"], "tiers": ["Gold"]},
+    {"positions": [], "languages": ["Marathi"]},  # no English (#133)
+    {"positions": [{"value": "Forward"}], "languages": ["English"]},
     ["Forward"],
 ]
 
@@ -214,7 +225,7 @@ async def test_should_refuse_profile_options_when_the_document_is_invalid(
     "label",
     [
         {"hi": "फॉरवर्ड"},  # no English
-        {"en": "Forward", "english": "Forward"},  # not a catalogue language
+        {"en": "Forward", "english": "Forward"},  # not a club language
     ],
 )
 async def test_should_refuse_a_position_label_when_english_is_missing_or_a_key_is_unknown(
@@ -229,7 +240,7 @@ async def test_should_refuse_a_position_label_when_english_is_missing_or_a_key_i
     response = await patch_options(
         client,
         admin,
-        {"positions": [{"value": "fwd", "label": label}], "languages": []},
+        {"positions": [{"value": "fwd", "label": label}], "languages": ["English"]},
     )
 
     assert response.status_code == 422, response.text

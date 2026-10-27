@@ -17,7 +17,7 @@ from ..schemas.system_preference import (
     SystemPreferenceUpdate,
 )
 from ..services.club_info import validate_preference_value
-from ..services.profile_options import PROFILE_OPTIONS_KEY
+from ..services.profile_options import PROFILE_OPTIONS_KEY, stored_profile_options
 from ..services.system_preferences import SystemPreferenceService
 from ..utils import get_client_ip
 
@@ -64,8 +64,9 @@ async def update_preference(
     if key == PROFILE_OPTIONS_KEY:
         require_extended_profile_enabled()
     await validate_preference_value(db, key, payload.value)
+    value = payload.value
+    if key == PROFILE_OPTIONS_KEY:
+        value = stored_profile_options(value)  # languages with codes (#133)
     service = SystemPreferenceService(db)
-    row = await service.write(
-        key, payload.value, current_user.username, get_client_ip(request)
-    )
+    row = await service.write(key, value, current_user.username, get_client_ip(request))
     return SystemPreferenceService.to_response(row)
