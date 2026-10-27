@@ -1,5 +1,6 @@
 """Members' forms and the admin's preview, as PDFs (#93, R10, R11, R15–R21)."""
 
+import json
 from datetime import date
 from typing import Any
 
@@ -63,7 +64,7 @@ async def test_should_fill_the_form_from_the_profile_when_member_downloads_it(
     user = await db_session.get(User, "ravi")
     assert user is not None
     user.nationality, user.club_district = "Indian", "City District"
-    user.preferred_position = "Forward"
+    user.preferred_positions = json.dumps(["Forward"])
     await db_session.commit()
 
     response = await own_form(client, member, published["id"])

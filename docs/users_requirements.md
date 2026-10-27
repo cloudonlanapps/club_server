@@ -293,21 +293,23 @@ show them; the server stores and returns them whatever it says, so the
 schema does not vary with configuration.
 
 - **R63** [✅] A user can set their own extended fields, and an
-  admin anyone's: `clubDistrict`, `preferredPosition`, `pastExperience`,
-  `nationality`, `preferredLanguage` and `guardian` (`name`, `relation`,
-  `phone`, each optional). Each is optional; null clears it, and a field
-  left out keeps its value (R36a). They are stored whether or not the
+  admin anyone's: `clubDistrict`, `preferredPositions` and
+  `preferredLanguages` (lists, returned as `[]` when none is chosen),
+  `pastExperience`, `nationality` and `guardian` (`name`, `relation`,
+  `phone`, each optional). Each is optional; null (or an empty list)
+  clears it, and a field left out keeps its value (R36a). They are stored whether or not the
   setting is on.
 - **R63a** [✅] The extended fields and the membership date are
   part of the private profile (R48, R48a); the basic profile (R47) does
   not carry them.
 - **R63b** [X] A coach or member editing another user's extended
   fields → 403 (R34a), and nothing is changed.
-- **R64** [X] A preferred position must be the `value` of one of
-  the club's positions, and a preferred language one of its languages
-  (R67) → 422 `INVALID_PROFILE_OPTION` naming the `field`, and nothing is
-  changed. A value whose option is removed later stays as it is, is
-  still returned, and may be sent again unchanged.
+- **R64** [X] Each preferred position must be the `value` of one of
+  the club's positions, and each preferred language one of its languages
+  (R69) → 422 `INVALID_PROFILE_OPTION` naming the `field` and the
+  `value`, and nothing is changed; a value listed twice → 422. A value
+  whose option is removed later stays as it is, is still returned, and
+  may be sent again unchanged.
 - **R65** [X] The guardian's phone is checked as the user's own
   phone is (at most 20 characters), and the guardian takes no field but
   `name`, `relation` and `phone` → 422.

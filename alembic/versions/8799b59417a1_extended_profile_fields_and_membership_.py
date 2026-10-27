@@ -5,9 +5,10 @@ Revises: 4e548cba872d
 Create Date: 2026-10-26 22:40:45.419020
 
 Adds the optional extended profile columns to ``users`` (#92): club /
-district, preferred position, past experience, nationality, preferred
-language, guardian (JSON text, as the address is) and the membership date
-(a UTC-midnight date, as the date of birth is).
+district, preferred positions and preferred languages (JSON lists in text,
+#106), past experience, nationality, guardian (JSON text, as the address
+is) and the membership date (a UTC-midnight date, as the date of birth
+is).
 
 The membership date is then filled for each user approved through a
 review request, with the club's calendar day of the earliest approving
@@ -34,10 +35,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 TEXT_COLUMNS = (
     "club_district",
-    "preferred_position",
+    "preferred_positions",
     "past_experience",
     "nationality",
-    "preferred_language",
+    "preferred_languages",
     "guardian",
 )
 

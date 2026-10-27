@@ -28,6 +28,7 @@ from .helpers import (
 )
 
 EXTENDED_KEYS = set(EXTENDED) | {"membershipDateUtc"}
+LIST_KEYS = {"preferredPositions", "preferredLanguages"}
 
 
 @pytest.mark.requirement("users:R63")
@@ -108,7 +109,7 @@ async def test_should_clear_one_extended_field_when_null_is_sent(
     assert own["guardian"] is None
     assert own["nationality"] is None
     assert own["clubDistrict"] == EXTENDED["clubDistrict"]
-    assert own["preferredPosition"] == EXTENDED["preferredPosition"]
+    assert own["preferredPositions"] == EXTENDED["preferredPositions"]
 
 
 @pytest.mark.requirement("users:R63")
@@ -122,7 +123,10 @@ async def test_should_return_blank_extended_fields_when_never_set(
     own = await private(client, member, "mira")
 
     for key in EXTENDED_KEYS:
-        assert own[key] is None
+        if key in LIST_KEYS:
+            assert own[key] == [], key  # lists read back empty (#106)
+        else:
+            assert own[key] is None, key
 
 
 @pytest.mark.requirement("users:R63a")
@@ -189,10 +193,13 @@ async def test_should_refuse_extended_edit_when_caller_is_anonymous(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("field", "value"),
-    [("preferredPosition", "Striker"), ("preferredLanguage", "Klingon")],
+    [
+        ("preferredPositions", ["Forward", "Striker"]),
+        ("preferredLanguages", ["Klingon"]),
+    ],
 )
 async def test_should_refuse_a_choice_when_it_is_not_a_club_option(
-    client: AsyncClient, db_session: AsyncSession, field: str, value: str
+    client: AsyncClient, db_session: AsyncSession, field: str, value: list[str]
 ):
     admin = await create_admin_user(db_session)
     member = await create_member_user(db_session, "mira")
@@ -207,8 +214,9 @@ async def test_should_refuse_a_choice_when_it_is_not_a_club_option(
     detail = response.json()["detail"]
     assert detail["code"] == "INVALID_PROFILE_OPTION"
     assert detail["field"] == field
+    assert detail["value"] == value[-1]
     own = await private(client, member, "mira")
-    assert own[field] is None
+    assert own[field] == []
     assert own["clubDistrict"] is None
 
 
@@ -222,12 +230,12 @@ async def test_should_refuse_a_position_when_the_club_has_no_options(
     await db_session.commit()
 
     response = await patch_user(
-        client, member, "mira", {"preferredPosition": "Forward"}
+        client, member, "mira", {"preferredPositions": ["Forward"]}
     )
 
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "INVALID_PROFILE_OPTION"
-    assert (await private(client, member, "mira"))["preferredPosition"] is None
+    assert (await private(client, member, "mira"))["preferredPositions"] == []
 
 
 @pytest.mark.requirement("users:R64")
@@ -242,7 +250,10 @@ async def test_should_keep_a_choice_when_its_option_is_removed_later(
         client,
         member,
         "mira",
-        {"preferredPosition": "Goalie", "preferredLanguage": "Marathi"},
+        {
+            "preferredPositions": ["Forward", "Goalie"],
+            "preferredLanguages": ["Marathi"],
+        },
     )
     assert chosen.status_code == 200, chosen.text
     await write_options(
@@ -257,18 +268,88 @@ async def test_should_keep_a_choice_when_its_option_is_removed_later(
         member,
         "mira",
         {
-            "preferredPosition": "Goalie",
-            "preferredLanguage": "Marathi",
+            "preferredPositions": ["Forward", "Goalie"],
+            "preferredLanguages": ["Marathi"],
             "clubDistrict": "Pune",
         },
     )
 
-    assert kept["preferredPosition"] == "Goalie"
-    assert kept["preferredLanguage"] == "Marathi"
+    assert kept["preferredPositions"] == ["Forward", "Goalie"]
+    assert kept["preferredLanguages"] == ["Marathi"]
     assert resent.status_code == 200, resent.text
     after = await private(client, member, "mira")
-    assert after["preferredPosition"] == "Goalie"
+    assert after["preferredPositions"] == ["Forward", "Goalie"]
     assert after["clubDistrict"] == "Pune"
+
+
+@pytest.mark.requirement("users:R63")
+@pytest.mark.asyncio
+async def test_should_store_several_positions_and_languages_when_member_chooses_them(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    member = await create_member_user(db_session, "mira")
+    await write_options(client, admin)
+
+    response = await patch_user(
+        client,
+        member,
+        "mira",
+        {
+            "preferredPositions": ["Goalie", "Forward"],
+            "preferredLanguages": ["Marathi", "English"],
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    own = await private(client, member, "mira")
+    assert own["preferredPositions"] == ["Goalie", "Forward"]
+    assert own["preferredLanguages"] == ["Marathi", "English"]
+    staff = await private(client, admin, "mira")
+    assert staff["preferredPositions"] == ["Goalie", "Forward"]
+
+
+@pytest.mark.requirement("users:R63")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cleared", [None, []])
+async def test_should_clear_the_choices_when_null_or_an_empty_list_is_sent(
+    client: AsyncClient, db_session: AsyncSession, cleared: list[str] | None
+):
+    admin = await create_admin_user(db_session)
+    member = await create_member_user(db_session, "mira")
+    await write_options(client, admin)
+    chosen = await patch_user(
+        client, member, "mira", {"preferredPositions": ["Forward", "Goalie"]}
+    )
+    assert chosen.status_code == 200, chosen.text
+
+    response = await patch_user(client, member, "mira", {"preferredPositions": cleared})
+
+    assert response.status_code == 200, response.text
+    assert (await private(client, member, "mira"))["preferredPositions"] == []
+
+
+@pytest.mark.requirement("users:R64")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("preferredPositions", ["Forward", "Forward"]),
+        ("preferredLanguages", ["Marathi", "English", "Marathi"]),
+    ],
+)
+async def test_should_refuse_a_choice_list_when_a_value_repeats(
+    client: AsyncClient, db_session: AsyncSession, field: str, value: list[str]
+):
+    admin = await create_admin_user(db_session)
+    member = await create_member_user(db_session, "mira")
+    await write_options(client, admin)
+    await db_session.commit()
+
+    response = await patch_user(client, member, "mira", {field: value})
+
+    assert response.status_code == 422, response.text
+    assert (await private(client, member, "mira"))[field] == []
 
 
 @pytest.mark.requirement("users:R65")

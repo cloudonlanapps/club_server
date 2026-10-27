@@ -12,7 +12,7 @@ from ..club_calendar import day_to_date
 from ..db.models.application import Application
 from ..db.models.user import User
 from ..schemas.common import Address
-from ..schemas.extended_profile import Guardian, ProfileOptions
+from ..schemas.extended_profile import Guardian, ProfileOptions, decode_choices
 from .application_catalogue import JsonDict
 
 DATE_FACT = "date"
@@ -93,10 +93,10 @@ def member_document(user: User) -> JsonDict:
         "phone": user.phone,
         "email": user.email,
         "nationality": user.nationality,
-        "preferred_language": user.preferred_language,
+        "preferred_languages": decode_choices(user.preferred_languages),
         "membership_date": _iso(user.membership_date),
         "club_district": user.club_district,
-        "preferred_position": user.preferred_position,
+        "preferred_positions": decode_choices(user.preferred_positions),
         "past_experience": user.past_experience,
         "guardian": _guardian(user),
     }

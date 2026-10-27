@@ -8,7 +8,13 @@ neither of those schemas restates them.
 import json
 from typing import Annotated, Any, ClassVar
 
-from pydantic import ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    AfterValidator,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from ..db.models.user import User
 from .common import CamelCaseModel, to_camel
@@ -16,6 +22,31 @@ from .common import CamelCaseModel, to_camel
 NonEmptyText = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
 ]
+MAX_CHOICES = 50
+
+
+def _distinct_choices(values: list[str]) -> list[str]:
+    if len(set(values)) != len(values):
+        raise ValueError("a value is listed twice")
+    return values
+
+
+# A member's preferred positions or languages: distinct values (#106).
+ChoiceList = Annotated[
+    list[Annotated[str, StringConstraints(min_length=1, max_length=100)]],
+    Field(max_length=MAX_CHOICES),
+    AfterValidator(_distinct_choices),
+]
+
+
+def encode_choices(values: list[str] | None) -> str | None:
+    """A choice list as stored: JSON text, NULL for none."""
+    return json.dumps(values) if values else None
+
+
+def decode_choices(raw: str | None) -> list[str]:
+    """A stored choice list; empty for none."""
+    return [str(v) for v in json.loads(raw)] if raw else []
 
 
 class Guardian(CamelCaseModel):
@@ -80,13 +111,16 @@ class ProfileOptions(CamelCaseModel):
 # Schema field → ``users`` column, for each extended field.
 EXTENDED_COLUMNS: dict[str, str] = {
     "club_district": "club_district",
-    "preferred_position": "preferred_position",
+    "preferred_positions": "preferred_positions",
     "past_experience": "past_experience",
     "nationality": "nationality",
-    "preferred_language": "preferred_language",
+    "preferred_languages": "preferred_languages",
     "guardian": "guardian",
     "membership_date_utc": "membership_date",
 }
+
+# The extended fields that hold a list of the club's options (#106).
+CHOICE_COLUMNS: tuple[str, ...] = ("preferred_positions", "preferred_languages")
 
 # The extended fields a user sets on their own profile; the membership date
 # is an admin's alone (users R67).
@@ -99,25 +133,29 @@ class ExtendedProfileUpdate(CamelCaseModel):
     """The extended fields of a profile edit; each optional, null clears it."""
 
     club_district: str | None = Field(None, max_length=200)
-    preferred_position: str | None = Field(None, max_length=100)
+    preferred_positions: ChoiceList | None = None
     past_experience: str | None = Field(None, max_length=4000)
     nationality: str | None = Field(None, max_length=100)
-    preferred_language: str | None = Field(None, max_length=100)
+    preferred_languages: ChoiceList | None = None
     guardian: Guardian | None = None
     membership_date_utc: int | None = None
 
     def extended_changes(self) -> dict[str, object]:
         """``users`` column → new value, for each extended field sent.
 
-        The guardian is stored as JSON text, as the address is.
+        The guardian is stored as JSON text, as the address is; a choice
+        list as a JSON list, NULL when empty.
         """
         changes: dict[str, object] = {}
         for field, column in EXTENDED_COLUMNS.items():
             if field not in self.model_fields_set:
                 continue
-            value = getattr(self, field)
+            value: Any = getattr(self, field)
             if isinstance(value, Guardian):
                 value = value.model_dump_json()
+            elif column in CHOICE_COLUMNS:
+                choices: list[str] | None = value
+                value = encode_choices(choices)
             changes[column] = value
         return changes
 
@@ -130,10 +168,10 @@ class ExtendedProfileFields(CamelCaseModel):
     )
 
     club_district: str | None = None
-    preferred_position: str | None = None
+    preferred_positions: list[str] = Field(default_factory=list)
     past_experience: str | None = None
     nationality: str | None = None
-    preferred_language: str | None = None
+    preferred_languages: list[str] = Field(default_factory=list)
     guardian: Guardian | None = None
     membership_date_utc: int | None = None
 
@@ -142,10 +180,10 @@ class ExtendedProfileFields(CamelCaseModel):
         """The extended fields of ``user``, by schema field name."""
         return {
             "club_district": user.club_district,
-            "preferred_position": user.preferred_position,
+            "preferred_positions": decode_choices(user.preferred_positions),
             "past_experience": user.past_experience,
             "nationality": user.nationality,
-            "preferred_language": user.preferred_language,
+            "preferred_languages": decode_choices(user.preferred_languages),
             "guardian": Guardian.model_validate(json.loads(user.guardian))
             if user.guardian
             else None,

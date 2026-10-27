@@ -113,10 +113,10 @@ PREVIEW_MEMBER: JsonDict = {
     "phone": "+91 98765 43210",
     "email": "arjun.deshpande@example.com",
     "nationality": "Indian",
-    "preferred_language": "Marathi",
+    "preferred_languages": ["Marathi"],
     "membership_date": None,  # set per preview: a year before the preview day
     "club_district": "Pune",
-    "preferred_position": None,  # set per preview: the club's first position
+    "preferred_positions": [],  # set per preview: the club's first position
     "past_experience": "Inline skating for three years at the district level; "
     "played roller hockey in two state tournaments; one season of ice skating "
     "lessons at a local rink.",
@@ -167,7 +167,7 @@ def preview_member(template: JsonDict, options: JsonDict, today: date) -> JsonDi
         member["first_name"], member["email"] = "Ananya", "ananya.deshpande@example.com"
     positions: list[JsonDict] = options.get("positions") or []
     if positions:
-        member["preferred_position"] = positions[0]["value"]
+        member["preferred_positions"] = [positions[0]["value"]]
     member["membership_date"] = date(
         today.year - 1, today.month, min(today.day, LAST_SAFE_DAY)
     ).isoformat()
