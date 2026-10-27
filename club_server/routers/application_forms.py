@@ -8,7 +8,7 @@ downloads any member's. Every PDF is drawn per request, never stored.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
@@ -22,6 +22,7 @@ from ..schemas.application import ApplicationResponse
 from ..services.application import ApplicationService, application_response
 from ..services.application_downloads import ApplicationDownloadService
 from ..services.application_rules import PREVIEW_MEMBER
+from ..utils import get_client_ip
 from . import application_errors as err
 
 PDF_MEDIA_TYPE = "application/pdf"
@@ -58,10 +59,12 @@ def pdf_response(content: bytes, application_id: int, username: str) -> Response
 
 
 async def _move(
-    db: AsyncSession, application_id: int, action: str
+    db: AsyncSession, application_id: int, action: str, actor: User, request: Request
 ) -> ApplicationResponse:
     try:
-        application = await ApplicationService(db).move(application_id, action)
+        application = await ApplicationService(db).move(
+            application_id, action, actor.username, get_client_ip(request)
+        )
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
     return application_response(application)
@@ -69,42 +72,46 @@ async def _move(
 
 @router.post("/{application_id}/save", response_model=ApplicationResponse)
 async def save_application(
+    request: Request,
     application_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-    _current_user: Annotated[User, Depends(require_admin())],
+    current_user: Annotated[User, Depends(require_admin())],
 ) -> ApplicationResponse:
     """Draft → saved: checked complete, the layout decided and stored (R13)."""
-    return await _move(db, application_id, "save")
+    return await _move(db, application_id, "save", current_user, request)
 
 
 @router.post("/{application_id}/publish", response_model=ApplicationResponse)
 async def publish_application(
+    request: Request,
     application_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-    _current_user: Annotated[User, Depends(require_admin())],
+    current_user: Annotated[User, Depends(require_admin())],
 ) -> ApplicationResponse:
-    """Saved → published: members see it (R12)."""
-    return await _move(db, application_id, "publish")
+    """Saved → published: members see it, under a new publish ID (R12, R22)."""
+    return await _move(db, application_id, "publish", current_user, request)
 
 
 @router.post("/{application_id}/unpublish", response_model=ApplicationResponse)
 async def unpublish_application(
+    request: Request,
     application_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-    _current_user: Annotated[User, Depends(require_admin())],
+    current_user: Annotated[User, Depends(require_admin())],
 ) -> ApplicationResponse:
     """Published → saved: members no longer see it (R12)."""
-    return await _move(db, application_id, "unpublish")
+    return await _move(db, application_id, "unpublish", current_user, request)
 
 
 @router.post("/{application_id}/revert", response_model=ApplicationResponse)
 async def revert_application(
+    request: Request,
     application_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-    _current_user: Annotated[User, Depends(require_admin())],
+    current_user: Annotated[User, Depends(require_admin())],
 ) -> ApplicationResponse:
     """Saved → draft: editable again; the stored layout is dropped (R12)."""
-    return await _move(db, application_id, "revert")
+    return await _move(db, application_id, "revert", current_user, request)
 
 
 @router.post(

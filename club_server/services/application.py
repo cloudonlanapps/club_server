@@ -6,6 +6,7 @@ unpublished or reverted to change it. Only a draft is edited; only a draft
 or a saved template is deleted (soft).
 """
 
+import uuid
 from typing import Any
 
 from sqlalchemy import ColumnElement, func, select
@@ -31,6 +32,8 @@ from ..schemas.common import PaginatedResponse
 from ..utils import now_utc_ms
 from .application_document import options_document, template_document
 from .application_form import decide_layout
+from .audit import AuditService
+from .audit_actions import AuditAction
 from .profile_options import ProfileOptionsService
 
 DRAFT, SAVED, PUBLISHED = "draft", "saved", "published"
@@ -38,9 +41,16 @@ DRAFT, SAVED, PUBLISHED = "draft", "saved", "published"
 # The moves a template can make: action → (from, to).
 TRANSITIONS: dict[str, tuple[str, str]] = {
     "save": (DRAFT, SAVED),  # checked complete, layout decided and stored
-    "publish": (SAVED, PUBLISHED),  # members see it
+    "publish": (SAVED, PUBLISHED),  # members see it; a new publish ID
     "unpublish": (PUBLISHED, SAVED),
     "revert": (SAVED, DRAFT),  # editable again; the stored layout is dropped
+}
+# The audit action of each move (R24).
+MOVE_ACTIONS: dict[str, AuditAction] = {
+    "save": AuditAction.SAVE_APPLICATION,
+    "publish": AuditAction.PUBLISH_APPLICATION,
+    "unpublish": AuditAction.UNPUBLISH_APPLICATION,
+    "revert": AuditAction.REVERT_APPLICATION,
 }
 DELETABLE = frozenset({DRAFT, SAVED})
 CONTENT_FIELDS = tuple(ApplicationContent.model_fields)
@@ -96,6 +106,7 @@ def application_response(
             "status": status,
             "layout": layout,
             "fitting_categories": fitting_categories,
+            "publish_id": application.publish_id if status == PUBLISHED else None,
             "created_by": application.created_by,
             "created_at_utc": application.created_at,
             "updated_at_utc": application.updated_at,
@@ -210,12 +221,19 @@ class ApplicationService:
         await self.db.refresh(copy)
         return copy
 
-    async def move(self, application_id: int, action: str) -> Application:
-        """One of the four state moves (R12–R14)."""
+    async def move(
+        self,
+        application_id: int,
+        action: str,
+        actor_username: str,
+        ip_address: str | None = None,
+    ) -> Application:
+        """One of the four state moves, audited (R12–R14, R22, R24)."""
         application = await self.get_or_raise(application_id)
         source, target = TRANSITIONS[action]
         if application.status != source:
             raise ApplicationTransitionException(application.status, action)
+        details: dict[str, str | int | None] = {"applicationId": application.id}
         if action == "save":
             options = options_document(await ProfileOptionsService(self.db).read())
             application.layout = decide_layout(
@@ -223,8 +241,21 @@ class ApplicationService:
             )
         if action == "revert":
             application.layout = None
+        if action == "publish":
+            details["previousPublishId"] = application.publish_id
+            application.publish_id = str(uuid.uuid4())
+        if action in ("publish", "unpublish"):
+            details["publishId"] = application.publish_id
         application.status = target
         application.updated_at = now_utc_ms()
         await self.db.flush()
+        await AuditService(self.db).log(
+            actor_username=actor_username,
+            action=MOVE_ACTIONS[action],
+            resource_type="application",
+            resource_id=str(application.id),
+            details=details,
+            ip_address=ip_address,
+        )
         await self.db.refresh(application)
         return application

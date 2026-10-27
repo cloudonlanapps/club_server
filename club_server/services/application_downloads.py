@@ -18,11 +18,8 @@ from ..db.models.media_links import UserMediaLink
 from ..db.models.user import User
 from ..dependencies import is_admin
 from ..exceptions import (
-    ApplicationDoesNotFitException,
-    ApplicationIncompleteException,
     ApplicationNotFoundException,
     ApplicationNotPublishedException,
-    ApplicationReferenceException,
     IdentityDocumentRequiredException,
 )
 from ..schemas.application import ApplicationResponse
@@ -30,7 +27,7 @@ from ..schemas.common import PaginatedResponse
 from .application import PUBLISHED, ApplicationService
 from .application_catalogue import JsonDict
 from .application_document import member_document, options_document, template_document
-from .application_form import decide_layout, draw, is_current
+from .application_form import draw, frozen_options
 from .application_rules import fitting_categories, preview_member
 from .evaluation_pdf_logo import club_logo
 from .profile_options import ProfileOptionsService
@@ -113,9 +110,9 @@ class ApplicationDownloadService:
         """The demo member's form, in any state, watermarked (R19)."""
         application = await self._applications.get_or_raise(application_id)
         template = template_document(application)
-        options = await self._options()
+        stored = application.layout
+        options = frozen_options(stored, await self._options())
         today = day_to_date(club_today())
-        stored = await self._current_layout(application, options)
         return draw(
             template,
             preview_member(template, options, today),
@@ -132,36 +129,18 @@ class ApplicationDownloadService:
     async def _form(
         self, application: Application, member: User, category: int | None
     ) -> bytes:
+        """A published template's form, drawn only from its stored layout and
+        frozen options: never measured again, so it never fails for the
+        template's sake (R14, R20); ``category`` is the member's choice (R11a)."""
         if application.status != PUBLISHED:
             raise ApplicationNotPublishedException(application.id)
-        options = await self._options()
+        stored = application.layout
         return draw(
             template_document(application),
             {**member_document(member), "chosen_category": category},
-            options,
+            frozen_options(stored, await self._options()),
             await club_logo(self.db),
             day_to_date(club_today()),
-            await self._current_layout(application, options),
+            stored,
+            publish_id=application.publish_id,
         )
-
-    async def _current_layout(
-        self, application: Application, options: JsonDict
-    ) -> JsonDict | None:
-        """The stored layout, measured again when the catalogue, the clause
-        library or the fonts changed since (R14). A draft has none."""
-        stored = application.layout
-        if stored is None or is_current(stored):
-            return stored
-        try:
-            fresh = decide_layout(
-                template_document(application), options, day_to_date(club_today())
-            )
-        except (
-            ApplicationDoesNotFitException,
-            ApplicationIncompleteException,
-            ApplicationReferenceException,
-        ):
-            return None  # measured for the member when drawn
-        application.layout = fresh
-        await self.db.flush()
-        return fresh

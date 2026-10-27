@@ -166,6 +166,30 @@ def test_should_choose_the_first_layout_that_fits_when_measured(
     assert spread["without_guardian"] > spread["with_guardian"] >= 0
 
 
+@pytest.mark.requirement("applications:R14")
+@pytest.mark.parametrize(
+    ("selections", "layout", "with_guardian", "without_guardian"),
+    [
+        (0, "one page", 8.8, 13.5),
+        (6, "one page, tighter spacing", 0.9, 2.9),
+        (8, "signing part on page 2", 17.7, 24.6),
+    ],
+)
+def test_should_measure_the_fixtures_as_pinned_when_the_fonts_are_unchanged(
+    selections: int, layout: str, with_guardian: float, without_guardian: float
+):
+    # A saved or published form is never measured again, and the fonts ship
+    # with the server: a font change that measures differently fails here
+    # before it can reach a stored layout.
+    decided = check(document(selections), labels(), OPTIONS, TODAY)
+
+    assert decided["name"] == layout
+    assert decided["spread"]["with_guardian"] == pytest.approx(with_guardian, abs=0.06)
+    assert decided["spread"]["without_guardian"] == pytest.approx(
+        without_guardian, abs=0.06
+    )
+
+
 @pytest.mark.requirement("applications:R17")
 def test_should_refuse_a_template_when_details_alone_do_not_fit_page_one():
     with pytest.raises(ApplicationDoesNotFitException) as caught:

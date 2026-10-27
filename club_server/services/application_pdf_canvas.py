@@ -29,6 +29,8 @@ from .application_pdf_layout import (
     Colour,
 )
 
+SIDE_SIZE = 6
+SIDE_ANGLE = 90  # read from the bottom up, in the left margin
 WATERMARK_SIZE = 90
 WATERMARK_ANGLE = 52
 WATERMARK_DROP = 30
@@ -42,12 +44,20 @@ class ApplicationPdfCanvas(FPDF):
 
     footer_text: str
     watermark: str | None
+    side_text: str | None
 
-    def __init__(self, footer_text: str, watermark: str | None = None):
-        """A document whose pages carry ``footer_text`` and, if given, ``watermark``."""
+    def __init__(
+        self,
+        footer_text: str,
+        watermark: str | None = None,
+        side_text: str | None = None,
+    ):
+        """A document whose pages carry ``footer_text`` and, if given,
+        ``watermark`` and ``side_text`` (small and grey in the left margin)."""
         super().__init__(unit="pt", format="A4")
         self.footer_text = footer_text
         self.watermark = watermark
+        self.side_text = side_text
         self.set_margins(MARGIN, MARGIN, MARGIN)
         self.set_auto_page_break(False)
         for family, style, file in FONT_FILES:
@@ -68,7 +78,13 @@ class ApplicationPdfCanvas(FPDF):
                 )
 
     def footer(self):
-        """The footer line and the page number."""
+        """The side-margin text, the footer line and the page number."""
+        if self.side_text:
+            self.font(SIDE_SIZE, colour=MUTED)
+            x = MARGIN / 2 + SIDE_SIZE / 3
+            y = PAGE_H / 2 + self.get_string_width(self.side_text) / 2
+            with self.rotation(SIDE_ANGLE, x, y):
+                self.text(x, y, self.side_text)
         self.set_y(PAGE_H - MARGIN - FOOTER_RISE)
         self.font(FOOTER_SIZE, colour=MUTED)
         _ = self.cell(CONTENT_W / 2, FOOTER_HEIGHT, self.footer_text, align="L")

@@ -245,13 +245,14 @@ class ApplicationLayout(CamelCaseModel):
 
 
 class ApplicationResponse(ApplicationContent):
-    """A template as returned."""
+    """A template as returned; ``publish_id`` only while it is published."""
 
     id: int
     status: ApplicationStatus
     layout: ApplicationLayout | None = None
     # A member's read: the indexes of the age categories they fit (R11a).
     fitting_categories: list[int] | None = None
+    publish_id: str | None = None
     created_by: str | None = None
     created_at_utc: int
     updated_at_utc: int
