@@ -4,6 +4,7 @@ These drive the ported PDF code directly with the form's own documents
 (ISO dates, snake-case keys), the way the service hands them over.
 """
 
+import re
 from datetime import date
 from typing import Any
 
@@ -17,7 +18,15 @@ from club_server.services.application_catalogue import labels, library
 from club_server.services.application_form import draw
 from club_server.services.application_pdf_builder import ApplicationFormBuilder
 from club_server.services.application_pdf_fit import WORST_CASE_MEMBER, check
-from club_server.services.application_pdf_layout import FIT_SIZES, VALUE
+from club_server.services.application_pdf_canvas import ApplicationPdfCanvas
+from club_server.services.application_pdf_layout import (
+    CONTENT_W,
+    DEVA,
+    FIT_SIZES,
+    MARGIN,
+    PRINT,
+    VALUE,
+)
 from club_server.services.application_rules import (
     is_eligible,
     is_minor,
@@ -238,3 +247,45 @@ def test_should_watermark_the_preview_when_drawn():
     assert "PREVIEW — not for submission" in text
     assert "Arjun Vikram Deshpande" in text
     assert "demo.player" in text
+
+
+# Devanagari shaping (#104) ------------------------------------------------
+#
+# Lato has no Devanagari glyphs, so Noto Sans Devanagari takes over for a
+# Marathi or Hindi word as a whole. A font switch inside a word would break
+# a conjunct into separate glyphs. Extracted text is no check (extraction
+# reorders vowel signs), so the content stream's font selections are read.
+
+FONT_SELECTION = re.compile(rb"/F(\d+) [\d.]+ Tf")
+
+
+def font_runs(text: str) -> list[str]:
+    """The fonts ``text`` is drawn in, in order, one entry per switch."""
+    canvas = ApplicationPdfCanvas("")
+    canvas.set_compression(False)
+    canvas.add_page()
+    _ = canvas.text_at(MARGIN, MARGIN, CONTENT_W, text, 10)
+    by_index = {font.i: key for key, font in canvas.fonts.items()}
+    stream = bytes(canvas.output())
+    block = stream[stream.index(b"BT") : stream.index(b"ET")]
+    runs: list[str] = []
+    for match in FONT_SELECTION.finditer(block):
+        key = by_index[int(match.group(1))]
+        if not runs or runs[-1] != key:
+            runs.append(key)
+    return runs
+
+
+def test_should_switch_font_only_between_words_when_marathi_mixes_with_latin():
+    runs = font_runs("क्षेत्र प्रशिक्षण Forward श्री दुसऱ्या")
+
+    latin, deva = PRINT.lower(), DEVA.lower()
+    assert runs == [latin, deva, latin, deva, latin, deva, latin, deva]
+
+
+def test_should_detect_a_switch_inside_a_word_when_it_holds_a_joiner():
+    # Lato carries ZWJ, so this word switches font mid-word (it renders the
+    # same either way); it shows the check above can see a split.
+    runs = font_runs("कार्‍यालय")
+
+    assert len(runs) > len(font_runs("कार्यालय"))
