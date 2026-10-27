@@ -238,6 +238,37 @@ def test_should_give_the_preview_member_a_birthday_inside_the_first_category():
 
 
 @pytest.mark.requirement("applications:R19")
+@pytest.mark.parametrize(
+    ("category", "born"),
+    [
+        ({"born_on_or_after": "2010-09-01"}, "2010-09-01"),
+        (
+            {"born_on_or_after": "2010-09-01", "born_on_or_before": "2011-12-31"},
+            "2010-09-01",
+        ),
+        (
+            {"born_on_or_after": "2010-01-01", "born_on_or_before": "2010-03-31"},
+            "2010-03-31",
+        ),
+        (
+            {"born_on_or_after": "2010-01-01", "born_on_or_before": "2011-12-31"},
+            "2010-06-15",
+        ),
+    ],
+    ids=["raised-to-after", "raised-inside-range", "lowered-to-before", "mid-june"],
+)
+def test_should_place_the_preview_birthday_inside_the_first_category_band(
+    category: dict[str, Any], born: str
+):
+    template = {"age_categories": [{"label": {"en": "Band"}, **category}]}
+
+    member = preview_member(template, OPTIONS, TODAY)
+
+    assert member["date_of_birth"] == born
+    assert is_eligible(template["age_categories"], member)
+
+
+@pytest.mark.requirement("applications:R19")
 def test_should_watermark_the_preview_when_drawn():
     template = document()
     member = preview_member(template, OPTIONS, TODAY)
