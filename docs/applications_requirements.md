@@ -237,3 +237,14 @@ signed-in user whose account is `registered`, `pending` or `active`
   thread: the member's form, an admin's member form and the preview, and
   save's measuring and publish's drawing. Other requests are answered while
   a PDF is made (#128).
+- **R27** [✅] An admin downloads a template's blank form, for filling in
+  by hand: `GET /v1/applications/{id}/blank-form`, an `application/pdf`
+  named `application-<id>-blank.pdf`, with every label, box and tick box,
+  no member's value and no watermark. The footer's member ID and day, the
+  signature date and the guardian block are blank; the guardian block's
+  note stays (R21). A published template's blank form is its stored
+  drawing (R25), with its publish mark (R23); a saved one's is drawn on
+  request from its stored layout, with no publish mark, and is not stored.
+  A draft has no layout → 422 `APPLICATION_NOT_SAVED`; an unknown template
+  → 404 `APPLICATION_NOT_FOUND`. A coach or member → 403, no session → 401.
+  The preview stays as R19 says (#129).
