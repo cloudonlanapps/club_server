@@ -287,6 +287,164 @@ async def test_should_give_the_form_to_anyone_when_template_has_no_categories(
     _ = assert_pdf(response, published["id"], "ravi")
 
 
+# R11a: a member who fits several categories chooses one -------------------
+
+
+def overlapping_body() -> dict[str, Any]:
+    """The template with two overlapping categories: U12 inside U14."""
+    body = template_body()
+    body["ageCategories"] = [
+        {
+            "label": {"en": "U12", "mr": "U12"},
+            "bornOnOrAfterUtc": day(2013, 1, 1),
+            "bornOnOrBeforeUtc": day(2014, 12, 31),
+        },
+        {
+            "label": {"en": "U14", "mr": "U14"},
+            "bornOnOrAfterUtc": day(2011, 1, 1),
+            "bornOnOrBeforeUtc": day(2014, 12, 31),
+        },
+    ]
+    return body
+
+
+async def read_as(client: AsyncClient, token: str, application_id: int):
+    response = await client.get(f"{APPLICATIONS}/{application_id}", headers=auth(token))
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+@pytest.mark.requirement("applications:R11a")
+@pytest.mark.asyncio
+async def test_should_list_every_fitting_category_when_member_reads_the_template(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin, overlapping_body())
+    both = await create_applicant(db_session, "ravi", born=date(2014, 5, 1))
+    older = await create_applicant(db_session, "omar", born=date(2012, 3, 1))
+    young = await create_applicant(db_session, "yash", born=date(2016, 1, 1))
+    await db_session.commit()
+
+    assert (await read_as(client, both, published["id"]))["fittingCategories"] == [
+        0,
+        1,
+    ]
+    assert (await read_as(client, older, published["id"]))["fittingCategories"] == [1]
+    assert (await read_as(client, young, published["id"]))["fittingCategories"] == []
+    assert (await read_as(client, admin, published["id"]))["fittingCategories"] is None
+
+
+@pytest.mark.requirement("applications:R11a")
+@pytest.mark.asyncio
+async def test_should_ask_for_a_category_when_member_fits_several_and_names_none(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin, overlapping_body())
+    member = await create_applicant(db_session, "ravi", born=date(2014, 5, 1))
+    await db_session.commit()
+
+    response = await own_form(client, member, published["id"])
+
+    assert response.status_code == 422, response.text
+    detail = response.json()["detail"]
+    assert detail["code"] == "APPLICATION_CATEGORY_REQUIRED"
+    assert detail["details"] == {"categories": [0, 1]}
+
+
+@pytest.mark.requirement("applications:R11a")
+@pytest.mark.asyncio
+async def test_should_give_the_form_when_member_chooses_a_fitting_category(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin, overlapping_body())
+    member = await create_applicant(db_session, "ravi", born=date(2014, 5, 1))
+    await db_session.commit()
+
+    response = await client.get(
+        f"{APPLICATIONS}/{published['id']}/form?category=1", headers=auth(member)
+    )
+
+    assert "U14" in assert_pdf(response, published["id"], "ravi")
+
+
+@pytest.mark.requirement("applications:R11a")
+@pytest.mark.asyncio
+async def test_should_give_the_form_without_a_choice_when_member_fits_one(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin, overlapping_body())
+    member = await create_applicant(db_session, "omar", born=date(2012, 3, 1))
+    await db_session.commit()
+
+    response = await own_form(client, member, published["id"])
+
+    assert "U14" in assert_pdf(response, published["id"], "omar")
+
+
+@pytest.mark.requirement("applications:R11a")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("category", [0, 5])
+async def test_should_refuse_the_form_when_chosen_category_does_not_fit(
+    client: AsyncClient, db_session: AsyncSession, category: int
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin, overlapping_body())
+    member = await create_applicant(db_session, "omar", born=date(2012, 3, 1))
+    await db_session.commit()
+
+    response = await client.get(
+        f"{APPLICATIONS}/{published['id']}/form?category={category}",
+        headers=auth(member),
+    )
+
+    assert response.status_code == 422, response.text
+    detail = response.json()["detail"]
+    assert detail["code"] == "APPLICATION_CATEGORY_NOT_FITTING"
+    assert detail["details"] == {"categories": [1]}
+
+
+@pytest.mark.requirement("applications:R11a")
+@pytest.mark.asyncio
+async def test_should_refuse_the_form_when_member_fits_no_overlapping_category(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin, overlapping_body())
+    member = await create_applicant(db_session, "yash", born=date(2016, 1, 1))
+    await db_session.commit()
+
+    response = await client.get(
+        f"{APPLICATIONS}/{published['id']}/form?category=0", headers=auth(member)
+    )
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "APPLICATION_NOT_ELIGIBLE"
+
+
+@pytest.mark.requirement("applications:R20")
+@pytest.mark.asyncio
+async def test_should_take_the_category_when_admin_downloads_a_members_form(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin, overlapping_body())
+    _ = await create_applicant(db_session, "ravi", born=date(2014, 5, 1))
+    await db_session.commit()
+
+    unchosen = await member_form(client, admin, published["id"], "ravi")
+    chosen = await client.get(
+        f"{APPLICATIONS}/{published['id']}/form/ravi?category=0", headers=auth(admin)
+    )
+
+    assert unchosen.status_code == 422, unchosen.text
+    assert unchosen.json()["detail"]["code"] == "APPLICATION_CATEGORY_REQUIRED"
+    assert "U12" in assert_pdf(chosen, published["id"], "ravi")
+
+
 # R20 ----------------------------------------------------------------------
 
 

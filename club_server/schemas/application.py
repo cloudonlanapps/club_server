@@ -119,6 +119,14 @@ class AgeCategory(TemplatePart):
     born_on_or_before_utc: UtcDate | None = None
     genders: list[GenderValue] | None = None
 
+    @model_validator(mode="after")
+    def _ordered(self) -> "AgeCategory":
+        """A band may overlap another, but not end before it starts (R6b)."""
+        after, before = self.born_on_or_after_utc, self.born_on_or_before_utc
+        if after is not None and before is not None and after > before:
+            raise ValueError("bornOnOrAfterUtc is later than bornOnOrBeforeUtc")
+        return self
+
 
 class Fact(TemplatePart):
     """A value typed once and printed wherever a clause names it."""
@@ -258,6 +266,8 @@ class ApplicationResponse(ApplicationContent):
     id: int
     status: ApplicationStatus
     layout: ApplicationLayout | None = None
+    # A member's read: the indexes of the age categories they fit (R11a).
+    fitting_categories: list[int] | None = None
     created_by: str | None = None
     created_at_utc: int
     updated_at_utc: int

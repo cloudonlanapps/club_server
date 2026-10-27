@@ -175,7 +175,9 @@ def test_should_refuse_a_template_when_details_alone_do_not_fit_page_one():
 def test_should_open_page_two_with_the_signing_part_when_split():
     decided = check(document(8), labels(), OPTIONS, TODAY)
 
-    content = draw(document(8), WORST_CASE_MEMBER, OPTIONS, None, TODAY, decided)
+    member = {**WORST_CASE_MEMBER, "chosen_category": 0}  # fits every group
+
+    content = draw(document(8), member, OPTIONS, None, TODAY, decided)
 
     first, second = page_texts(content)
     assert "Declaration" not in first
@@ -201,9 +203,15 @@ def test_should_shrink_then_cut_an_answer_when_it_overflows_its_lines():
 @pytest.mark.requirement("applications:R18")
 def test_should_keep_the_layout_when_answers_are_long_or_blank():
     decided = check(document(), labels(), OPTIONS, TODAY)
-    blank = {"username": "ravi", "date_of_birth": "2015-01-01", "gender": "male"}
+    blank = {
+        "username": "ravi",
+        "date_of_birth": "2015-01-01",
+        "gender": "male",
+        "chosen_category": 0,  # fits every group
+    }
+    worst = {**WORST_CASE_MEMBER, "chosen_category": 0}
 
-    full = draw(document(), WORST_CASE_MEMBER, OPTIONS, None, TODAY, decided)
+    full = draw(document(), worst, OPTIONS, None, TODAY, decided)
     empty = draw(document(), blank, OPTIONS, None, TODAY, decided)
 
     assert page_count(full) == page_count(empty) == 1
@@ -266,6 +274,48 @@ def test_should_place_the_preview_birthday_inside_the_first_category_band(
 
     assert member["date_of_birth"] == born
     assert is_eligible(template["age_categories"], member)
+
+
+@pytest.mark.requirement("applications:R11a")
+@pytest.mark.parametrize(("chosen", "ticked"), [(None, 0), (0, 0), (1, 1)])
+def test_should_tick_the_chosen_category_when_member_fits_it(
+    chosen: int | None, ticked: int
+):
+    template = {
+        **document(),
+        "age_categories": [
+            {"label": {"en": "U12"}, "born_on_or_after": "2014-01-01"},
+            {"label": {"en": "U14"}, "born_on_or_after": "2012-01-01"},
+        ],
+    }
+    member: dict[str, Any] = {
+        "username": "ravi",
+        "date_of_birth": "2014-05-01",
+        "gender": "male",
+        "chosen_category": chosen,
+    }
+    if chosen is None:
+        template["age_categories"] = template["age_categories"][:1]
+
+    builder = ApplicationFormBuilder(template, member, labels(), OPTIONS, None, TODAY)
+
+    assert builder.age_category() == ticked
+
+
+@pytest.mark.requirement("applications:R11a")
+def test_should_tick_the_first_category_when_previewing():
+    template = {
+        **document(),
+        "age_categories": [
+            {"label": {"en": "U12"}, "born_on_or_after": "2013-01-01"},
+            {"label": {"en": "U14"}, "born_on_or_after": "2011-01-01"},
+        ],
+    }
+    member = preview_member(template, OPTIONS, TODAY)
+
+    builder = ApplicationFormBuilder(template, member, labels(), OPTIONS, None, TODAY)
+
+    assert builder.age_category() == 0
 
 
 @pytest.mark.requirement("applications:R19")

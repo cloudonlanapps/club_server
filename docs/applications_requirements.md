@@ -66,6 +66,10 @@ signed-in user whose account is `registered`, `pending` or `active`
   every catalogue language. A template's `labelOverrides` replace a label
   on its form; an id the catalogue does not have → 422.
 
+- **R6b** [✅] An age category's `bornOnOrAfterUtc` must not be later
+  than its `bornOnOrBeforeUtc` when both are given → 422, and nothing is
+  stored. Categories may overlap (U12 inside U14): save accepts them.
+
 ## Saving and the lifecycle
 
 - **R9** [✅] Save refuses a template whose title, declaration or
@@ -98,12 +102,21 @@ signed-in user whose account is `registered`, `pending` or `active`
   `APPLICATION_NOT_FOUND`. A member without one is offered none: the list is
   empty, and reading one or its form → 422 `IDENTITY_DOCUMENT_REQUIRED`.
 - **R11** [✅] A template with age categories gives its form only to
-  a member one of them matches (born on or after / on or before its
+  a member who fits one of them (born on or after / on or before its
   cutoffs, of one of its genders): anyone else, and a member with no date
   of birth → 422 `APPLICATION_NOT_ELIGIBLE` ("not eligible for this
   application"). A template without categories gives it to every member.
+- **R11a** [✅] A member's read of a published template carries
+  `fittingCategories`, the indexes of the categories they fit (null on an
+  admin's read). The form ticks one category, chosen with `?category=<index>`:
+  a member who fits one needs no choice; one who fits several and names
+  none → 422 `APPLICATION_CATEGORY_REQUIRED` with `details.categories`
+  listing the ones they fit; a category they do not fit (or any, on a
+  template without categories) → 422 `APPLICATION_CATEGORY_NOT_FITTING`
+  with the same details. Nothing is recorded: the member chooses on every
+  download.
 - **R20** [✅] An admin downloads any member's form of a published
-  template. A template not published → 422 `APPLICATION_NOT_PUBLISHED`; a
+  template, choosing the category as the member does (R11a). A template not published → 422 `APPLICATION_NOT_PUBLISHED`; a
   user who does not exist → 404 `USER_NOT_FOUND`.
 
 ## The PDF
@@ -128,7 +141,7 @@ signed-in user whose account is `registered`, `pending` or `active`
   on the template alone.
 - **R19** [✅] An admin previews a template in any state: the form
   drawn for a fictional demo member (`demo.player`, born inside the first
-  age category, with a guardian), watermarked "PREVIEW" with "PREVIEW — not
+  age category, which is ticked, with a guardian), watermarked "PREVIEW" with "PREVIEW — not
   for submission" in the footer. A draft is measured on the spot; a saved or
   published template uses its stored layout. A coach or member → 403.
 - **R21** [✅] The parent / guardian block, and the guardian's

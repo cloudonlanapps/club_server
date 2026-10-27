@@ -8,7 +8,7 @@ downloads any member's. Every PDF is drawn per request, never stored.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
@@ -25,6 +25,14 @@ from ..services.application_rules import PREVIEW_MEMBER
 from . import application_errors as err
 
 PDF_MEDIA_TYPE = "application/pdf"
+CategoryChoice = Annotated[
+    int | None,
+    Query(
+        ge=0,
+        description="The age category to tick, by index; needed when the "
+        "member fits several (R11a).",
+    ),
+]
 PDF_RESPONSES: dict[int | str, dict[str, object]] = {
     200: {"content": {PDF_MEDIA_TYPE: {}}}
 }
@@ -140,11 +148,12 @@ async def own_form(
     application_id: int,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
+    category: CategoryChoice = None,
 ) -> Response:
-    """The signed-in member's own form of a published application (R10, R11)."""
+    """The signed-in member's own form of a published application (R10, R11, R11a)."""
     try:
         content = await ApplicationDownloadService(db).own_form(
-            current_user, application_id
+            current_user, application_id, category
         )
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
@@ -161,11 +170,12 @@ async def member_form(
     username: str,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     _current_user: Annotated[User, Depends(require_admin())],
+    category: CategoryChoice = None,
 ) -> Response:
     """An admin's download of any member's form of a published application (R20)."""
     try:
         content = await ApplicationDownloadService(db).member_form(
-            application_id, username
+            application_id, username, category
         )
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)

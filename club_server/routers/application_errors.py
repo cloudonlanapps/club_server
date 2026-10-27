@@ -7,6 +7,8 @@ application route answers the same code for the same failure.
 from fastapi import HTTPException, status
 
 from ..exceptions import (
+    ApplicationCategoryNotFittingException,
+    ApplicationCategoryRequiredException,
     ApplicationDoesNotFitException,
     ApplicationIncompleteException,
     ApplicationNotEligibleException,
@@ -20,6 +22,8 @@ from ..exceptions import (
 )
 
 DOMAIN_ERRORS = (
+    ApplicationCategoryNotFittingException,
+    ApplicationCategoryRequiredException,
     ApplicationDoesNotFitException,
     ApplicationIncompleteException,
     ApplicationNotEligibleException,
@@ -64,6 +68,20 @@ def to_http(exc: Exception) -> HTTPException:
             "APPLICATION_INCOMPLETE",
             str(exc),
             {"missing": exc.missing},
+        )
+    if isinstance(exc, ApplicationCategoryRequiredException):
+        return _http(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "APPLICATION_CATEGORY_REQUIRED",
+            str(exc),
+            {"categories": exc.categories},
+        )
+    if isinstance(exc, ApplicationCategoryNotFittingException):
+        return _http(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "APPLICATION_CATEGORY_NOT_FITTING",
+            str(exc),
+            {"categories": exc.categories},
         )
     if isinstance(exc, ApplicationDoesNotFitException):
         return _http(

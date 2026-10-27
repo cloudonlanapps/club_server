@@ -7,6 +7,11 @@ ISO dates, snake-case keys. Ported from the prototype.
 from datetime import date
 from typing import Any
 
+from ..exceptions import (
+    ApplicationCategoryNotFittingException,
+    ApplicationCategoryRequiredException,
+    ApplicationNotEligibleException,
+)
 from .application_catalogue import JsonDict
 
 ADULT_AGE = 18
@@ -17,26 +22,58 @@ PREVIEW_AGE = 12
 LAST_SAFE_DAY = 28
 
 
+def fits(category: JsonDict, dob: date | None, gender: str | None) -> bool:
+    """Whether a member falls in one age category (applications R11).
+
+    A member with no date of birth fits none.
+    """
+    if dob is None:
+        return False
+    after = category.get("born_on_or_after")
+    before = category.get("born_on_or_before")
+    if after and dob < date.fromisoformat(after):
+        return False
+    if before and dob > date.fromisoformat(before):
+        return False
+    return not category.get("genders") or gender in category["genders"]
+
+
+def fitting_categories(
+    categories: list[JsonDict], dob: date | None, gender: str | None
+) -> list[int]:
+    """The indexes of every age category the member falls in (R11a)."""
+    return [i for i, c in enumerate(categories) if fits(c, dob, gender)]
+
+
 def matching_category(
     categories: list[JsonDict], dob: date | None, gender: str | None
 ) -> int | None:
-    """The index of the first age category the member falls in, or ``None``.
+    """The index of the first age category the member falls in, or ``None``."""
+    found = fitting_categories(categories, dob, gender)
+    return found[0] if found else None
 
-    A member with no date of birth matches none (applications R11).
+
+def choose_category(
+    categories: list[JsonDict],
+    dob: date | None,
+    gender: str | None,
+    chosen: int | None,
+) -> int:
+    """The category ticked on a member's form (R11, R11a).
+
+    Fits none → not eligible; ``chosen`` names a category they do not fit →
+    refused; they fit several and chose none → asked to choose.
     """
-    for i, c in enumerate(categories):
-        after = c.get("born_on_or_after")
-        before = c.get("born_on_or_before")
-        if dob is None:
-            break
-        if after and dob < date.fromisoformat(after):
-            continue
-        if before and dob > date.fromisoformat(before):
-            continue
-        if c.get("genders") and gender not in c["genders"]:
-            continue
-        return i
-    return None
+    found = fitting_categories(categories, dob, gender)
+    if not found:
+        raise ApplicationNotEligibleException()
+    if chosen is not None:
+        if chosen not in found:
+            raise ApplicationCategoryNotFittingException(chosen, found)
+        return chosen
+    if len(found) > 1:
+        raise ApplicationCategoryRequiredException(found)
+    return found[0]
 
 
 def is_eligible(categories: list[JsonDict], member: JsonDict) -> bool:
@@ -83,6 +120,7 @@ PREVIEW_MEMBER: JsonDict = {
     "past_experience": "Inline skating for three years at the district level; "
     "played roller hockey in two state tournaments; one season of ice skating "
     "lessons at a local rink.",
+    "chosen_category": None,  # set per template: the first category
     "guardian": {
         "name": "Vikram Deshpande",
         "relation": "Father",
@@ -118,6 +156,7 @@ def preview_member(template: JsonDict, options: JsonDict, today: date) -> JsonDi
                 today.year - PREVIEW_AGE, PREVIEW_BIRTH_MONTH, PREVIEW_BIRTH_DAY
             )
         member["date_of_birth"] = born.isoformat()
+        member["chosen_category"] = 0  # the preview ticks the first (R19)
         if c.get("genders"):
             member["gender"] = c["genders"][0]
     else:

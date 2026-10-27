@@ -17,6 +17,7 @@ from .application_helpers import (
     create_application,
     day,
     get_application,
+    template_body,
 )
 from .helpers import create_admin_user, create_coach_user, create_regular_admin_user
 
@@ -133,6 +134,76 @@ async def test_should_store_each_fact_type_when_shapes_fit(
     assert (await get_application(client, admin, created["id"])).json()[
         "facts"
     ] == facts
+
+
+# R6b ----------------------------------------------------------------------
+
+
+@pytest.mark.requirement("applications:R6b")
+@pytest.mark.asyncio
+async def test_should_refuse_a_category_when_its_dates_are_reversed(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    created = await create_application(client, admin, {})
+    reversed_dates = [
+        {
+            "label": {"en": "U12"},
+            "bornOnOrAfterUtc": day(2014, 12, 31),
+            "bornOnOrBeforeUtc": day(2013, 1, 1),
+        }
+    ]
+
+    posted = await client.post(
+        APPLICATIONS, json={"ageCategories": reversed_dates}, headers=auth(admin)
+    )
+    patched = await client.patch(
+        f"{APPLICATIONS}/{created['id']}",
+        json={"ageCategories": reversed_dates},
+        headers=auth(admin),
+    )
+
+    assert posted.status_code == 422, posted.text
+    assert patched.status_code == 422, patched.text
+    assert await listed_ids(client, admin) == [created["id"]]
+    read = (await get_application(client, admin, created["id"])).json()
+    assert read["ageCategories"] == []
+
+
+@pytest.mark.requirement("applications:R6b")
+@pytest.mark.asyncio
+async def test_should_save_overlapping_categories_when_each_band_is_ordered(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    body = template_body()
+    body["ageCategories"] = [
+        {
+            "label": {"en": "U12", "mr": "U12"},
+            "bornOnOrAfterUtc": day(2013, 1, 1),
+            "bornOnOrBeforeUtc": day(2014, 12, 31),
+        },
+        {
+            "label": {"en": "U14", "mr": "U14"},
+            "bornOnOrAfterUtc": day(2011, 1, 1),
+            "bornOnOrBeforeUtc": day(2014, 12, 31),
+        },
+        {
+            "label": {"en": "Open", "mr": "खुला"},
+            "bornOnOrAfterUtc": day(2013, 1, 1),
+            "bornOnOrBeforeUtc": day(2013, 1, 1),
+        },
+    ]
+    created = await create_application(client, admin, body)
+
+    response = await client.post(
+        f"{APPLICATIONS}/{created['id']}/save", headers=auth(admin)
+    )
+
+    assert response.status_code == 200, response.text
+    read = (await get_application(client, admin, created["id"])).json()
+    assert read["status"] == "saved"
+    assert read["ageCategories"] == body["ageCategories"]
 
 
 # R7, R8 -------------------------------------------------------------------
