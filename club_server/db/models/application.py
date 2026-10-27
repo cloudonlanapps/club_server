@@ -3,8 +3,8 @@
 An admin-defined template from which a member downloads their own pre-filled
 application form as a PDF. The multilingual texts sit in JSON columns in the
 API's shapes (``schemas/application.py``), so no further table is needed.
-``layout`` is set on save: the layout's name, page 1's spread with and
-without the guardian block, and frozen copies of the profile options it was
+``layout`` is set on save: the layout's name, page 1's spread (one, under
+both of the API's keys, #128), and frozen copies of the profile options it was
 measured with (#97) and of the library's formats and choices its facts were
 printed with (#126). ``publish_id`` is a new UUID on each publish, kept
 after an unpublish so the next publish can audit it as the previous one.

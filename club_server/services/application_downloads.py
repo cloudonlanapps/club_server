@@ -4,8 +4,13 @@ An admin sees every template and downloads any member's form of a
 published one. A member who has uploaded an identity document sees the
 published templates and downloads their own form; without a document none
 is offered. The form is refused when no age category matches the member.
+
+A member's form is their values written over the template's stored drawing
+(R25); the preview is drawn in full. Either is made in a worker thread, so
+the API answers other requests meanwhile (R26, #128).
 """
 
+import asyncio
 from datetime import date
 
 from sqlalchemy import select
@@ -20,14 +25,17 @@ from ..dependencies import is_admin
 from ..exceptions import (
     ApplicationNotFoundException,
     ApplicationNotPublishedException,
+    ApplicationNotSavedException,
     IdentityDocumentRequiredException,
 )
 from ..schemas.application import ApplicationResponse
 from ..schemas.common import PaginatedResponse
-from .application import PUBLISHED, ApplicationService
+from .application import PUBLISHED, SAVED, ApplicationService
 from .application_catalogue import JsonDict
 from .application_document import member_document, options_document, template_document
+from .application_drawing import ApplicationDrawingService
 from .application_form import draw, frozen_options
+from .application_pdf_fill import fill
 from .application_rules import fitting_categories, preview_member
 from .evaluation_pdf_logo import club_logo
 from .profile_options import ProfileOptionsService
@@ -113,7 +121,8 @@ class ApplicationDownloadService:
         stored = application.layout
         options = frozen_options(stored, await self._options())
         today = day_to_date(club_today())
-        return draw(
+        return await asyncio.to_thread(
+            draw,
             template,
             preview_member(template, options, today),
             options,
@@ -123,24 +132,44 @@ class ApplicationDownloadService:
             preview=True,
         )
 
+    async def blank_form(self, application_id: int) -> bytes:
+        """A saved or published template's form with no member in it and
+        no watermark, for filling in by hand (R27): a published one's
+        stored drawing, with its publish mark; a saved one's drawn from its
+        stored layout. A draft has no layout and is refused."""
+        application = await self._applications.get_or_raise(application_id)
+        if application.status not in (SAVED, PUBLISHED):
+            raise ApplicationNotSavedException(application_id)
+        options = frozen_options(application.layout, await self._options())
+        logo = await club_logo(self.db)
+        drawings = ApplicationDrawingService(self.db)
+        if application.status == PUBLISHED:
+            return (await drawings.current(application, logo, options)).pdf
+        pdf, _places = await drawings.draw(application, logo, options, None)
+        return pdf
+
     async def _options(self) -> JsonDict:
         return options_document(await ProfileOptionsService(self.db).read())
 
     async def _form(
         self, application: Application, member: User, category: int | None
     ) -> bytes:
-        """A published template's form, drawn only from its stored layout and
-        frozen options: never measured again, so it never fails for the
-        template's sake (R14, R20); ``category`` is the member's choice (R11a)."""
+        """A published template's form: the member's values written over its
+        stored drawing, made from its stored layout and frozen options and
+        never measured again, so it never fails for the template's sake
+        (R14, R20, R25); ``category`` is the member's choice (R11a)."""
         if application.status != PUBLISHED:
             raise ApplicationNotPublishedException(application.id)
-        stored = application.layout
-        return draw(
+        options = frozen_options(application.layout, await self._options())
+        drawing = await ApplicationDrawingService(self.db).current(
+            application, await club_logo(self.db), options
+        )
+        return await asyncio.to_thread(
+            fill,
+            drawing.pdf,
+            drawing.places,
             template_document(application),
             {**member_document(member), "chosen_category": category},
-            frozen_options(stored, await self._options()),
-            await club_logo(self.db),
+            options,
             day_to_date(club_today()),
-            stored,
-            publish_id=application.publish_id,
         )

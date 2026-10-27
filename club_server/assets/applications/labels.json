@@ -24,6 +24,15 @@
       "hi"
     ]
   },
+  "note.guardian": {
+    "en": "Only for applicants below 18 years of age",
+    "mr": "फक्त 18 वर्षांखालील अर्जदारांसाठी",
+    "hi": "केवल 18 वर्ष से कम आयु के आवेदकों के लिए",
+    "_review": [
+      "mr",
+      "hi"
+    ]
+  },
   "section.selections": {
     "en": "Additional selections",
     "mr": "अतिरिक्त पर्याय",

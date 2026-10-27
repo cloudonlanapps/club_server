@@ -128,27 +128,29 @@ def test_should_refuse_to_draw_when_member_is_not_eligible():
 
 @pytest.mark.requirement("applications:R21")
 @pytest.mark.parametrize(
-    ("born", "guardian", "shown"),
+    ("born", "guardian", "minor"),
     [
         ("2010-10-27", None, True),  # 15
         ("2008-10-26", None, False),  # 18 today
         ("2008-10-27", None, True),  # 18 tomorrow
-        ("1990-01-01", {"name": "Asha"}, True),
+        ("1990-01-01", {"name": "Asha"}, False),
         (None, None, False),
     ],
 )
-def test_should_print_the_guardian_block_when_minor_or_guardian_set(
-    born: str | None, guardian: dict[str, str] | None, shown: bool
+def test_should_print_the_guardian_block_whether_minor_or_guardian_set(
+    born: str | None, guardian: dict[str, str] | None, minor: bool
 ):
+    # Every form prints the block and its under-18 note (#128); it is
+    # filled when a guardian is set.
     member = {"username": "ravi", "date_of_birth": born, "guardian": guardian}
-    b = ApplicationFormBuilder(
-        document(categories=0), member, labels(), OPTIONS, None, TODAY
-    )
 
-    assert b.shows_guardian() is shown
-    assert is_minor(date.fromisoformat(born) if born else None, TODAY) is (
-        shown and guardian is None
-    )
+    text = pdf_text(draw(document(categories=0), member, OPTIONS, None, TODAY, None))
+
+    assert "Parent / guardian contact" in text
+    assert "Only for applicants below 18 years of age" in text
+    assert "Parent / guardian signature" in text
+    assert ("Asha" in text) is bool(guardian)
+    assert is_minor(date.fromisoformat(born) if born else None, TODAY) is minor
 
 
 @pytest.mark.requirement("applications:R16")
@@ -167,21 +169,21 @@ def test_should_choose_the_first_layout_that_fits_when_measured(
 
     assert decided["name"] == layout
     spread = decided["spread"]
-    # page 1 is spread to fill: more room without the guardian block
-    assert spread["without_guardian"] > spread["with_guardian"] >= 0
+    # page 1 is spread to fill; every form has the guardian block: one spread
+    assert spread["without_guardian"] == spread["with_guardian"] >= 0
 
 
 @pytest.mark.requirement("applications:R14")
 @pytest.mark.parametrize(
-    ("selections", "layout", "with_guardian", "without_guardian"),
+    ("selections", "layout", "spread"),
     [
-        (0, "one page", 8.8, 13.5),
-        (6, "one page, tighter spacing", 0.9, 2.9),
-        (8, "signing part on page 2", 17.7, 24.6),
+        (0, "one page", 8.1),
+        (6, "one page, tighter spacing", 0.34),
+        (8, "signing part on page 2", 16.83),
     ],
 )
 def test_should_measure_the_fixtures_as_pinned_when_the_fonts_are_unchanged(
-    selections: int, layout: str, with_guardian: float, without_guardian: float
+    selections: int, layout: str, spread: float
 ):
     # A saved or published form is never measured again, and the fonts ship
     # with the server: a font change that measures differently fails here
@@ -189,10 +191,8 @@ def test_should_measure_the_fixtures_as_pinned_when_the_fonts_are_unchanged(
     decided = check(document(selections), labels(), OPTIONS, TODAY)
 
     assert decided["name"] == layout
-    assert decided["spread"]["with_guardian"] == pytest.approx(with_guardian, abs=0.06)
-    assert decided["spread"]["without_guardian"] == pytest.approx(
-        without_guardian, abs=0.06
-    )
+    assert decided["spread"]["with_guardian"] == pytest.approx(spread, abs=0.06)
+    assert decided["spread"]["without_guardian"] == decided["spread"]["with_guardian"]
 
 
 @pytest.mark.requirement("applications:R17")
@@ -382,7 +382,10 @@ def font_runs(text: str) -> list[str]:
     _ = canvas.text_at(MARGIN, MARGIN, CONTENT_W, text, 10)
     by_index = {font.i: key for key, font in canvas.fonts.items()}
     stream = bytes(canvas.output())
-    block = stream[stream.index(b"BT") : stream.index(b"ET")]
+    # the text's own object: the page font is set before it, in its own
+    # text object (``ApplicationPdfCanvas.pin_font``, #128)
+    start = stream.rindex(b"BT", 0, stream.index(b"Tj"))
+    block = stream[start : stream.index(b"ET", start)]
     runs: list[str] = []
     for match in FONT_SELECTION.finditer(block):
         key = by_index[int(match.group(1))]
@@ -395,7 +398,7 @@ def test_should_switch_font_only_between_words_when_marathi_mixes_with_latin():
     runs = font_runs("क्षेत्र प्रशिक्षण Forward श्री दुसऱ्या")
 
     latin, deva = PRINT.lower(), DEVA.lower()
-    assert runs == [latin, deva, latin, deva, latin, deva, latin, deva]
+    assert runs == [deva, latin, deva, latin, deva, latin, deva]
 
 
 def test_should_detect_a_switch_inside_a_word_when_it_holds_a_joiner():

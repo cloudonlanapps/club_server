@@ -6,6 +6,7 @@ unpublished or reverted to change it. Only a draft is edited; only a draft
 or a saved template is deleted (soft).
 """
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -31,9 +32,11 @@ from ..schemas.application import (
 from ..schemas.common import PaginatedResponse
 from ..utils import now_utc_ms
 from .application_document import options_document, template_document
+from .application_drawing import ApplicationDrawingService
 from .application_form import decide_layout
 from .audit import AuditService
 from .audit_actions import AuditAction
+from .evaluation_pdf_logo import club_logo
 from .profile_options import ProfileOptionsService
 
 DRAFT, SAVED, PUBLISHED = "draft", "saved", "published"
@@ -41,8 +44,8 @@ DRAFT, SAVED, PUBLISHED = "draft", "saved", "published"
 # The moves a template can make: action → (from, to).
 TRANSITIONS: dict[str, tuple[str, str]] = {
     "save": (DRAFT, SAVED),  # checked complete, layout decided and stored
-    "publish": (SAVED, PUBLISHED),  # members see it; a new publish ID
-    "unpublish": (PUBLISHED, SAVED),
+    "publish": (SAVED, PUBLISHED),  # members see it; a new publish ID; drawn once
+    "unpublish": (PUBLISHED, SAVED),  # its stored drawing is dropped
     "revert": (SAVED, DRAFT),  # editable again; the stored layout is dropped
 }
 # The audit action of each move (R24).
@@ -236,14 +239,24 @@ class ApplicationService:
         details: dict[str, str | int | None] = {"applicationId": application.id}
         if action == "save":
             options = options_document(await ProfileOptionsService(self.db).read())
-            application.layout = decide_layout(
-                template_document(application), options, day_to_date(club_today())
+            application.layout = await asyncio.to_thread(
+                decide_layout,
+                template_document(application),
+                options,
+                day_to_date(club_today()),
             )
         if action == "revert":
             application.layout = None
         if action == "publish":
             details["previousPublishId"] = application.publish_id
             application.publish_id = str(uuid.uuid4())
+            _ = await ApplicationDrawingService(self.db).store(
+                application,
+                await club_logo(self.db),
+                options_document(await ProfileOptionsService(self.db).read()),
+            )
+        if action == "unpublish":
+            await ApplicationDrawingService(self.db).drop(application.id)
         if action in ("publish", "unpublish"):
             details["publishId"] = application.publish_id
         application.status = target

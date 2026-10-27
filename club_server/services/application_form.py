@@ -8,6 +8,10 @@ saved or published template is drawn only from its stored layout and its
 frozen options and is never measured again, so a download never fails; a
 draft's preview is measured on the spot. The texts are the template's own
 custom text, their gaps filled from its facts (#107, #126).
+
+``draw_blank`` draws a published template's form with no member in it, and
+where each member value goes: stored on publish, a download fills it
+(``application_pdf_fill``, #128).
 """
 
 from datetime import date
@@ -19,8 +23,8 @@ from ..exceptions import (
 )
 from .application_catalogue import JsonDict, labels, library
 from .application_pdf_builder import ApplicationFormBuilder
-from .application_pdf_fit import check, choose_layout
-from .application_pdf_layout import BOTTOM, LAYOUTS, layout_named
+from .application_pdf_fit import ONE_SPREAD, check, choose_layout, spread_of
+from .application_pdf_layout import BOTTOM, LAYOUTS, Layout, layout_named
 from .application_text import filled, incomplete, lacking, printable, unknown_gaps
 
 # The stored layout's copy of the profile options it was measured with.
@@ -73,6 +77,32 @@ def frozen_options(stored: JsonDict | None, live: JsonDict) -> JsonDict:
     return frozen
 
 
+def stored_layout(
+    document: JsonDict,
+    all_labels: JsonDict,
+    options: JsonDict,
+    today: date,
+    stored: JsonDict,
+) -> tuple[Layout, float]:
+    """The stored layout and page 1's spread. A layout saved before every
+    form printed the guardian block (#128) holds two spreads measured
+    without its note: it keeps its layout and is spread again with it, so
+    page 1 still fills and fits."""
+    layout = layout_named(stored["name"])
+    if layout is None:
+        raise ValueError(f"unknown stored layout {stored['name']!r}")
+    if stored.get(ONE_SPREAD):
+        spread: float = stored["spread"]["with_guardian"]
+        return layout, spread
+    return layout, spread_of(document, all_labels, options, today, layout)
+
+
+def _document(template: JsonDict, stored: JsonDict | None) -> JsonDict:
+    """The template's texts, its gaps filled with the frozen formats."""
+    formats: JsonDict = (stored or {}).get(FROZEN_FORMATS) or fact_formats()
+    return filled(printable(template), formats)
+
+
 def draw(
     template: JsonDict,
     member: JsonDict,
@@ -83,27 +113,56 @@ def draw(
     preview: bool = False,
     publish_id: str | None = None,
 ) -> bytes:
-    """One form as PDF bytes.
+    """One form as PDF bytes, drawn in full.
 
     With a stored layout the form is drawn once, as stored, its facts
     printed with the formats frozen on save; without one (a draft's preview)
     it is measured for this member first (R14, R15a, R19).
     ``options`` are those ``frozen_options`` gives.
     """
-    formats: JsonDict = (stored or {}).get(FROZEN_FORMATS) or fact_formats()
-    document = filled(printable(template), formats)
+    return bytes(
+        form_builder(
+            template, member, options, logo, today, stored, preview, publish_id
+        )
+        .build()
+        .output()
+    )
+
+
+def draw_blank(
+    template: JsonDict,
+    options: JsonDict,
+    logo: bytes | None,
+    today: date,
+    stored: JsonDict,
+    publish_id: str | None,
+) -> tuple[bytes, JsonDict]:
+    """A saved template's form with no member in it, as PDF bytes, and the
+    places of every member value and tick in it (#128)."""
+    b = form_builder(
+        template, {}, options, logo, today, stored, False, publish_id, True
+    )
+    pdf = bytes(b.build().output())
+    return pdf, b.places
+
+
+def form_builder(
+    template: JsonDict,
+    member: JsonDict,
+    options: JsonDict,
+    logo: bytes | None,
+    today: date,
+    stored: JsonDict | None,
+    preview: bool,
+    publish_id: str | None,
+    blank: bool = False,
+) -> ApplicationFormBuilder:
+    """The builder that draws one form: from the stored layout, or measured
+    for ``member`` when there is none (a draft's preview)."""
+    document = _document(template, stored)
     all_labels = labels()
     if stored:
-        layout = layout_named(stored["name"])
-        if layout is None:
-            raise ValueError(f"unknown stored layout {stored['name']!r}")
-        probe = ApplicationFormBuilder(
-            document, member, all_labels, options, logo, today, layout
-        )
-        spread: JsonDict = stored["spread"]
-        extra: float = spread[
-            "with_guardian" if probe.shows_guardian() else "without_guardian"
-        ]
+        layout, extra = stored_layout(document, all_labels, options, today, stored)
     else:
         chosen = choose_layout(document, member, all_labels, options, logo, today)
         if chosen is None:
@@ -120,7 +179,7 @@ def draw(
             _ = b.build()
             raise ApplicationDoesNotFitException((b.page1_end or 0) - BOTTOM)
         layout, extra, _ = chosen
-    pdf = ApplicationFormBuilder(
+    return ApplicationFormBuilder(
         document,
         member,
         all_labels,
@@ -131,5 +190,5 @@ def draw(
         extra,
         preview=preview,
         publish_id=publish_id,
-    ).build()
-    return bytes(pdf.output())
+        blank=blank,
+    )

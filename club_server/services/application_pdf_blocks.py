@@ -24,7 +24,6 @@ from .application_pdf_layout import (
     RULE,
     SEPARATOR,
     TINT,
-    VALUE,
     Colour,
 )
 
@@ -32,6 +31,7 @@ if TYPE_CHECKING:
     from .application_pdf_builder import ApplicationFormBuilder
 
 PHOTO_W, PHOTO_H = 99.0, 127.0  # 35 x 45 mm
+NOTE_GAP = 2  # below the guardian block's note
 GENDERS = ["male", "female", "other"]
 
 
@@ -59,6 +59,42 @@ def address(a: JsonDict | None) -> str | None:
 def fmt_date(v: str | None) -> str | None:
     """An ISO date as the form prints it."""
     return f"{date.fromisoformat(v):{FORM_DAY}}" if v else None
+
+
+def field_values(m: JsonDict) -> dict[str, str | None]:
+    """What the form writes in each field, by its label key: the member's
+    profile as printed (R15, R21). A blank form's member is ``{}``."""
+    g: JsonDict = m.get("guardian") or {}
+    return {
+        "field.full_name": full_name(m),
+        "field.date_of_birth": fmt_date(m.get("date_of_birth")),
+        "field.member_id": m.get("username"),
+        "field.membership_date": fmt_date(m.get("membership_date")),
+        "field.address": address(m.get("address")),
+        "field.phone": m.get("phone"),
+        "field.email": m.get("email"),
+        "field.nationality": m.get("nationality"),
+        "field.preferred_language": LIST_JOIN.join(m.get("preferred_languages") or [])
+        or None,
+        "field.club_district": m.get("club_district"),
+        "field.past_experience": m.get("past_experience"),
+        "field.guardian_name": g.get("name"),
+        "field.guardian_relation": g.get("relation"),
+        "field.guardian_phone": g.get("phone"),
+    }
+
+
+def ticks(m: JsonDict, options: JsonDict, category: int | None) -> dict[str, set[int]]:
+    """The boxes the form ticks in each row of choices, by its label key."""
+    g = m.get("gender")
+    positions: list[JsonDict] = options.get("positions") or []
+    values: list[str] = [pos["value"] for pos in positions]
+    chosen: list[str] = m.get("preferred_positions") or []
+    return {
+        "field.gender": {GENDERS.index(g)} if g in GENDERS else set(),
+        "field.age_category": set() if category is None else {category},
+        "field.preferred_position": {values.index(c) for c in chosen if c in values},
+    }
 
 
 def in_columns(
@@ -104,11 +140,10 @@ def column_height(
     )
 
 
-def personal(b: "ApplicationFormBuilder", category: int | None):
+def personal(b: "ApplicationFormBuilder"):
     """Personal information beside the photo box."""
     b.section("section.personal")
     p = b.pdf
-    m = b.m
     photo_x = MARGIN + CONTENT_W - PHOTO_W
     left_w = CONTENT_W - PHOTO_W - COL_GAP
     top = b.y
@@ -130,88 +165,53 @@ def personal(b: "ApplicationFormBuilder", category: int | None):
         align="C",
     )
 
-    b.y = b.field(MARGIN, b.y, left_w, "field.full_name", full_name(m))
-    dob = b.dob()
+    b.y = b.field(MARGIN, b.y, left_w, "field.full_name")
     b.y = b.fields_row(
-        [
-            ("field.date_of_birth", f"{dob:{FORM_DAY}}" if dob else None),
-            ("field.member_id", m.get("username")),
-            ("field.membership_date", fmt_date(m.get("membership_date"))),
-        ],
+        ["field.date_of_birth", "field.member_id", "field.membership_date"],
         width=left_w,
     )
-    g = m.get("gender")
     b.y = b.choices(
-        "field.gender",
-        [b.label(f"gender.{k}") for k in GENDERS],
-        GENDERS.index(g) if g in GENDERS else None,
-        width=left_w,
+        "field.gender", [b.label(f"gender.{k}") for k in GENDERS], width=left_w
     )
     cats: list[JsonDict] = b.t.get("age_categories") or []
     if cats:
         b.y = b.choices(
             "field.age_category",
             [SEPARATOR.join(b.ml(c["label"])) for c in cats],
-            category,
             width=left_w,
         )
     b.y = max(b.y, top + PHOTO_H + b.gap_base)
-    b.y = b.field(
-        MARGIN,
-        b.y,
-        CONTENT_W,
-        "field.address",
-        address(m.get("address")),
-        rows=ADDRESS_ROWS,
-    )
-    b.y = b.fields_row(
-        [("field.phone", m.get("phone")), ("field.email", m.get("email"))]
-    )
-    b.y = b.fields_row(
-        [
-            ("field.nationality", m.get("nationality")),
-            (
-                "field.preferred_language",
-                LIST_JOIN.join(m.get("preferred_languages") or []) or None,
-            ),
-        ]
-    )
+    b.y = b.field(MARGIN, b.y, CONTENT_W, "field.address", rows=ADDRESS_ROWS)
+    b.y = b.fields_row(["field.phone", "field.email"])
+    b.y = b.fields_row(["field.nationality", "field.preferred_language"])
 
 
 def sports(b: "ApplicationFormBuilder"):
     """Sports details: club/district, position, past experience."""
     b.section("section.sports")
-    m = b.m
-    b.y = b.field(MARGIN, b.y, CONTENT_W, "field.club_district", m.get("club_district"))
+    b.y = b.field(MARGIN, b.y, CONTENT_W, "field.club_district")
     positions: list[JsonDict] = b.options.get("positions") or []
     if positions:
-        values = [pos["value"] for pos in positions]
-        chosen: list[str] = m.get("preferred_positions") or []
         b.y = b.choices(
             "field.preferred_position",
             [SEPARATOR.join(b.ml(pos["label"])) for pos in positions],
-            {values.index(c) for c in chosen if c in values},
         )
-    b.y = b.field(
-        MARGIN,
-        b.y,
-        CONTENT_W,
-        "field.past_experience",
-        m.get("past_experience"),
-        rows=EXPERIENCE_ROWS,
-    )
+    b.y = b.field(MARGIN, b.y, CONTENT_W, "field.past_experience", rows=EXPERIENCE_ROWS)
 
 
 def guardian(b: "ApplicationFormBuilder"):
-    """The parent / guardian, in one row."""
+    """The parent / guardian, in one row, under a note that it is for
+    applicants below 18: printed on every form, filled when the member has a
+    guardian (R21, #128)."""
     b.section("section.guardian")
-    g: JsonDict = b.m.get("guardian") or {}
+    b.y = (
+        b.pdf.text_at(
+            MARGIN, b.y, CONTENT_W, b.label("note.guardian"), LABEL, colour=MUTED
+        )
+        + NOTE_GAP
+    )
     b.y = b.fields_row(
-        [
-            ("field.guardian_name", g.get("name")),
-            ("field.guardian_relation", g.get("relation")),
-            ("field.guardian_phone", g.get("phone")),
-        ]
+        ["field.guardian_name", "field.guardian_relation", "field.guardian_phone"]
     )
 
 
@@ -246,16 +246,20 @@ def declaration(b: "ApplicationFormBuilder"):
     _ = in_columns(b, MARGIN + 10, y + 5, CONTENT_W - 20, decl, 8.5)
     y += body + 10 + 30 + b.gap()
 
-    keys = (
-        ["sign.date", "sign.guardian", "sign.player"]
-        if b.shows_guardian()
-        else ["sign.date", "sign.player"]
-    )
+    keys = ["sign.date", "sign.guardian", "sign.player"]
     col = (CONTENT_W - COL_GAP * (len(keys) - 1)) / len(keys)
     for i, k in enumerate(keys):
         x = MARGIN + i * (col + COL_GAP)
         if k == "sign.date":
-            _ = p.text_at(x + 2, y - b.row + 2, col, f"{b.today:{FORM_DAY}}", VALUE)
+            place: JsonDict = {
+                "page": p.page_no(),
+                "x": x + 2,
+                "y": y - b.row + 2,
+                "width": col,
+            }
+            b.places["sign_date"] = place
+            if not b.blank:
+                b.marks.append(p.write_date(place, b.today))
         p.hline(x, y, col, colour=INK, weight=0.8)
         _ = p.text_at(x, y + 2, col, b.label(k), LABEL, bold=True, colour=MUTED)
     b.y = y + 20

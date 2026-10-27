@@ -121,10 +121,12 @@ signed-in user whose account is `registered`, `pending` or `active`
   (saved → draft). A move from any other state → 422 `INVALID_TRANSITION`,
   and the state is unchanged. A coach or member → 403.
 - **R13** [✅] Save decides the layout and stores it on the
-  template (`layout`: its name and page 1's spread with and without the
-  guardian block), with a frozen copy of the club's profile options it was
-  measured with, and of the library's formats and choices its facts were
-  printed with (#126); revert drops them.
+  template (`layout`: its name and page 1's spread), with a frozen copy of
+  the club's profile options it was measured with, and of the library's
+  formats and choices its facts were printed with (#126); revert drops
+  them. Every form prints the guardian block (R21), so one spread is
+  measured; `layout.spread` carries it under both `withGuardian` and
+  `withoutGuardian` (#128).
 - **R14** [✅] A saved or published template is drawn only from its
   stored layout, its frozen profile options and its frozen fact formats,
   and is never measured again: a later change to the profile options
@@ -133,7 +135,9 @@ signed-in user whose account is `registered`, `pending` or `active`
   publishes again. The fonts ship with the server; the fixtures' measured
   layouts are pinned by a test, so a font change that measures differently
   is caught before release. A draft's preview is measured on the spot
-  (R19).
+  (R19). A layout saved before #128 holds two spreads, measured without
+  the guardian block's note: it keeps its layout and page 1 is spread again
+  with the note when its form is drawn, so it still fills and fits.
 
 ## Who sees what
 
@@ -165,11 +169,12 @@ signed-in user whose account is `registered`, `pending` or `active`
 ## The PDF
 
 - **R15** [✅] A form is an `application/pdf` named
-  `application-<id>-<username>.pdf`, drawn per request: page 1 holds the
+  `application-<id>-<username>.pdf`, made per request (R25): page 1 holds the
   header (organisation, title, subtitle in a column per print language,
   the header items), the member's personal information beside a photo box,
-  their sports details, the additional selections, the declaration and the
-  signature row with the download day in the club's time zone, and the
+  their sports details, the parent / guardian block (R21), the additional
+  selections, the declaration and the signature row with the download day
+  in the club's time zone, and the
   footer line; the terms and notes follow. The footer of every page carries
   the member ID and the download day. The positions row ticks every
   position the member chose, and the preferred-language field lists every
@@ -197,8 +202,11 @@ signed-in user whose account is `registered`, `pending` or `active`
   for submission" in the footer. A draft is measured on the spot; a saved or
   published template uses its stored layout. A coach or member → 403.
 - **R21** [✅] The parent / guardian block, and the guardian's
-  signature line, print for a member under 18 on the download day, or for
-  anyone whose guardian is set.
+  signature line, print on every form, under a note that they are only for
+  applicants below 18 years of age (`note.guardian` in the label catalogue,
+  in English, Marathi and Hindi). The block is filled from the member's
+  guardian when one is set and left blank otherwise, so the layout never
+  depends on the member (#128).
 
 ## Publishing and tracing
 
@@ -214,3 +222,29 @@ signed-in user whose account is `registered`, `pending` or `active`
   `revert_application`; resource `application`) with `applicationId`; a
   publish also records its `publishId` and the `previousPublishId` (null on
   the first), an unpublish the `publishId` it withdraws (#97).
+- **R25** [✅] Publishing draws the template's form once, with every
+  label and box but no member in it, and stores it with the place of each
+  member value (page, position, box width, lines, type size) and tick
+  (gender, age category, positions), the signature date and the footer's
+  member ID and day. A member's form, and an admin's member form, are the
+  member's values written over that drawing, each fitted to its box as R18
+  says; the result carries the same text and marks as the form drawn in
+  full. The drawing is kept for the publish ID and the club logo it was
+  drawn with: a republish, a change of logo (set, changed or removed) or a
+  template published before #128 is drawn again on its next download.
+  Unpublishing drops it. The preview is always drawn in full (R19).
+- **R26** [✅] A form is made off the API's event loop, in a worker
+  thread: the member's form, an admin's member form and the preview, and
+  save's measuring and publish's drawing. Other requests are answered while
+  a PDF is made (#128).
+- **R27** [✅] An admin downloads a template's blank form, for filling in
+  by hand: `GET /v1/applications/{id}/blank-form`, an `application/pdf`
+  named `application-<id>-blank.pdf`, with every label, box and tick box,
+  no member's value and no watermark. The footer's member ID and day, the
+  signature date and the guardian block are blank; the guardian block's
+  note stays (R21). A published template's blank form is its stored
+  drawing (R25), with its publish mark (R23); a saved one's is drawn on
+  request from its stored layout, with no publish mark, and is not stored.
+  A draft has no layout → 422 `APPLICATION_NOT_SAVED`; an unknown template
+  → 404 `APPLICATION_NOT_FOUND`. A coach or member → 403, no session → 401.
+  The preview stays as R19 says (#129).

@@ -344,7 +344,9 @@ async def test_should_measure_the_filled_texts_when_the_layout_is_decided(
     }
     short = template_body()
     short["facts"]["practice"] = {"type": "name", "value": {"en": "x", "mr": "x"}}
-    short["selections"] = [{"en": "{practice}", "mr": "{practice}"}] * 4
+    # three: with the guardian block's note on every form (#128), four short
+    # ones no longer fit "one page"
+    short["selections"] = [{"en": "{practice}", "mr": "{practice}"}] * 3
     long = {**short, "facts": {**short["facts"]}}
     long["facts"]["practice"] = {"type": "name", "value": sentence}
 

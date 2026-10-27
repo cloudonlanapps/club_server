@@ -3,8 +3,9 @@
 The server measures page 1 before drawing it and uses the first layout
 whose page 1 fits (``LAYOUTS``); page 1 is then spread to fill the page.
 The layout depends on the template alone — every answer is fitted to its
-lines — so it is decided when a template is saved, measured for a member
-whose every field is too long, and stored. Ported from the prototype.
+lines and the guardian block prints on every form (#128) — so it is decided
+when a template is saved, measured for a member whose every field is too
+long, and stored with one spread. Ported from the prototype.
 """
 
 import io
@@ -19,6 +20,10 @@ from .application_pdf_layout import BOTTOM, LAYOUTS, Layout
 
 # Spread leaves this much below page 1's last line.
 SPREAD_SLACK = 2
+# Marks a layout measured with the guardian block, its note and the
+# guardian's signature on every form: one spread (#128). A layout saved
+# before has two, measured without the note, and is spread again on drawing.
+ONE_SPREAD = "one_spread"
 
 
 def _placeholder_logo() -> bytes:
@@ -34,7 +39,7 @@ WORST_CASE_LOGO = _placeholder_logo()
 
 # Every field filled, each too long for its lines. Answers are fitted to their
 # lines, so the layout depends on the template alone; this member only proves
-# that, and turns on the guardian block.
+# that.
 WORST_CASE_MEMBER: JsonDict = {
     "username": "w" * 30,
     "first_name": "Wwwwwwwwwwww",
@@ -108,11 +113,36 @@ def choose_layout(
     return None
 
 
+def spread_of(
+    template: JsonDict,
+    labels: JsonDict,
+    options: JsonDict,
+    today: date,
+    layout: Layout,
+) -> float:
+    """Page 1's spread in ``layout``, measured as on save: the spare height
+    for each of its gaps (negative when page 1 overflows)."""
+    b = ApplicationFormBuilder(
+        template,
+        worst_case_member(options),
+        labels,
+        options,
+        WORST_CASE_LOGO,
+        today,
+        layout,
+        measure=True,
+        worst=True,
+    )
+    _ = b.build()
+    return (BOTTOM - (b.page1_end or 0) - SPREAD_SLACK) / max(b.gaps, 1)
+
+
 def check(
     template: JsonDict, labels: JsonDict, options: JsonDict, today: date
 ) -> JsonDict:
     """Decide the template's layout, as on save: the first layout that fits
-    with the guardian block, and the spread of page 1 with and without it.
+    and the spread of its page 1. Every form prints the guardian block, so
+    there is one spread; the API's two keys carry it both (#128).
 
     Raises ``ApplicationDoesNotFitException`` with the overflow when no
     layout fits (R17).
@@ -134,25 +164,9 @@ def check(
         )
         _ = b.build()
         raise ApplicationDoesNotFitException((b.page1_end or 0) - BOTTOM)
-    layout, with_guardian, _room = chosen
-    b = ApplicationFormBuilder(
-        template,
-        worst,
-        labels,
-        options,
-        logo,
-        today,
-        layout,
-        measure=True,
-        worst=True,
-        guardian=False,
-    )
-    _ = b.build()
-    without_guardian = (BOTTOM - (b.page1_end or 0) - SPREAD_SLACK) / max(b.gaps, 1)
+    layout, spread, _room = chosen
     return {
         "name": layout.name,
-        "spread": {
-            "with_guardian": with_guardian,
-            "without_guardian": without_guardian,
-        },
+        "spread": {"with_guardian": spread, "without_guardian": spread},
+        ONE_SPREAD: True,
     }

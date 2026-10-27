@@ -152,7 +152,7 @@ async def test_should_put_the_signing_part_on_page_two_when_the_form_is_long(
 
 @pytest.mark.requirement("applications:R21")
 @pytest.mark.asyncio
-async def test_should_print_the_guardian_block_when_member_is_a_minor(
+async def test_should_print_the_guardian_block_on_every_members_form(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -179,10 +179,14 @@ async def test_should_print_the_guardian_block_when_member_is_a_minor(
         await own_form(client, guarded, published["id"]), published["id"], "dev"
     )
 
-    assert GUARDIAN_HEADING in minor_text
-    assert GUARDIAN_HEADING not in adult_text
-    assert "Parent / guardian signature" not in adult_text
-    assert GUARDIAN_HEADING in guarded_text and "Meera Iyer" in guarded_text
+    # every form prints the block, its under-18 note and the guardian's
+    # signature line; it is filled only for a member with a guardian (#128)
+    for text in (minor_text, adult_text, guarded_text):
+        assert GUARDIAN_HEADING in text
+        assert "Only for applicants below 18 years of age" in text
+        assert "Parent / guardian signature" in text
+    assert "Meera Iyer" in guarded_text
+    assert "Meera Iyer" not in minor_text + adult_text
 
 
 # R10, R11 -----------------------------------------------------------------

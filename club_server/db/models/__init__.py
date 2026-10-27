@@ -36,6 +36,7 @@ from .evaluation_template_item import EvaluationItemType, EvaluationTemplateItem
 from .evaluation_template import EvaluationTemplate
 from .evaluation_answer import EvaluationAnswer, EvaluationAnswerChoice
 from .application import Application
+from .application_drawing import ApplicationDrawing
 from .application_library_text import ApplicationLibraryText
 from .evaluation import (
     Evaluation,
@@ -45,6 +46,7 @@ from .evaluation import (
 
 __all__ = [
     "Application",
+    "ApplicationDrawing",
     "ApplicationLibraryText",
     "User",
     "UserStatus",

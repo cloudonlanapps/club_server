@@ -15,6 +15,7 @@ from ..exceptions import (
     ApplicationNotEligibleException,
     ApplicationNotFoundException,
     ApplicationNotPublishedException,
+    ApplicationNotSavedException,
     ApplicationReferenceException,
     ApplicationTransitionException,
     ApplicationUnknownFactException,
@@ -32,6 +33,7 @@ DOMAIN_ERRORS = (
     ApplicationNotEligibleException,
     ApplicationNotFoundException,
     ApplicationNotPublishedException,
+    ApplicationNotSavedException,
     ApplicationReferenceException,
     ApplicationTransitionException,
     ApplicationUnknownFactException,
@@ -48,6 +50,7 @@ _NOT_FOUND: dict[type[Exception], str] = {
 
 _UNPROCESSABLE: dict[type[Exception], str] = {
     ApplicationNotPublishedException: "APPLICATION_NOT_PUBLISHED",
+    ApplicationNotSavedException: "APPLICATION_NOT_SAVED",
     ApplicationNotEligibleException: "APPLICATION_NOT_ELIGIBLE",
     ApplicationReferenceException: "APPLICATION_INVALID_REFERENCE",
     ApplicationTransitionException: "INVALID_TRANSITION",
