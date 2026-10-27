@@ -63,7 +63,7 @@ def to_http(exc: Exception) -> HTTPException:
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             "APPLICATION_INCOMPLETE",
             str(exc),
-            {"missing": exc.missing, "language": exc.language},
+            {"missing": exc.missing},
         )
     if isinstance(exc, ApplicationDoesNotFitException):
         return _http(
