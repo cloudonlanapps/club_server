@@ -98,7 +98,9 @@ digits without `+`, e.g. `91` — reported by `GET /v1/capabilities` as
 code; any other value stops the server at startup), `ENCRYPTION_KEY` (base64 of 32 bytes; encrypted uploads
 answer 503 without it), `TRANSACTIONAL_EMAIL_PROVIDER`
 and `BROADCAST_EMAIL_PROVIDER` (`console`, i.e. print instead of send; `resend`
-/ `brevo` need `RESEND_API_KEY` / `BREVO_API_KEY`), `EMAIL_LOGO_PATH`,
+/ `brevo` need `RESEND_API_KEY` / `BREVO_API_KEY`), `EMAIL_LOGO_PATH`
+(the email banner's logo, relative to `STATIC_DIR`; also the PDFs' logo when
+no site logo is uploaded),
 `EMAIL_AFFILIATION`, `API_DOCS_ENABLED` (off; on, the server serves Swagger UI
 at `/docs`, ReDoc at `/redoc` and the schema at `/openapi.json`, which are
 404 otherwise; an empty value is off. The dev and test stacks turn it on).
