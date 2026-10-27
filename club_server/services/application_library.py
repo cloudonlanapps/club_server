@@ -1,8 +1,10 @@
-"""The club's library of texts, and the clauses list (#126, applications R7, R7a).
+"""The club's library of texts, and the clauses list (#126, #133, applications R7–R7b).
 
-Club texts are stored once and offered in every template beside the built-in
-clauses; admins create, edit, read and delete them. Deleting one changes no
-template: a pasted text is the template's own (#107).
+Club texts are stored once and offered in every template; the built-in
+clauses are seeded into them on first use (``application_seed``), so the
+clauses list is the library. Admins create, edit, read and delete every
+text. Deleting one changes no template: a pasted text is the template's own
+(#107).
 """
 
 from typing import Any
@@ -12,16 +14,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.application_library_text import ApplicationLibraryText
 from ..exceptions import ApplicationLibraryTextNotFoundException
-from ..schemas.application import ApplicationClause, ApplicationClausesResponse
 from ..schemas.application_library import (
+    ApplicationClausesResponse,
     ApplicationLibraryTextCreate,
     ApplicationLibraryTextResponse,
     ApplicationLibraryTextUpdate,
 )
 from ..utils import now_utc_ms
 from .application_catalogue import library
+from .application_seed import ensure_library_seeded
 
-BUILTIN, CLUB = "builtin", "club"
 CONTENT_FIELDS = tuple(ApplicationLibraryTextCreate.model_fields)
 
 
@@ -32,6 +34,7 @@ def library_text_response(
     return ApplicationLibraryTextResponse.model_validate(
         {
             "id": row.id,
+            "key": row.key,
             "kind": row.kind,
             "name": row.name,
             "heading": row.heading,
@@ -56,6 +59,7 @@ class ApplicationLibraryService:
 
     async def list_all(self) -> list[ApplicationLibraryText]:
         """Every club text, oldest first."""
+        await ensure_library_seeded(self.db)
         rows = await self.db.execute(
             select(ApplicationLibraryText).order_by(ApplicationLibraryText.id)
         )
@@ -63,6 +67,7 @@ class ApplicationLibraryService:
 
     async def get_or_raise(self, text_id: int) -> ApplicationLibraryText:
         """One club text, or ``ApplicationLibraryTextNotFoundException``."""
+        await ensure_library_seeded(self.db)
         row = await self.db.get(ApplicationLibraryText, text_id)
         if row is None:
             raise ApplicationLibraryTextNotFoundException(text_id)
@@ -72,6 +77,7 @@ class ApplicationLibraryService:
         self, content: ApplicationLibraryTextCreate, created_by: str
     ) -> ApplicationLibraryText:
         """A new club text."""
+        await ensure_library_seeded(self.db)
         now = now_utc_ms()
         row = ApplicationLibraryText(
             created_by=created_by, created_at=now, updated_at=now, **_content(content)
@@ -106,37 +112,11 @@ class ApplicationLibraryService:
         await self.db.flush()
 
     async def clauses(self) -> ApplicationClausesResponse:
-        """The built-in clauses in the library's order, then the club's texts
-        (R7, R7a)."""
+        """The library's texts, oldest first, with the languages and choices
+        a fact is printed in (R7, R7b)."""
         lib = library()
-        builtin = [
-            ApplicationClause.model_validate(
-                {
-                    "source": BUILTIN,
-                    "key": key,
-                    "kind": clause["kind"],
-                    "gaps": clause.get("gaps", {}),
-                    "heading": clause.get("heading"),
-                    "text": clause["text"],
-                }
-            )
-            for key, clause in lib["clauses"].items()
-        ]
-        club = [
-            ApplicationClause.model_validate(
-                {
-                    "source": CLUB,
-                    "id": row.id,
-                    "kind": row.kind,
-                    "name": row.name,
-                    "heading": row.heading,
-                    "text": row.text,
-                }
-            )
-            for row in await self.list_all()
-        ]
         return ApplicationClausesResponse(
             languages=list(lib["formats"]["months"]),
             choices=lib["choices"],
-            clauses=builtin + club,
+            clauses=[library_text_response(row) for row in await self.list_all()],
         )

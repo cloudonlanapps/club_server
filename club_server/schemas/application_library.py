@@ -47,9 +47,20 @@ class ApplicationLibraryTextUpdate(CamelCaseModel):
 
 
 class ApplicationLibraryTextResponse(ApplicationLibraryTextCreate):
-    """A club text as returned."""
+    """A club text as returned; ``key`` names the built-in clause a seeded
+    text came from (#133), null for one the club wrote."""
 
     id: int
+    key: str | None = None
     created_by: str | None = None
     created_at_utc: int
     updated_at_utc: int
+
+
+class ApplicationClausesResponse(CamelCaseModel):
+    """The club's library texts for the editor's pickers, and the languages
+    and choices a fact is printed in (R7, #133)."""
+
+    languages: list[str]
+    choices: dict[str, dict[str, str]]
+    clauses: list[ApplicationLibraryTextResponse]

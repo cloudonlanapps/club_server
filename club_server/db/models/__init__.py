@@ -38,6 +38,7 @@ from .evaluation_answer import EvaluationAnswer, EvaluationAnswerChoice
 from .application import Application
 from .application_drawing import ApplicationDrawing
 from .application_library_text import ApplicationLibraryText
+from .application_seed import ApplicationSeed
 from .evaluation import (
     Evaluation,
     EvaluationMediaLink,
@@ -48,6 +49,7 @@ __all__ = [
     "Application",
     "ApplicationDrawing",
     "ApplicationLibraryText",
+    "ApplicationSeed",
     "User",
     "UserStatus",
     "Role",

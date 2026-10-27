@@ -1,8 +1,7 @@
-"""The clauses list and the club's library of texts (#126, applications R7, R7a).
+"""The clauses list and the club's library of texts (#126, #133, applications R7–R7b).
 
-``GET /applications/clauses`` lists the built-in clauses and the club's
-texts together, each marked with its source, for the editor to paste as
-written. Admins create, read, edit and delete the club's texts under
+``GET /applications/clauses`` lists the club's library texts, the built-in
+clauses seeded into it among them, for the editor to paste as written. Admins create, read, edit and delete the club's texts under
 ``/applications/library``. While the module is off every route answers 503
 ``APPLICATIONS_DISABLED``.
 """
@@ -16,8 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
 from ..dependencies import get_db, require_admin, require_applications_enabled
-from ..schemas.application import ApplicationClausesResponse
 from ..schemas.application_library import (
+    ApplicationClausesResponse,
     ApplicationLibraryTextCreate,
     ApplicationLibraryTextResponse,
     ApplicationLibraryTextUpdate,
@@ -40,7 +39,7 @@ Admin = Annotated[User, Depends(require_admin())]
 
 @router.get("/clauses", response_model=ApplicationClausesResponse)
 async def get_clauses(db: Db, _current_user: Admin) -> ApplicationClausesResponse:
-    """The built-in clauses, then the club's texts, for the editor (R7, R7a)."""
+    """The club's library texts, for the editor (R7, R7b)."""
     return await ApplicationLibraryService(db).clauses()
 
 

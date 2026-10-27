@@ -262,29 +262,3 @@ class ApplicationLabelsResponse(CamelCaseModel):
 
     languages: list[str]
     labels: dict[str, dict[str, str]]
-
-
-ClauseSource = Literal["builtin", "club"]
-
-
-class ApplicationClause(CamelCaseModel):
-    """One text the editor can paste: a built-in clause (``key``, its gaps'
-    fact types) or a club library text (``id``, ``name``), each with its
-    kind, heading (a rule's) and text per language, gaps as written."""
-
-    source: ClauseSource
-    key: str | None = None
-    id: int | None = None
-    kind: str
-    name: str | None = None
-    gaps: dict[str, str] | None = None
-    heading: dict[str, str] | None = None
-    text: dict[str, str]
-
-
-class ApplicationClausesResponse(CamelCaseModel):
-    """The built-in clauses, then the club's texts, for the editor's pickers."""
-
-    languages: list[str]
-    choices: dict[str, dict[str, str]]
-    clauses: list[ApplicationClause]
