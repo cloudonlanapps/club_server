@@ -241,9 +241,7 @@ async def test_should_head_the_evaluation_copy_with_the_email_logo_file(
     template_id = await create_template(
         client, admin, name="Spring review", layout=[rating_item("Forward stride")]
     )
-    evaluation_id = await create_general_evaluation(
-        client, coach, template_id, "alice"
-    )
+    evaluation_id = await create_general_evaluation(client, coach, template_id, "alice")
     without = await preview(client, coach, evaluation_id)
     _ = put_static_logo(static_dir, static_png())
 

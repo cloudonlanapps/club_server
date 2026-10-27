@@ -233,6 +233,14 @@ signed-in user whose account is `registered`, `pending` or `active`
   drawn with: a republish, a change of logo (set, changed or removed) or a
   template published before #128 is drawn again on its next download.
   Unpublishing drops it. The preview is always drawn in full (R19).
+- **R25a** [✅] The logo heading a form (and an evaluation's member copy,
+  evaluation R63) is the site logo uploaded in Website media (purpose
+  `logo`); without one, the email banner's logo file,
+  `<STATIC_DIR>/<EMAIL_LOGO_PATH>`, when that path is set and its file is an
+  image; otherwise there is none. A logo file that is missing or not an
+  image is logged as a warning and the next source is used. A change in
+  which logo applies — an upload, or the email logo file appearing or
+  changing — draws a published form again (R25) (#135).
 - **R26** [✅] A form is made off the API's event loop, in a worker
   thread: the member's form, an admin's member form and the preview, and
   save's measuring and publish's drawing. Other requests are answered while
