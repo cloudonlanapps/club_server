@@ -1,7 +1,7 @@
 """Shared setup for the application tests (#93, applications R1–R21).
 
 The template is fictional and club-neutral ("Example Club", "City Rink"),
-built from library clauses and facts as an admin would build one.
+its texts as the editor leaves them once library clauses are filled in.
 """
 
 import io
@@ -38,7 +38,12 @@ def auth(token: str) -> dict[str, str]:
 
 
 def template_body() -> dict[str, Any]:
-    """A complete English + Marathi template, as an admin would send it."""
+    """A complete English + Marathi template, as an admin would send it.
+
+    Every printed text is custom text: the clause library only fills a
+    clause for the editor to insert (applications R6, R9a). The facts are
+    the editor's aid and are never printed.
+    """
     return {
         "languages": ["en", "mr"],
         "facts": {
@@ -60,14 +65,20 @@ def template_body() -> dict[str, Any]:
             "en": "Selection Trial — Registration Form",
             "mr": "निवड चाचणी — नोंदणी अर्ज",
         },
-        "subtitle": {"fact": "camp"},
+        "subtitle": {"en": "16–17 November 2026", "mr": "16 ते 17 नोव्हेंबर 2026"},
         "header": [
-            {"fact": "venue"},
+            {"en": "City Rink", "mr": "सिटी रिंक"},
             [
-                {"clause": "header.training_camp", "args": {"dates": "camp"}},
-                {"clause": "header.matches", "args": {"dates": "matches"}},
+                {
+                    "en": "Training camp: 16–17 November 2026",
+                    "mr": "प्रशिक्षण शिबिर: 16 ते 17 नोव्हेंबर 2026",
+                },
+                {
+                    "en": "Matches: 19–21 November 2026",
+                    "mr": "सामने: 19 ते 21 नोव्हेंबर 2026",
+                },
             ],
-            {"fact": "phone"},
+            {"en": "98765 43210"},
         ],
         "ageCategories": [
             {
@@ -81,22 +92,56 @@ def template_body() -> dict[str, Any]:
             },
         ],
         "selections": [
-            {"clause": "selection.attend_training_camp", "args": {"dates": "camp"}}
+            {
+                "en": "I will attend the training camp from 16–17 November 2026.",
+                "mr": "मी 16 ते 17 नोव्हेंबर 2026 दरम्यानच्या प्रशिक्षण शिबिराला उपस्थित राहीन.",
+            }
         ],
-        "declaration": {"clause": "declaration.trial"},
+        "declaration": {
+            "en": "I hereby declare that the information provided above is true "
+            "and correct. I agree to abide by all the rules and regulations of "
+            "the selection trial.",
+            "mr": "मी याची खात्री देतो/देते की वरील सर्व माहिती अचूक व खरी आहे आणि मी "
+            "निवड चाचणीतील सर्व नियम व अटींचे पालन करीन.",
+        },
         "formFooter": {"en": "Play fair, play hard.", "mr": "खिलाडूवृत्तीने खेळा."},
         "terms": [
-            {"clause": "rule.identity_proof"},
-            {"clause": "rule.matches", "args": {"dates": "matches", "venue": "venue"}},
+            {
+                "heading": {"en": "Identity Proof Required", "mr": "ओळखपत्र आवश्यक"},
+                "body": {
+                    "en": "All players must carry a valid Aadhaar Card or any "
+                    "government-issued document bearing their date of birth and "
+                    "address. This is mandatory for participation.",
+                    "mr": "सर्व खेळाडूंनी आधार कार्ड किंवा जन्मतारीख व पत्ता असलेले वैध "
+                    "कागदपत्र सोबत आणणे अनिवार्य आहे.",
+                },
+            },
+            {
+                "heading": {"en": "Matches", "mr": "सामने"},
+                "body": {
+                    "en": "Tournament matches will take place from 19–21 November "
+                    "2026 at City Rink.",
+                    "mr": "19 ते 21 नोव्हेंबर 2026 दरम्यान सिटी रिंक येथे स्पर्धेचे सामने होतील.",
+                },
+            },
             {
                 "heading": {"en": "Kit", "mr": "साहित्य"},
                 "body": {"en": "Bring your own helmet.", "mr": "स्वतःचे हेल्मेट आणा."},
             },
         ],
         "termsNotes": [
-            {"clause": "note.follow_rules"},
             {
-                "text": {"clause": "note.keys_to_success"},
+                "text": {
+                    "en": "All participants are expected to strictly follow the "
+                    "above rules and regulations.",
+                    "mr": "सर्वांनी वरील नियमांचे काटेकोर पालन करावे.",
+                }
+            },
+            {
+                "text": {
+                    "en": "Discipline, Punctuality and Preparation — Keys to Success",
+                    "mr": "शिस्त, वेळेचे पालन आणि तयारी हीच यशाची गुरुकिल्ली आहे",
+                },
                 "attribution": {"en": "— Example Club"},
             },
         ],

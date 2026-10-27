@@ -1,4 +1,4 @@
-"""Clauses, facts and completeness, unit-tested on the pure code (#93).
+"""Clauses, facts and completeness, unit-tested on the pure code (#93, #107).
 
 The form's own document shape (ISO dates, snake-case keys) is what these
 functions read; the API's shape is turned into it by
@@ -20,10 +20,11 @@ from club_server.services.application_catalogue import (
 )
 from club_server.services.application_text import (
     fact_text,
+    fill_clause,
     fmt_amount,
     fmt_range,
     incomplete,
-    resolve,
+    printable,
 )
 
 LIB = library()
@@ -137,89 +138,93 @@ def template(**kwargs: Any) -> dict[str, Any]:
     return base
 
 
-@pytest.mark.requirement("applications:R6")
-def test_should_fill_a_clause_from_facts_in_every_language_when_resolved():
-    doc = template(
-        facts={
-            "matches": {"type": "date_range", "from": "2026-11-19", "to": "2026-11-21"},
-            "venue": {"type": "name", "value": {"en": "City Rink", "mr": "सिटी रिंक"}},
-        },
-        terms=[
-            {"clause": "rule.matches", "args": {"dates": "matches", "venue": "venue"}}
-        ],
-        header=[{"fact": "venue"}],
-    )
+DECLARATION = {"en": "I agree to the rules.", "mr": "मला नियम मान्य आहेत."}
+MATCHES = {"type": "date_range", "from": "2026-11-19", "to": "2026-11-21"}
+VENUE = {"type": "name", "value": {"en": "City Rink", "mr": "सिटी रिंक"}}
 
-    out = resolve(doc, LIB)
 
-    assert out["terms"][0]["heading"]["en"] == "1. Matches"
-    assert out["terms"][0]["body"]["en"] == (
+@pytest.mark.requirement("applications:R9a")
+def test_should_fill_a_clause_from_facts_in_every_language_when_filled():
+    filled = fill_clause("rule.matches", {"dates": MATCHES, "venue": VENUE}, LIB)
+
+    assert filled["heading"] == LIB["clauses"]["rule.matches"]["heading"]
+    assert filled["text"]["en"] == (
         "Tournament matches will take place from 19–21 November 2026 at City Rink."
     )
     assert (
-        out["terms"][0]["body"]["mr"]
+        filled["text"]["mr"]
         == "19 ते 21 नोव्हेंबर 2026 दरम्यान सिटी रिंक येथे स्पर्धेचे सामने होतील."
     )
-    assert out["header"][0]["mr"] == "सिटी रिंक"
+    assert set(filled["text"]) == {"en", "mr", "hi"}
 
 
 @pytest.mark.requirement("applications:R9a")
 @pytest.mark.parametrize(
-    ("doc", "reason"),
+    ("clause", "facts", "reason"),
     [
+        ("declaration.nope", {}, "no clause 'declaration.nope'"),
+        ("rule.matches", {"dates": MATCHES}, "needs facts for venue"),
         (
-            template(declaration={"clause": "declaration.nope"}),
-            "no clause 'declaration.nope'",
+            "selection.attend_training_camp",
+            {"dates": {"type": "date", "value": "2026-11-16"}},
+            "gap 'dates' needs a date_range, not a date",
         ),
+        ("declaration.trial", {"venue": VENUE}, "has no gap 'venue'"),
         (
-            template(terms=[{"clause": "rule.matches", "args": {"dates": "m"}}]),
-            "needs facts for venue",
-        ),
-        (template(subtitle={"fact": "camp"}), "no fact named 'camp'"),
-        (
-            template(
-                facts={"camp": {"type": "date", "value": "2026-11-16"}},
-                selections=[
-                    {
-                        "clause": "selection.attend_training_camp",
-                        "args": {"dates": "camp"},
-                    }
-                ],
-            ),
-            "fact 'camp' is a date, the clause needs a date_range",
-        ),
-        (template(terms=[{"clause": "declaration.trial"}]), "has no heading"),
-        (
-            template(
-                facts={"kinds": {"type": "choices", "value": ["skis"]}},
-                header=[{"fact": "kinds"}],
-            ),
+            "selection.attend_practice",
+            {"dates": MATCHES, "kinds": {"type": "choices", "value": ["skis"]}},
             "no choice 'skis'",
         ),
     ],
 )
-def test_should_refuse_a_broken_reference_when_resolved(
-    doc: dict[str, Any], reason: str
+def test_should_refuse_a_fill_when_the_clause_or_a_fact_does_not_fit(
+    clause: str, facts: dict[str, Any], reason: str
 ):
     with pytest.raises(ApplicationReferenceException) as caught:
-        _ = resolve(doc, LIB)
+        _ = fill_clause(clause, facts, LIB)
 
     assert reason in str(caught.value)
 
 
+@pytest.mark.requirement("applications:R6")
+def test_should_print_custom_text_as_written_and_number_english_headings():
+    doc = printable(
+        template(
+            header=[{"en": "City Rink"}, [{"en": "Camp"}, {"en": "Matches"}]],
+            terms=[
+                {"heading": {"en": "Kit", "mr": "साहित्य"}, "body": {"en": "Helmet"}},
+                {"heading": {"en": "Fees"}, "body": {"en": "None"}},
+            ],
+            terms_notes=[
+                {"text": {"en": "Be on time"}, "attribution": {"en": "Coach"}}
+            ],
+            declaration=DECLARATION,
+        )
+    )
+
+    assert doc["header"] == [{"en": "City Rink"}, {"en": "Camp\nMatches"}]
+    assert [t["heading"] for t in doc["terms"]] == [
+        {"en": "1. Kit", "mr": "साहित्य"},
+        {"en": "2. Fees"},
+    ]
+    assert doc["terms_notes"] == [
+        {"text": {"en": "Be on time"}, "attribution": {"en": "Coach"}}
+    ]
+    assert doc["declaration"] == DECLARATION
+
+
 @pytest.mark.requirement("applications:R9")
 def test_should_name_each_text_missing_a_language_when_checked():
-    doc = resolve(
+    doc = printable(
         template(
             title={"en": "Trial"},
-            declaration={"clause": "declaration.trial"},
+            declaration=DECLARATION,
             form_footer={"en": "Play fair"},
             selections=[{"en": "I will come", "mr": "मी येईन"}, {"en": "Only English"}],
             terms=[{"heading": {"en": "Kit"}, "body": {"en": "Helmet", "mr": "हेल्मेट"}}],
             terms_notes=[{"text": {"en": "Be on time"}}],
             header=[{"en": "City Rink"}],  # header items may stay English only
-        ),
-        LIB,
+        )
     )
 
     assert incomplete(doc) == [
@@ -233,7 +238,7 @@ def test_should_name_each_text_missing_a_language_when_checked():
 
 @pytest.mark.requirement("applications:R9")
 def test_should_name_a_missing_title_or_declaration_when_checked():
-    doc = resolve(template(form_footer={"en": "x", "mr": "य"}), LIB)
+    doc = printable(template(form_footer={"en": "x", "mr": "य"}))
 
     assert incomplete(doc) == [
         {"field": "title", "languages": ["en", "mr"]},
@@ -243,26 +248,20 @@ def test_should_name_a_missing_title_or_declaration_when_checked():
 
 @pytest.mark.requirement("applications:R9")
 def test_should_name_a_missing_form_footer_when_checked():
-    doc = resolve(
-        template(
-            title={"en": "x", "mr": "य"}, declaration={"clause": "declaration.trial"}
-        ),
-        LIB,
-    )
+    doc = printable(template(title={"en": "x", "mr": "य"}, declaration=DECLARATION))
 
     assert incomplete(doc) == [{"field": "formFooter", "languages": ["en", "mr"]}]
 
 
 @pytest.mark.requirement("applications:R9")
 def test_should_find_nothing_missing_when_english_only_template_is_complete():
-    doc = resolve(
+    doc = printable(
         {
             "languages": ["en"],
             "title": {"en": "Trial"},
-            "declaration": {"clause": "declaration.camp"},
+            "declaration": {"en": "I agree."},
             "form_footer": {"en": "Play fair"},
-        },
-        LIB,
+        }
     )
 
     assert incomplete(doc) == []

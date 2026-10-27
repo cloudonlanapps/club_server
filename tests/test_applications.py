@@ -51,6 +51,7 @@ async def listed_ids(client: AsyncClient, token: str, query: str = "") -> list[i
         ("GET", "/1/form/ravi"),
         ("GET", "/labels"),
         ("GET", "/clauses"),
+        ("POST", "/clauses/fill"),
     ],
 )
 async def test_should_refuse_every_route_when_module_is_off(

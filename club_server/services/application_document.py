@@ -23,7 +23,8 @@ def _iso(day_ms: int | None) -> str | None:
     return day_to_date(day_ms).isoformat() if day_ms is not None else None
 
 
-def _fact(stored: JsonDict) -> JsonDict:
+def fact_document(stored: JsonDict) -> JsonDict:
+    """A fact in the API's shape as the form's code reads it: ISO dates."""
     fact = dict(stored)
     if fact["type"] == DATE_FACT:
         fact["value"] = _iso(fact["value"])
@@ -51,7 +52,7 @@ def template_document(application: Application) -> JsonDict:
     return {
         "status": application.status,
         "languages": list(application.languages),
-        "facts": {name: _fact(f) for name, f in facts.items()},
+        "facts": {name: fact_document(f) for name, f in facts.items()},
         "organisation": application.organisation,
         "title": application.title,
         "subtitle": application.subtitle,

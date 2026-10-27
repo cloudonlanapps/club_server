@@ -1,11 +1,10 @@
-"""Clauses and facts: a template's texts resolved per language (#93).
+"""Clauses, facts and a template's printed texts (#93, #107).
 
-A template states its facts once (dates, venue, phone, …) and builds its
-header items, declaration, rules, selections and notes from library clauses
-whose gaps name those facts, or from custom text in each language. Resolving
-turns every reference into plain text per language before the form is laid
-out (applications R6–R8). Ported from the prototype; its exits are domain
-errors here.
+A template's printed texts are custom text in each language. The clause
+library is an auto-fill source: ``fill_clause`` fills one clause's gaps from
+the facts given for them, formatted per language (applications R7, R9a),
+and the editor inserts the result as custom text. Save and print read no
+clause (R6). Ported from the prototype; its exits are domain errors here.
 
 The template given here is the form's own document (``application_document``):
 snake-case keys and ISO dates, as the prototype read them.
@@ -16,7 +15,7 @@ from typing import Any
 
 from ..exceptions import ApplicationReferenceException
 from .application_catalogue import JsonDict
-from .application_pdf_layout import ENGLISH, SEPARATOR
+from .application_pdf_layout import ENGLISH
 
 # Day parts: a time before 12, 16, 20 or after.
 NOON, AFTERNOON_END, EVENING_END = 12, 16, 20
@@ -99,86 +98,86 @@ def fact_text(fact: JsonDict, lang: str, lib: JsonDict) -> str:
     raise ApplicationReferenceException(f"unknown fact type {kind!r}")
 
 
-def resolve(template: JsonDict, lib: JsonDict) -> JsonDict:
-    """The template with every clause and fact reference turned into text in
-    each of the library's languages."""
-    facts: JsonDict = template.get("facts") or {}
-    clauses: JsonDict = lib["clauses"]
+def fill_clause(clause_id: str, facts: JsonDict, lib: JsonDict) -> JsonDict:
+    """One library clause, its gaps filled from ``facts`` (gap → fact), in
+    each of the library's languages: ``{"heading": … | None, "text": …}``
+    (applications R7, R9a).
+
+    It reads and writes no template: the editor inserts the result as
+    custom text.
+    """
+    c: JsonDict | None = lib["clauses"].get(clause_id)
+    if c is None:
+        raise ApplicationReferenceException(f"no clause {clause_id!r} in the library")
+    gaps: dict[str, str] = c.get("gaps", {})
+    unknown = sorted(set(facts) - set(gaps))
+    if unknown:
+        raise ApplicationReferenceException(
+            f"clause {clause_id!r} has no gap {unknown[0]!r}"
+        )
+    missing = sorted(set(gaps) - set(facts))
+    if missing:
+        raise ApplicationReferenceException(
+            f"clause {clause_id!r} needs facts for {', '.join(missing)}"
+        )
+    for gap, kind in gaps.items():
+        given = facts[gap]["type"]
+        if given != kind:
+            raise ApplicationReferenceException(
+                f"gap {gap!r} needs a {kind}, not a {given}"
+            )
     langs = list(lib["formats"]["months"])
+    values = {
+        gap: {lang: fact_text(facts[gap], lang, lib) for lang in langs} for gap in gaps
+    }
 
-    def fact(name: str, expected: str | None = None) -> dict[str, str]:
-        if name not in facts:
-            raise ApplicationReferenceException(f"no fact named {name!r}")
-        if expected and facts[name]["type"] != expected:
-            raise ApplicationReferenceException(
-                f"fact {name!r} is a {facts[name]['type']}, the clause needs a {expected}"
-            )
-        return {lang: fact_text(facts[name], lang, lib) for lang in langs}
-
-    def clause(ref: JsonDict, part: str = "text") -> dict[str, str]:
-        c: JsonDict | None = clauses.get(ref["clause"])
-        if c is None:
-            raise ApplicationReferenceException(
-                f"no clause {ref['clause']!r} in the library"
-            )
-        if part not in c:
-            raise ApplicationReferenceException(
-                f"clause {ref['clause']!r} has no {part}, so it cannot be a rule"
-            )
-        args: JsonDict = ref.get("args") or {}
-        gaps: JsonDict = c.get("gaps", {})
-        missing = set(gaps) - set(args)
-        if missing:
-            raise ApplicationReferenceException(
-                f"clause {ref['clause']!r} needs facts for {', '.join(sorted(missing))}"
-            )
-        values = {gap: fact(args[gap], kind) for gap, kind in gaps.items()}
+    def filled(part: dict[str, str]) -> dict[str, str]:
         return {
-            lang: c[part][lang].format(**{g: v[lang] for g, v in values.items()})
-            for lang in c[part]
+            lang: part[lang].format(**{g: v[lang] for g, v in values.items()})
+            for lang in part
         }
 
-    def text(value: Any, joiner: str = SEPARATOR) -> dict[str, str] | None:
-        """A plain {lang: text}, a clause, a fact, or a list of them joined."""
-        if value is None:
-            return None
-        if isinstance(value, list):
-            parts = [text(v) or {} for v in value]  # pyright: ignore[reportUnknownVariableType]
-            return {
-                lang: joiner.join(p[lang] for p in parts if p.get(lang))
-                for lang in langs
-            }
-        if "clause" in value:
-            return clause(value)
-        if "fact" in value:
-            return fact(value["fact"])
-        plain: dict[str, str] = value
-        return plain
+    heading: dict[str, str] | None = c.get("heading")
+    return {
+        "heading": filled(heading) if heading else None,
+        "text": filled(c["text"]),
+    }
 
+
+def _joined(value: Any) -> dict[str, str] | None:
+    """A custom text, or a header item's list of them joined one per line."""
+    if not isinstance(value, list):
+        text: dict[str, str] | None = value
+        return text
+    parts: list[dict[str, str]] = [p for p in value if p]  # pyright: ignore[reportUnknownVariableType]
+    langs = list(dict.fromkeys(lang for part in parts for lang in part))
+    return {
+        lang: "\n".join(part[lang] for part in parts if part.get(lang))
+        for lang in langs
+    }
+
+
+def printable(template: JsonDict) -> JsonDict:
+    """The template's texts as the form prints them (#107).
+
+    Every text is custom text already; nothing is read from the clause
+    library. A header item's lines are joined, English term headings are
+    numbered as on paper forms, and each note carries its attribution.
+    """
     out = dict(template)
-    for key in ("organisation", "title", "subtitle", "declaration", "form_footer"):
-        out[key] = text(template.get(key))
     header: list[Any] = template.get("header") or []
-    selections: list[Any] = template.get("selections") or []
-    items: list[JsonDict] = template.get("terms") or []
-    notes: list[JsonDict] = template.get("terms_notes") or []
-    out["header"] = [text(h, joiner="\n") for h in header]  # one line each
-    out["selections"] = [text(s) for s in selections]
+    out["header"] = [_joined(h) for h in header]
+    out["selections"] = list(template.get("selections") or [])
     terms: list[JsonDict] = []
-    for i, item in enumerate(items, 1):
-        if "clause" in item:
-            item = {"heading": clause(item, "heading"), "body": clause(item)}
+    for i, item in enumerate(template.get("terms") or [], 1):
         heading: dict[str, str] = dict(item.get("heading") or {})
-        if heading.get(ENGLISH):  # English headings are numbered, as on paper forms
+        if heading.get(ENGLISH):
             heading[ENGLISH] = f"{i}. {heading[ENGLISH]}"
         terms.append({"heading": heading, "body": item.get("body")})
     out["terms"] = terms
+    notes: list[JsonDict] = template.get("terms_notes") or []
     out["terms_notes"] = [
-        {
-            "text": text(n["text"] if "text" in n else n),
-            "attribution": text(n.get("attribution")),
-        }
-        for n in notes
+        {"text": n.get("text"), "attribution": n.get("attribution")} for n in notes
     ]
     return out
 
@@ -208,7 +207,7 @@ def lacking(
 def incomplete(template: JsonDict) -> list[JsonDict]:
     """Each text that needs a print language it lacks, with the languages (R9).
 
-    ``template`` is resolved. The fields name the API's paths
+    ``template`` is printable. The fields name the API's paths
     (``termsNotes[0].text``).
     """
     langs: list[str] = template["languages"]

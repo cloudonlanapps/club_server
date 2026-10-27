@@ -77,6 +77,57 @@ async def test_should_refuse_a_text_when_it_is_no_known_shape(
     assert await listed_ids(client, admin) == []
 
 
+REFERENCES: list[dict[str, Any]] = [
+    {"title": {"clause": "declaration.trial"}},
+    {"declaration": {"clause": "declaration.trial"}},
+    {"subtitle": {"fact": "camp"}},
+    {"header": [{"fact": "venue"}]},
+    {"header": [[{"clause": "header.matches", "args": {"dates": "matches"}}]]},
+    {"selections": [{"clause": "selection.attend_training_camp"}]},
+    {"formFooter": {"fact": "phone"}},
+    {"terms": [{"clause": "rule.identity_proof"}]},
+    {"terms": [{"heading": {"clause": "rule.fee"}, "body": {"en": "Fee"}}]},
+    {"terms": [{"heading": {"en": "Fee"}, "body": {"fact": "fee"}}]},
+    {"termsNotes": [{"clause": "note.follow_rules"}]},
+    {"termsNotes": [{"text": {"clause": "note.keys_to_success"}}]},
+    {"termsNotes": [{"text": {"en": "x"}, "attribution": {"fact": "venue"}}]},
+]
+
+
+@pytest.mark.requirement("applications:R6")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", REFERENCES)
+async def test_should_refuse_a_library_reference_when_a_template_is_created(
+    client: AsyncClient, db_session: AsyncSession, body: dict[str, Any]
+):
+    admin = await create_admin_user(db_session)
+    await db_session.commit()
+
+    response = await client.post(APPLICATIONS, json=body, headers=auth(admin))
+
+    assert response.status_code == 422, response.text
+    assert await listed_ids(client, admin) == []
+
+
+@pytest.mark.requirement("applications:R6")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("change", REFERENCES)
+async def test_should_refuse_a_library_reference_when_a_draft_is_edited(
+    client: AsyncClient, db_session: AsyncSession, change: dict[str, Any]
+):
+    admin = await create_admin_user(db_session)
+    created = await create_application(client, admin)
+    await db_session.commit()
+
+    response = await client.patch(
+        f"{APPLICATIONS}/{created['id']}", json=change, headers=auth(admin)
+    )
+
+    assert response.status_code == 422, response.text
+    read = (await get_application(client, admin, created["id"])).json()
+    assert read == created
+
+
 @pytest.mark.requirement("applications:R6a")
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
