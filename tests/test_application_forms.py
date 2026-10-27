@@ -1,6 +1,7 @@
 """Members' forms and the admin's preview, as PDFs (#93, R10, R11, R15–R21)."""
 
 from datetime import date
+from typing import Any
 
 import pytest
 from httpx import AsyncClient
@@ -15,6 +16,7 @@ from .application_helpers import (
     auth,
     create_applicant,
     create_application,
+    day,
     move,
     page_texts,
     published_application,
@@ -379,6 +381,37 @@ async def test_should_preview_the_demo_member_when_admin_asks_in_any_state(
     assert "Arjun Vikram Deshpande" in text
     assert GUARDIAN_HEADING in text
     assert "Selection Trial — Registration Form" in text
+
+
+@pytest.mark.requirement("applications:R19")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "category",
+    [
+        {"label": {"en": "Late starters"}, "bornOnOrAfterUtc": day(2010, 9, 1)},
+        {
+            "label": {"en": "Late starters"},
+            "bornOnOrAfterUtc": day(2010, 9, 1),
+            "bornOnOrBeforeUtc": day(2011, 12, 31),
+        },
+    ],
+    ids=["after-only", "after-and-before"],
+)
+async def test_should_preview_when_first_category_starts_after_mid_june(
+    client: AsyncClient, db_session: AsyncSession, category: dict[str, Any]
+):
+    admin = await create_admin_user(db_session)
+    body = template_body()
+    body["ageCategories"] = [category]
+    created = await create_application(client, admin, body)
+
+    response = await client.get(
+        f"{APPLICATIONS}/{created['id']}/preview", headers=auth(admin)
+    )
+
+    text = assert_pdf(response, created["id"], "demo.player")
+    assert "PREVIEW — not for submission" in text
+    assert "01 / 09 / 2010" in text  # the demo member's date of birth
 
 
 @pytest.mark.requirement("applications:R19")

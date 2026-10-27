@@ -99,11 +99,13 @@ def preview_member(template: JsonDict, options: JsonDict, today: date) -> JsonDi
         c = cats[0]
         after, before = c.get("born_on_or_after"), c.get("born_on_or_before")
         if after:
-            born = date.fromisoformat(after).replace(
-                month=PREVIEW_BIRTH_MONTH, day=PREVIEW_BIRTH_DAY
+            # 15 June of the first year, kept inside the band (#100).
+            first = date.fromisoformat(after)
+            born = max(
+                first.replace(month=PREVIEW_BIRTH_MONTH, day=PREVIEW_BIRTH_DAY), first
             )
-            if before and born > date.fromisoformat(before):
-                born = date.fromisoformat(after)
+            if before:
+                born = min(born, date.fromisoformat(before))
         elif before:
             born = min(
                 date.fromisoformat(before).replace(
