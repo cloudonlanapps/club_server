@@ -115,7 +115,9 @@ signed-in user whose account is `registered`, `pending` or `active`
   their sports details, the additional selections, the declaration and the
   signature row with the download day in the club's time zone, and the
   footer line; the terms and notes follow. The footer of every page carries
-  the member ID and the download day.
+  the member ID and the download day. A club position is named in each
+  print language its label has, and in English alone when it lacks the
+  other one; save is never refused for this.
 - **R16** [✅] The layout is the first of "one page", "one page,
   tighter spacing" and "signing part on page 2" whose page 1 fits, page 1
   then spread to fill the page.

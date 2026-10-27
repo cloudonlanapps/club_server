@@ -85,6 +85,35 @@ async def test_should_fill_the_form_from_the_profile_when_member_downloads_it(
     assert "Rules & regulations" in pages[1]
 
 
+@pytest.mark.requirement("applications:R15")
+@pytest.mark.asyncio
+async def test_should_print_a_position_in_english_when_it_has_no_second_language(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    await write_options(
+        client,
+        admin,
+        {
+            "positions": [
+                {"value": "fwd", "label": {"en": "Forward"}},
+                {"value": "gk", "label": {"en": "Goalie", "mr": "गोलकीपर"}},
+            ],
+            "languages": [],
+        },
+    )
+    published = await published_application(client, admin)  # prints en + mr
+    assert published["status"] == "published"
+    member = await create_applicant(db_session, "ravi")
+    await db_session.commit()
+
+    response = await own_form(client, member, published["id"])
+
+    text = assert_pdf(response, published["id"], "ravi")
+    assert "Forward" in text
+    assert "Goalie" in text
+
+
 @pytest.mark.requirement("applications:R16")
 @pytest.mark.asyncio
 async def test_should_put_the_signing_part_on_page_two_when_the_form_is_long(

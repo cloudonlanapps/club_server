@@ -29,11 +29,35 @@ class Guardian(CamelCaseModel):
     phone: str | None = Field(None, max_length=20)
 
 
+ENGLISH = "en"
+
+
 class ProfilePosition(CamelCaseModel):
-    """One of the club's positions: its stored value and its name per language."""
+    """One of the club's positions: its stored value and its name per language.
+
+    The name needs English, and each key is a language of the application
+    form's label catalogue, so a form prints it in every print language that
+    has one and in English otherwise (users R69b, #103).
+    """
 
     value: NonEmptyText
     label: dict[NonEmptyText, NonEmptyText] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _languages(self) -> "ProfilePosition":
+        # Imported here: the catalogue lives in the services package, which
+        # imports the schemas.
+        from ..services.application_catalogue import catalogue_languages
+
+        if ENGLISH not in self.label:
+            raise ValueError(f"position {self.value!r} has no English label")
+        unknown = sorted(set(self.label) - set(catalogue_languages()))
+        if unknown:
+            raise ValueError(
+                f"position {self.value!r} has labels in unknown languages: "
+                + ", ".join(unknown)
+            )
+        return self
 
 
 class ProfileOptions(CamelCaseModel):

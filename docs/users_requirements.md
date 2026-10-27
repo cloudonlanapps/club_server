@@ -349,7 +349,8 @@ form may print it in; a language is a plain name.
   (platform R7). An admin, coach or member → 403, and nothing is stored;
   `PUT` on the read path → 405.
 - **R69b** [X] A write is checked: every position has a
-  non-empty `value` and at least one non-empty label, no two positions
+  non-empty `value` and a non-empty English (`en`) label, each label key
+  is a language of the application label catalogue (`en`, `mr`, `hi`), no two positions
   share a value, and the languages are non-empty and distinct → 422
   `INVALID_PREFERENCE_VALUE`, and nothing is stored.
 - **R69c** [X] With `EXTENDED_PROFILE_ENABLED` off the `PATCH`
