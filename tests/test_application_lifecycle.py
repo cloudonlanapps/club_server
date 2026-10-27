@@ -407,6 +407,43 @@ async def test_should_keep_the_form_when_the_clause_library_changes(
     assert read["terms"] == published["terms"]
 
 
+@pytest.mark.requirement("applications:R14")
+@pytest.mark.asyncio
+async def test_should_keep_the_filled_facts_when_the_library_formats_change(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    admin = await create_admin_user(db_session)
+    _ = await create_applicant(db_session, "ravi")
+    body = template_body()
+    body["subtitle"] = {"en": "Trial days {matches}", "mr": "{matches}"}
+    published = await published_application(client, admin, body)
+    reworded = json.loads(CLAUSES_FILE.read_text(encoding="utf-8"))
+    reworded["formats"]["months"]["en"][10] = "Novembre"
+    changed = tmp_path / "clauses.json"
+    _ = changed.write_text(json.dumps(reworded), encoding="utf-8")
+    monkeypatch.setattr(application_catalogue, "CLAUSES_FILE", changed)
+    library.cache_clear()
+    try:
+        form = await client.get(
+            f"{APPLICATIONS}/{published['id']}/form/ravi", headers=auth(admin)
+        )
+        draft = await create_application(client, admin, body)
+        draft_preview = await client.get(
+            f"{APPLICATIONS}/{draft['id']}/preview", headers=auth(admin)
+        )
+    finally:
+        monkeypatch.undo()
+        library.cache_clear()
+
+    assert form.status_code == 200, form.text
+    assert "Trial days 19–21 November 2026" in pdf_text(form.content)
+    assert draft_preview.status_code == 200, draft_preview.text
+    assert "Trial days 19–21 Novembre 2026" in pdf_text(draft_preview.content)
+
+
 # R22, R24 -----------------------------------------------------------------
 
 

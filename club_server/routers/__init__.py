@@ -38,6 +38,7 @@ from .mycredits import router as mycredits_router
 from .evaluations import router as evaluations_router
 from .evaluation_lifecycle import router as evaluation_lifecycle_router
 from .evaluation_templates import router as evaluation_templates_router
+from .application_library import router as application_library_router
 from .applications import router as applications_router
 from .application_forms import router as application_forms_router
 from .evaluation_template_items import router as evaluation_template_items_router
@@ -84,6 +85,7 @@ __all__ = [
     "evaluations_router",
     "evaluation_lifecycle_router",
     "evaluation_templates_router",
+    "application_library_router",
     "applications_router",
     "application_forms_router",
     "evaluation_template_items_router",

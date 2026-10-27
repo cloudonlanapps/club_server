@@ -1,4 +1,4 @@
-"""Clauses, facts and completeness, unit-tested on the pure code (#93, #107).
+"""Facts, gaps and completeness, unit-tested on the pure code (#93, #107, #126).
 
 The form's own document shape (ISO dates, snake-case keys) is what these
 functions read; the API's shape is turned into it by
@@ -19,11 +19,13 @@ from club_server.services.application_catalogue import (
 )
 from club_server.services.application_text import (
     fact_text,
-    fill_clause,
+    fill_text,
+    filled,
     fmt_amount,
     fmt_range,
     incomplete,
     printable,
+    unknown_gaps,
 )
 
 LIB = library()
@@ -142,47 +144,100 @@ MATCHES = {"type": "date_range", "from": "2026-11-19", "to": "2026-11-21"}
 VENUE = {"type": "name", "value": {"en": "City Rink", "mr": "सिटी रिंक"}}
 
 
-@pytest.mark.requirement("applications:R9a")
-def test_should_fill_a_clause_from_facts_in_every_language_when_filled():
-    filled = fill_clause("rule.matches", {"dates": MATCHES, "venue": VENUE}, LIB)
+@pytest.mark.requirement("applications:R15a")
+def test_should_fill_each_gap_naming_a_fact_in_its_language_when_filled():
+    facts = {"dates": MATCHES, "venue": VENUE}
+    text = "Matches from {dates} at {venue}; bring {kit}, {Venue}, { venue }."
 
-    assert filled["heading"] == LIB["clauses"]["rule.matches"]["heading"]
-    assert filled["text"]["en"] == (
-        "Tournament matches will take place from 19–21 November 2026 at City Rink."
+    assert fill_text(text, "en", facts, LIB) == (
+        "Matches from 19–21 November 2026 at City Rink; "
+        "bring {kit}, {Venue}, { venue }."
     )
-    assert (
-        filled["text"]["mr"]
-        == "19 ते 21 नोव्हेंबर 2026 दरम्यान सिटी रिंक येथे स्पर्धेचे सामने होतील."
+    assert fill_text("{dates} दरम्यान {venue} येथे", "mr", facts, LIB) == (
+        "19 ते 21 नोव्हेंबर 2026 दरम्यान सिटी रिंक येथे"
     )
-    assert set(filled["text"]) == {"en", "mr", "hi"}
+    assert fill_text("{venue}", "hi", facts, LIB) == "City Rink"  # no Hindi: English
 
 
-@pytest.mark.requirement("applications:R9a")
-@pytest.mark.parametrize(
-    ("clause", "facts", "reason"),
-    [
-        ("declaration.nope", {}, "no clause 'declaration.nope'"),
-        ("rule.matches", {"dates": MATCHES}, "needs facts for venue"),
-        (
-            "selection.attend_training_camp",
-            {"dates": {"type": "date", "value": "2026-11-16"}},
-            "gap 'dates' needs a date_range, not a date",
+@pytest.mark.requirement("applications:R15a")
+def test_should_fill_every_printed_text_when_a_printable_template_is_filled():
+    facts = {"dates": MATCHES, "venue": VENUE}
+    doc = filled(
+        printable(
+            template(
+                facts=facts,
+                organisation={"en": "{venue} Club"},
+                title={"en": "Trial {dates}", "mr": "चाचणी {dates}"},
+                subtitle={"en": "{venue}"},
+                header=[[{"en": "At {venue}"}, {"en": "On {dates}"}]],
+                selections=[{"en": "I come on {dates}", "mr": "{venue}"}],
+                declaration={"en": "{venue}"},
+                form_footer={"en": "{venue}"},
+                terms=[{"heading": {"en": "{venue}"}, "body": {"mr": "{venue}"}}],
+                terms_notes=[
+                    {"text": {"en": "{dates}"}, "attribution": {"mr": "{venue}"}}
+                ],
+                label_overrides={"field.past_experience": {"en": "{venue}"}},
+            )
         ),
-        ("declaration.trial", {"venue": VENUE}, "has no gap 'venue'"),
-        (
-            "selection.attend_practice",
-            {"dates": MATCHES, "kinds": {"type": "choices", "value": ["skis"]}},
-            "no choice 'skis'",
-        ),
-    ],
-)
-def test_should_refuse_a_fill_when_the_clause_or_a_fact_does_not_fit(
-    clause: str, facts: dict[str, Any], reason: str
-):
+        LIB,
+    )
+
+    assert doc["organisation"] == {"en": "City Rink Club"}
+    assert doc["title"] == {
+        "en": "Trial 19–21 November 2026",
+        "mr": "चाचणी 19 ते 21 नोव्हेंबर 2026",
+    }
+    assert doc["subtitle"] == {"en": "City Rink"}
+    assert doc["header"] == [{"en": "At City Rink\nOn 19–21 November 2026"}]
+    assert doc["selections"] == [
+        {"en": "I come on 19–21 November 2026", "mr": "सिटी रिंक"}
+    ]
+    assert doc["declaration"] == doc["form_footer"] == {"en": "City Rink"}
+    assert doc["terms"] == [
+        {"heading": {"en": "1. City Rink"}, "body": {"mr": "सिटी रिंक"}}
+    ]
+    assert doc["terms_notes"] == [
+        {"text": {"en": "19–21 November 2026"}, "attribution": {"mr": "सिटी रिंक"}}
+    ]
+    # Label overrides print as written.
+    assert doc["label_overrides"] == {"field.past_experience": {"en": "{venue}"}}
+
+
+@pytest.mark.requirement("applications:R15a")
+def test_should_refuse_to_fill_when_a_choice_is_not_in_the_library():
+    facts = {"kinds": {"type": "choices", "value": ["skis"]}}
+
     with pytest.raises(ApplicationReferenceException) as caught:
-        _ = fill_clause(clause, facts, LIB)
+        _ = fill_text("Practice {kinds}", "en", facts, LIB)
 
-    assert reason in str(caught.value)
+    assert "no choice 'skis'" in str(caught.value)
+
+
+@pytest.mark.requirement("applications:R9b")
+def test_should_name_each_gap_naming_no_fact_in_print_order_when_checked():
+    doc = template(
+        languages=["en", "mr"],
+        facts={"venue": VENUE},
+        title={"mr": "{season}", "en": "{season} {venue}"},
+        header=[{"en": "{a}"}, [{"en": "{venue}"}, {"hi": "{b}"}]],
+        selections=[{"en": "{c} {c} {d}"}],
+        terms=[{"heading": {"en": "{e}"}, "body": {"en": "ok"}}],
+        terms_notes=[{"text": {"en": "{f}"}, "attribution": {"en": "{g}"}}],
+        label_overrides={"field.past_experience": {"en": "{h}"}},
+    )
+
+    assert unknown_gaps(doc) == [
+        {"place": "title", "language": "en", "gap": "season"},
+        {"place": "title", "language": "mr", "gap": "season"},
+        {"place": "header[0]", "language": "en", "gap": "a"},
+        {"place": "header[1][1]", "language": "hi", "gap": "b"},
+        {"place": "selections[0]", "language": "en", "gap": "c"},
+        {"place": "selections[0]", "language": "en", "gap": "d"},
+        {"place": "terms[0].heading", "language": "en", "gap": "e"},
+        {"place": "terms_notes[0].text", "language": "en", "gap": "f"},
+        {"place": "terms_notes[0].attribution", "language": "en", "gap": "g"},
+    ]
 
 
 @pytest.mark.requirement("applications:R6")

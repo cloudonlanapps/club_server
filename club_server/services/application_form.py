@@ -1,26 +1,32 @@
 """Deciding an application's layout and drawing its forms (#93, R14–R20).
 
 ``decide_layout`` runs on save: it refuses the template when a text lacks a
-print language, measures it for the worst-case member and returns the
-layout to store, with a frozen copy of the profile options it was measured
-with (#96, #97). ``draw`` produces one member's PDF (or the preview's). A
+print language or a gap names no fact, measures it with its gaps filled for
+the worst-case member and returns the layout to store, with frozen copies of
+the profile options and fact formats it was measured with (#96, #97, #126). ``draw`` produces one member's PDF (or the preview's). A
 saved or published template is drawn only from its stored layout and its
 frozen options and is never measured again, so a download never fails; a
 draft's preview is measured on the spot. The texts are the template's own
-custom text; nothing is read from the clause library (#107).
+custom text, their gaps filled from its facts (#107, #126).
 """
 
 from datetime import date
 
-from ..exceptions import ApplicationDoesNotFitException, ApplicationIncompleteException
-from .application_catalogue import JsonDict, labels
+from ..exceptions import (
+    ApplicationDoesNotFitException,
+    ApplicationIncompleteException,
+    ApplicationUnknownFactException,
+)
+from .application_catalogue import JsonDict, labels, library
 from .application_pdf_builder import ApplicationFormBuilder
 from .application_pdf_fit import check, choose_layout
 from .application_pdf_layout import BOTTOM, LAYOUTS, layout_named
-from .application_text import incomplete, lacking, printable
+from .application_text import filled, incomplete, lacking, printable, unknown_gaps
 
 # The stored layout's copy of the profile options it was measured with.
 FROZEN_OPTIONS = "profile_options"
+# ... and of the library's formats and choices its facts were printed with.
+FROZEN_FORMATS = "fact_formats"
 
 
 def missing_texts(template: JsonDict) -> list[JsonDict]:
@@ -35,15 +41,26 @@ def missing_texts(template: JsonDict) -> list[JsonDict]:
     return found
 
 
+def fact_formats() -> JsonDict:
+    """What a fact is printed with: the library's ``formats`` and ``choices``."""
+    lib = library()
+    return {"formats": lib["formats"], "choices": lib["choices"]}
+
+
 def decide_layout(template: JsonDict, options: JsonDict, today: date) -> JsonDict:
-    """The layout to store on save, with the options it was measured with
-    (R13, R14, R16, R17)."""
+    """The layout to store on save, measured on the filled texts, with the
+    options and fact formats it was measured with (R9b, R13, R14, R16, R17)."""
     document = printable(template)
     missing = missing_texts(document)
     if missing:
         raise ApplicationIncompleteException(missing)
-    decided = check(document, labels(), options, today)
+    unknown = unknown_gaps(template)
+    if unknown:
+        raise ApplicationUnknownFactException(unknown)
+    formats = fact_formats()
+    decided = check(filled(document, formats), labels(), options, today)
     decided[FROZEN_OPTIONS] = options
+    decided[FROZEN_FORMATS] = formats
     return decided
 
 
@@ -68,11 +85,13 @@ def draw(
 ) -> bytes:
     """One form as PDF bytes.
 
-    With a stored layout the form is drawn once, as stored; without one (a
-    draft's preview) it is measured for this member first (R19).
+    With a stored layout the form is drawn once, as stored, its facts
+    printed with the formats frozen on save; without one (a draft's preview)
+    it is measured for this member first (R14, R15a, R19).
     ``options`` are those ``frozen_options`` gives.
     """
-    document = printable(template)
+    formats: JsonDict = (stored or {}).get(FROZEN_FORMATS) or fact_formats()
+    document = filled(printable(template), formats)
     all_labels = labels()
     if stored:
         layout = layout_named(stored["name"])

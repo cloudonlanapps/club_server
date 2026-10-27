@@ -1,15 +1,17 @@
-"""Clauses, facts and a template's printed texts (#93, #107).
+"""Facts, gaps and a template's printed texts (#93, #107, #126).
 
-A template's printed texts are custom text in each language. The clause
-library is an auto-fill source: ``fill_clause`` fills one clause's gaps from
-the facts given for them, formatted per language (applications R7, R9a),
-and the editor inserts the result as custom text. Save and print read no
-clause (R6). Ported from the prototype; its exits are domain errors here.
+A template's printed texts are custom text in each language, and may hold
+``{name}`` gaps naming its facts. They are stored as written; save refuses a
+gap naming no fact (``unknown_gaps``, applications R9b) and the form fills
+each gap from the facts, formatted per language with the clause library's
+``formats`` and ``choices`` (``filled``, R7, R15a). Ported from the
+prototype; its exits are domain errors here.
 
 The template given here is the form's own document (``application_document``):
 snake-case keys and ISO dates, as the prototype read them.
 """
 
+import re
 from datetime import date
 from typing import Any
 
@@ -22,6 +24,14 @@ NOON, AFTERNOON_END, EVENING_END = 12, 16, 20
 HALF_DAY = 12
 THOUSANDS = 3
 INDIAN_GROUP = 2
+
+# A gap: "{name}", the name as a fact's (#126). Other brace text is literal.
+GAP = re.compile(r"\{([a-z][a-z0-9_]*)\}")
+# The texts of a template that are one text each, in the order printed;
+# the header items and selections print after the first three.
+SINGLE_TEXTS = ("organisation", "title", "subtitle", "declaration", "form_footer")
+TERM_PARTS = ("heading", "body")
+NOTE_PARTS = ("text", "attribution")
 
 
 def fmt_day(d: date, lang: str, lib: JsonDict) -> str:
@@ -98,50 +108,94 @@ def fact_text(fact: JsonDict, lang: str, lib: JsonDict) -> str:
     raise ApplicationReferenceException(f"unknown fact type {kind!r}")
 
 
-def fill_clause(clause_id: str, facts: JsonDict, lib: JsonDict) -> JsonDict:
-    """One library clause, its gaps filled from ``facts`` (gap → fact), in
-    each of the library's languages: ``{"heading": … | None, "text": …}``
-    (applications R7, R9a).
+def fill_text(text: str, lang: str, facts: JsonDict, lib: JsonDict) -> str:
+    """``text`` with each gap naming one of ``facts`` filled in ``lang``
+    (applications R15a); any other brace text is left as written."""
 
-    It reads and writes no template: the editor inserts the result as
-    custom text.
+    def fact_for(match: re.Match[str]) -> str:
+        name = match.group(1)
+        return fact_text(facts[name], lang, lib) if name in facts else match.group(0)
+
+    return GAP.sub(fact_for, text)
+
+
+def _filled_text(
+    value: dict[str, str] | None, facts: JsonDict, lib: JsonDict
+) -> dict[str, str] | None:
+    if not value:
+        return value
+    return {lang: fill_text(text, lang, facts, lib) for lang, text in value.items()}
+
+
+def filled(document: JsonDict, lib: JsonDict) -> JsonDict:
+    """A printable template with every gap of its printed texts filled from
+    its facts, each in its text's language (R15a). Label overrides and
+    age-category labels print as written."""
+    facts: JsonDict = document.get("facts") or {}
+    out = dict(document)
+    for key in SINGLE_TEXTS:
+        out[key] = _filled_text(document.get(key), facts, lib)
+    for key in ("header", "selections"):
+        texts: list[dict[str, str] | None] = document.get(key) or []
+        out[key] = [_filled_text(t, facts, lib) for t in texts]
+    terms: list[JsonDict] = document.get("terms") or []
+    out["terms"] = [
+        {part: _filled_text(term.get(part), facts, lib) for part in TERM_PARTS}
+        for term in terms
+    ]
+    notes: list[JsonDict] = document.get("terms_notes") or []
+    out["terms_notes"] = [
+        {part: _filled_text(note.get(part), facts, lib) for part in NOTE_PARTS}
+        for note in notes
+    ]
+    return out
+
+
+def _printed_texts(template: JsonDict) -> list[tuple[str, dict[str, str]]]:
+    """Every text a gap may sit in, by its place, in the order printed."""
+    texts: list[tuple[str, Any]] = [
+        (key, template.get(key)) for key in SINGLE_TEXTS[:3]
+    ]
+    for i, item in enumerate(template.get("header") or []):
+        if isinstance(item, list):
+            lines: list[Any] = item  # pyright: ignore[reportUnknownVariableType]
+            texts.extend((f"header[{i}][{j}]", line) for j, line in enumerate(lines))
+        else:
+            texts.append((f"header[{i}]", item))
+    texts.extend(
+        (f"selections[{i}]", s) for i, s in enumerate(template.get("selections") or [])
+    )
+    texts.extend((key, template.get(key)) for key in SINGLE_TEXTS[3:])
+    for i, term in enumerate(template.get("terms") or []):
+        texts.extend((f"terms[{i}].{part}", term.get(part)) for part in TERM_PARTS)
+    for i, note in enumerate(template.get("terms_notes") or []):
+        texts.extend(
+            (f"terms_notes[{i}].{part}", note.get(part)) for part in NOTE_PARTS
+        )
+    return [(place, text) for place, text in texts if text]
+
+
+def unknown_gaps(template: JsonDict) -> list[dict[str, str]]:
+    """Each gap naming no fact of ``template``, as ``{place, language, gap}``,
+    in the order printed: by place, then the print languages before any
+    other, then as the text reads; a gap repeated in one text once (R9b).
+
+    ``template`` is the form's document, its header items not yet joined.
     """
-    c: JsonDict | None = lib["clauses"].get(clause_id)
-    if c is None:
-        raise ApplicationReferenceException(f"no clause {clause_id!r} in the library")
-    gaps: dict[str, str] = c.get("gaps", {})
-    unknown = sorted(set(facts) - set(gaps))
-    if unknown:
-        raise ApplicationReferenceException(
-            f"clause {clause_id!r} has no gap {unknown[0]!r}"
-        )
-    missing = sorted(set(gaps) - set(facts))
-    if missing:
-        raise ApplicationReferenceException(
-            f"clause {clause_id!r} needs facts for {', '.join(missing)}"
-        )
-    for gap, kind in gaps.items():
-        given = facts[gap]["type"]
-        if given != kind:
-            raise ApplicationReferenceException(
-                f"gap {gap!r} needs a {kind}, not a {given}"
+    facts: JsonDict = template.get("facts") or {}
+    langs: list[str] = template.get("languages") or [ENGLISH]
+    found: list[dict[str, str]] = []
+    for place, text in _printed_texts(template):
+        ordered = [lang for lang in langs if lang in text]
+        ordered += [lang for lang in text if lang not in langs]
+        for lang in ordered:
+            names = dict.fromkeys(GAP.findall(text[lang]))
+            found.extend(
+                {"place": place, "language": lang, "gap": name}
+                for name in names
+                if name not in facts
             )
-    langs = list(lib["formats"]["months"])
-    values = {
-        gap: {lang: fact_text(facts[gap], lang, lib) for lang in langs} for gap in gaps
-    }
-
-    def filled(part: dict[str, str]) -> dict[str, str]:
-        return {
-            lang: part[lang].format(**{g: v[lang] for g, v in values.items()})
-            for lang in part
-        }
-
-    heading: dict[str, str] | None = c.get("heading")
-    return {
-        "heading": filled(heading) if heading else None,
-        "text": filled(c["text"]),
-    }
+    return found
 
 
 def _joined(value: Any) -> dict[str, str] | None:

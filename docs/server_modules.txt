@@ -65,7 +65,9 @@ Modules (as of 2026-10-27, regenerated from the routers mounted in main.py)
   ├──────────────────┼────────────────────────────────────────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────────────┤
   │ My Credits       │ /mycredits                                                     │ mycredits.py                 │ optional per deployment                                                 │
   ├──────────────────┼────────────────────────────────────────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────────────┤
-  │ Applications     │ /applications, /applications/labels|clauses                    │ applications.py              │ optional per deployment; templates, admin write                         │
+  │ Applications     │ /applications, /applications/labels                            │ applications.py              │ optional per deployment; templates, admin write                         │
+  ├──────────────────┼────────────────────────────────────────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ App. Library     │ /applications/clauses, /applications/library                   │ application_library.py       │ clauses list; the club's library of texts, admin only                   │
   ├──────────────────┼────────────────────────────────────────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────────────┤
   │ App. Forms       │ /applications/{id}/save|publish|...|preview|form               │ application_forms.py         │ lifecycle, duplicate, PDFs: preview, own form, member's form            │
   ├──────────────────┼────────────────────────────────────────────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────────────────────┤

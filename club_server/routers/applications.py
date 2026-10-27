@@ -1,11 +1,10 @@
 """Application templates: list, read, create, edit, delete (#93).
 
 Admins see and write every template; a member who has uploaded an identity
-document sees the published ones. The label catalogue and the clause
-library are served for the editor, which fills one clause at a time and
-inserts the text it gets back (#107). The state moves, duplicate, preview and
-the forms are in ``application_forms.py``. While the module is off every
-route answers 503 ``APPLICATIONS_DISABLED``.
+document sees the published ones. The label catalogue is served for the
+editor; the clauses and the club's library are in ``application_library.py``,
+the state moves, duplicate, preview and the forms in ``application_forms.py``.
+While the module is off every route answers 503 ``APPLICATIONS_DISABLED``.
 """
 
 from typing import Annotated
@@ -21,9 +20,6 @@ from ..dependencies import (
     require_applications_enabled,
 )
 from ..schemas.application import (
-    ApplicationClauseFill,
-    ApplicationClauseFilled,
-    ApplicationClausesResponse,
     ApplicationCreate,
     ApplicationLabelsResponse,
     ApplicationResponse,
@@ -32,10 +28,8 @@ from ..schemas.application import (
 )
 from ..schemas.common import PaginatedResponse
 from ..services.application import ApplicationService, application_response
-from ..services.application_catalogue import catalogue_languages, labels, library
-from ..services.application_document import fact_document
+from ..services.application_catalogue import catalogue_languages, labels
 from ..services.application_downloads import ApplicationDownloadService
-from ..services.application_text import fill_clause
 from . import application_errors as err
 
 router = APIRouter(
@@ -51,40 +45,6 @@ async def get_labels(
 ) -> ApplicationLabelsResponse:
     """The label catalogue, to pre-fill the editor (R8)."""
     return ApplicationLabelsResponse(languages=catalogue_languages(), labels=labels())
-
-
-@router.get("/clauses", response_model=ApplicationClausesResponse)
-async def get_clauses(
-    _current_user: Annotated[User, Depends(require_admin())],
-) -> ApplicationClausesResponse:
-    """The clause library, for the editor's pickers (R7)."""
-    lib = library()
-    return ApplicationClausesResponse.model_validate(
-        {
-            "languages": list(lib["formats"]["months"]),
-            "choices": lib["choices"],
-            "clauses": lib["clauses"],
-        }
-    )
-
-
-@router.post("/clauses/fill", response_model=ApplicationClauseFilled)
-async def fill_one_clause(
-    payload: ApplicationClauseFill,
-    _current_user: Annotated[User, Depends(require_admin())],
-) -> ApplicationClauseFilled:
-    """One library clause filled from the facts given for its gaps, in every
-    library language, for the editor to insert as custom text (R9a). No
-    template is read or written."""
-    facts = {
-        gap: fact_document(fact.model_dump(mode="json", by_alias=True))
-        for gap, fact in payload.facts.items()
-    }
-    try:
-        filled = fill_clause(payload.clause, facts, library())
-    except err.DOMAIN_ERRORS as exc:
-        raise err.to_http(exc)
-    return ApplicationClauseFilled.model_validate({"clause": payload.clause, **filled})
 
 
 @router.get("", response_model=PaginatedResponse[ApplicationResponse])

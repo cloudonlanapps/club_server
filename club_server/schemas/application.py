@@ -2,14 +2,13 @@
 
 Top-level fields are camelCase as everywhere in the API. Every printed
 text is custom text, ``{"en": "...", "mr": "..."}`` (language code → text);
-a header item may also be a list of them, printed one per line. The clause
-library fills one clause at a time for the editor to insert as custom text
-(``POST /v1/applications/clauses/fill``, #107); a template keeps no link to
-it.
+a header item may also be a list of them, printed one per line. A text may
+hold ``{name}`` gaps naming the template's facts, stored as written and
+filled when the form is drawn (#126); a template keeps no link to the
+library it was pasted from (#107).
 
 Facts are ``{name: {"type": ..., "value" | "from" + "to": ...}}``; a date is a
-UTC-midnight millisecond timestamp, as dates of birth are. A template keeps
-them only as the editor's aid: they are never printed.
+UTC-midnight millisecond timestamp, as dates of birth are.
 """
 
 import re
@@ -113,7 +112,7 @@ class AgeCategory(TemplatePart):
 
 
 class Fact(TemplatePart):
-    """A value typed once and printed wherever a clause names it."""
+    """A value typed once and printed wherever a gap names it."""
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True, extra="forbid"
@@ -265,33 +264,27 @@ class ApplicationLabelsResponse(CamelCaseModel):
     labels: dict[str, dict[str, str]]
 
 
-class ApplicationClause(CamelCaseModel):
-    """One library clause: its kind, its gaps' fact types, its text per language."""
+ClauseSource = Literal["builtin", "club"]
 
+
+class ApplicationClause(CamelCaseModel):
+    """One text the editor can paste: a built-in clause (``key``, its gaps'
+    fact types) or a club library text (``id``, ``name``), each with its
+    kind, heading (a rule's) and text per language, gaps as written."""
+
+    source: ClauseSource
+    key: str | None = None
+    id: int | None = None
     kind: str
-    gaps: dict[str, str] = Field(default_factory=dict)
+    name: str | None = None
+    gaps: dict[str, str] | None = None
     heading: dict[str, str] | None = None
     text: dict[str, str]
 
 
 class ApplicationClausesResponse(CamelCaseModel):
-    """The clause library, for the editor's pickers."""
+    """The built-in clauses, then the club's texts, for the editor's pickers."""
 
     languages: list[str]
     choices: dict[str, dict[str, str]]
-    clauses: dict[str, ApplicationClause]
-
-
-class ApplicationClauseFill(CamelCaseModel):
-    """One library clause to fill: its id and a fact for each of its gaps."""
-
-    clause: NonEmpty
-    facts: dict[NonEmpty, Fact] = Field(default_factory=dict)
-
-
-class ApplicationClauseFilled(CamelCaseModel):
-    """A filled clause, in every library language, to insert as custom text."""
-
-    clause: str
-    heading: dict[str, str] | None = None
-    text: dict[str, str]
+    clauses: list[ApplicationClause]
