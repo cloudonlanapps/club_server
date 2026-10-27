@@ -314,8 +314,12 @@ schema does not vary with configuration.
   phone is (at most 20 characters), and the guardian takes no field but
   `name`, `relation` and `phone` → 422.
 - **R66** [✅] A user not yet approved (`registered` or `pending`)
-  can set their own extended fields, and only those: any other field, or
-  another user's profile → 403 `ACCOUNT_NOT_ACTIVE`, as before.
+  can edit every field of their own profile, extended fields included,
+  except gender and date of birth, which stay refused to them as to
+  anyone but a super admin (R35) → 403 `PROTECTED_FIELDS`; the
+  membership date stays an admin's (R67). Another user's profile → 403 `ACCOUNT_NOT_ACTIVE`. A
+  `blocked` or `left` user is refused before the edit is looked at → 401
+  `ACCOUNT_BLOCKED` or `ACCOUNT_LEFT` (#123).
 
 ### Membership date
 
