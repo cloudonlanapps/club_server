@@ -11,6 +11,8 @@ from ..exceptions import (
     ApplicationCategoryRequiredException,
     ApplicationDoesNotFitException,
     ApplicationIncompleteException,
+    ApplicationLabelNotFoundException,
+    ApplicationLanguageNotOfferedException,
     ApplicationLibraryTextNotFoundException,
     ApplicationNotEligibleException,
     ApplicationNotFoundException,
@@ -29,6 +31,8 @@ DOMAIN_ERRORS = (
     ApplicationCategoryRequiredException,
     ApplicationDoesNotFitException,
     ApplicationIncompleteException,
+    ApplicationLabelNotFoundException,
+    ApplicationLanguageNotOfferedException,
     ApplicationLibraryTextNotFoundException,
     ApplicationNotEligibleException,
     ApplicationNotFoundException,
@@ -45,6 +49,7 @@ DOMAIN_ERRORS = (
 _NOT_FOUND: dict[type[Exception], str] = {
     ApplicationNotFoundException: "APPLICATION_NOT_FOUND",
     ApplicationLibraryTextNotFoundException: "APPLICATION_LIBRARY_TEXT_NOT_FOUND",
+    ApplicationLabelNotFoundException: "APPLICATION_LABEL_NOT_FOUND",
     UserNotFoundException: "USER_NOT_FOUND",
 }
 
@@ -76,6 +81,13 @@ def to_http(exc: Exception) -> HTTPException:
             "APPLICATION_INCOMPLETE",
             str(exc),
             {"missing": exc.missing},
+        )
+    if isinstance(exc, ApplicationLanguageNotOfferedException):
+        return _http(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "APPLICATION_LANGUAGE_NOT_OFFERED",
+            str(exc),
+            {"languages": exc.languages},
         )
     if isinstance(exc, ApplicationUnknownFactException):
         return _http(

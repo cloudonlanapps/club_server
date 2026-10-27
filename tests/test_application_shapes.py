@@ -271,12 +271,12 @@ async def test_should_serve_the_clause_library_when_admin_asks(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["languages"] == ["en", "mr", "hi"]
+    assert body["languages"] == ["en", "mr"]  # the club's (#133)
     assert body["choices"]["on_ice"]["en"] == "on-ice"
     clauses = {c["key"]: c for c in body["clauses"]}  # seeded on first use (#133)
     matches = clauses["rule.matches"]
     assert matches["kind"] == "rule"
-    assert set(matches["heading"]) == set(matches["text"]) == {"en", "mr", "hi"}
+    assert set(matches["heading"]) == set(matches["text"]) == {"en", "mr"}
     assert clauses["declaration.trial"]["heading"] is None
     assert "_review" not in response.text and "_comment" not in response.text
 
@@ -292,11 +292,10 @@ async def test_should_serve_the_label_catalogue_when_admin_asks(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["languages"] == ["en", "mr", "hi"]
+    assert body["languages"] == ["en", "mr"]  # the club's (#133)
     assert body["labels"]["field.full_name"] == {
         "en": "Full name",
         "mr": "पूर्ण नाव",
-        "hi": "पूरा नाम",
     }
     assert "_review" not in response.text
 

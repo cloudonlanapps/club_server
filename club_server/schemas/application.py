@@ -23,8 +23,9 @@ from pydantic import (
     model_validator,
 )
 
-from ..services.application_catalogue import catalogue_languages, labels
+from ..services.application_catalogue import labels
 from .common import CamelCaseModel
+from .language import is_language_code
 
 MS_PER_DAY = 86_400_000
 ENGLISH = "en"
@@ -37,8 +38,9 @@ GenderValue = Literal["male", "female", "other", "prefer_not_to_say"]
 
 
 def _language(code: str) -> str:
-    if code not in catalogue_languages():
-        raise ValueError(f"{code!r} is not a language of the label catalogue")
+    """A language code; whether the club has it is checked on write (#133)."""
+    if not is_language_code(code):
+        raise ValueError(f"{code!r} is not a language code")
     return code
 
 
@@ -167,10 +169,7 @@ def _check_name(value: Any) -> None:
     if isinstance(value, dict):
         texts: dict[Any, Any] = dict(value)  # pyright: ignore[reportUnknownArgumentType]
         if texts.get(ENGLISH) and all(
-            isinstance(k, str)
-            and k in catalogue_languages()
-            and isinstance(v, str)
-            and v
+            isinstance(k, str) and is_language_code(k) and isinstance(v, str) and v
             for k, v in texts.items()
         ):
             return
@@ -258,7 +257,27 @@ class ApplicationResponse(ApplicationContent):
 
 
 class ApplicationLabelsResponse(CamelCaseModel):
-    """The label catalogue, to pre-fill the editor."""
+    """The club's labels in its languages, to pre-fill the editor (R8)."""
 
     languages: list[str]
     labels: dict[str, dict[str, str]]
+
+
+class ApplicationLabelUpdate(CamelCaseModel):
+    """A label's new text: it replaces the club's languages' texts, English
+    needed; a club language left out is left blank (R8a)."""
+
+    text: LanguageText
+
+    @model_validator(mode="after")
+    def _english(self) -> "ApplicationLabelUpdate":
+        if ENGLISH not in self.text:
+            raise ValueError("a label needs its English text")
+        return self
+
+
+class ApplicationLabelResponse(CamelCaseModel):
+    """One label as stored, in the club's languages (R8a)."""
+
+    key: str
+    text: dict[str, str]

@@ -16,7 +16,6 @@ from club_server.db.models.user import UserStatus
 from .extended_profile_helpers import (
     EXTENDED,
     MIDNIGHT_2024_06_01,
-    OPTIONS,
     auth,
     patch_user,
     private,
@@ -262,7 +261,11 @@ async def test_should_keep_a_choice_when_its_option_is_removed_later(
     await write_options(
         client,
         admin,
-        {"positions": [OPTIONS["positions"][0]], "languages": ["English"]},
+        # Marathi goes, so Forward's label loses its Marathi (#133).
+        {
+            "positions": [{"value": "Forward", "label": {"en": "Forward"}}],
+            "languages": ["English"],
+        },
     )
 
     kept = await private(client, member, "mira")

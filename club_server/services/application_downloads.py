@@ -35,6 +35,7 @@ from .application_catalogue import JsonDict
 from .application_document import member_document, options_document, template_document
 from .application_drawing import ApplicationDrawingService
 from .application_form import draw, frozen_options
+from .application_labels import club_labels
 from .application_pdf_fill import fill
 from .application_rules import fitting_categories, preview_member
 from .evaluation_pdf_logo import club_logo
@@ -130,6 +131,7 @@ class ApplicationDownloadService:
             today,
             stored,
             preview=True,
+            live_labels=await club_labels(self.db),
         )
 
     async def blank_form(self, application_id: int) -> bytes:

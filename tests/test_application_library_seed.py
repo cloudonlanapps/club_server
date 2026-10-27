@@ -34,6 +34,12 @@ def builtin_clauses() -> dict[str, dict[str, Any]]:
     return clauses
 
 
+def in_club_languages(text: dict[str, str] | None) -> dict[str, str] | None:
+    if text is None:
+        return None
+    return {lang: value for lang, value in text.items() if lang in ("en", "mr")}
+
+
 async def listed(client: AsyncClient, token: str) -> list[dict[str, Any]]:
     response = await client.get(LIBRARY, headers=auth(token))
     assert response.status_code == 200, response.text
@@ -61,8 +67,10 @@ async def test_should_hold_every_builtin_clause_when_the_library_is_first_read(
         seeded = by_key[key]
         assert isinstance(seeded["id"], int)
         assert seeded["kind"] == clause["kind"]
-        assert seeded["heading"] == clause.get("heading")
-        assert seeded["text"] == clause["text"]
+        # Shown in the club's languages, English and Marathi by default
+        # (#133); test_application_languages.py shows Hindi kept.
+        assert seeded["heading"] == in_club_languages(clause.get("heading"))
+        assert seeded["text"] == in_club_languages(clause["text"])
         assert seeded["name"] == seeded_name(key, clause)
         assert seeded["createdBy"] is None
     assert by_key["rule.matches"]["name"] == "Matches"

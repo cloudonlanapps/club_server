@@ -25,6 +25,7 @@ from ..services.application_library import (
     ApplicationLibraryService,
     library_text_response,
 )
+from ..services.application_languages import club_languages
 from . import application_errors as err
 
 router = APIRouter(
@@ -49,7 +50,8 @@ async def list_library_texts(
 ) -> list[ApplicationLibraryTextResponse]:
     """Every club text, oldest first (R7a)."""
     rows = await ApplicationLibraryService(db).list_all()
-    return [library_text_response(row) for row in rows]
+    club = await club_languages(db)
+    return [library_text_response(row, club) for row in rows]
 
 
 @router.post(
@@ -61,8 +63,11 @@ async def create_library_text(
     payload: ApplicationLibraryTextCreate, db: Db, current_user: Admin
 ) -> ApplicationLibraryTextResponse:
     """Add a club text (R7a)."""
-    row = await ApplicationLibraryService(db).create(payload, current_user.username)
-    return library_text_response(row)
+    try:
+        row = await ApplicationLibraryService(db).create(payload, current_user.username)
+    except err.DOMAIN_ERRORS as exc:
+        raise err.to_http(exc)
+    return library_text_response(row, await club_languages(db))
 
 
 @router.get("/library/{text_id}", response_model=ApplicationLibraryTextResponse)
@@ -74,7 +79,7 @@ async def get_library_text(
         row = await ApplicationLibraryService(db).get_or_raise(text_id)
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
-    return library_text_response(row)
+    return library_text_response(row, await club_languages(db))
 
 
 @router.patch("/library/{text_id}", response_model=ApplicationLibraryTextResponse)
@@ -88,7 +93,7 @@ async def update_library_text(
         raise err.to_http(exc)
     except ValidationError as exc:
         raise RequestValidationError(exc.errors())
-    return library_text_response(row)
+    return library_text_response(row, await club_languages(db))
 
 
 @router.delete("/library/{text_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -343,12 +343,15 @@ schema does not vary with configuration.
 
 The club's lists of positions and languages, the system preference
 `profile_options`: `{"positions": [{"value", "label": {lang: text}}],
-"languages": [name, …]}`. A position carries its name in each language a
-form may print it in; a language is a plain name.
+"languages": [{"code", "name"}, …]}`. A position carries its name in each
+of the club's languages a form may print it in; a member chooses a
+language by its name (R64). The languages are the club's application
+languages too (applications R28, #133).
 
 - **R69** [✅] Any signed-in user, approved or not, can read the
-  profile options at `GET /v1/system/preferences/profile_options`; both
-  lists are empty until an admin writes them. An anonymous caller → 401.
+  profile options at `GET /v1/system/preferences/profile_options`; until
+  an admin writes them there are no positions and the languages are
+  English and Marathi (#133). An anonymous caller → 401.
 - **R69a** [✅] The super admin replaces them with `PATCH
   /v1/admin/preferences/profile_options` (`{"value": <options>}`), the one
   write path; the write is audited as every preference write is
@@ -356,8 +359,9 @@ form may print it in; a language is a plain name.
   `PUT` on the read path → 405.
 - **R69b** [X] A write is checked: every position has a
   non-empty `value` and a non-empty English (`en`) label, each label key
-  is a language of the application label catalogue (`en`, `mr`, `hi`), no two positions
-  share a value, and the languages are non-empty and distinct → 422
+  is one of the options' language codes, no two positions share a value,
+  and each language has a code and a non-empty name (a name alone takes
+  its code), English among them, codes and names distinct → 422
   `INVALID_PREFERENCE_VALUE`, and nothing is stored.
 - **R69c** [X] With `EXTENDED_PROFILE_ENABLED` off the `PATCH`
   answers 503 `EXTENDED_PROFILE_DISABLED` and nothing is stored; the read

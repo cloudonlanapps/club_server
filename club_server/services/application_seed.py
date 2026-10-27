@@ -1,10 +1,15 @@
-"""Seeding the built-in clauses into the club's library, once (#133, applications R7b).
+"""Seeding the built-in clauses and labels into the club's data (#133, applications R7b, R8a).
 
 The first use of the library copies every clause of ``clauses.json`` into
 ``application_library_texts`` as an ordinary club text, keeping its key,
 kind, heading and text in every language the file has. The seeding records
 itself in ``application_seeds``: from then on nothing is seeded, so a seeded
 text the club deletes stays deleted and an edited one keeps its edit.
+
+The labels are seeded the same way but need no marker: a label is never
+deleted, so each label the club's store lacks (all of them on the first
+use, one the catalogue gained since on a later one) is added as the
+catalogue writes it, and a stored one is never touched.
 
 Two workers may race on a fresh database: the marker is inserted with
 ``ON CONFLICT DO NOTHING`` in the transaction that seeds, so the second
@@ -13,13 +18,15 @@ waits for the first, finds the marker taken and seeds nothing.
 
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..db.models.application_label import ApplicationLabel
 from ..db.models.application_library_text import ApplicationLibraryText
 from ..db.models.application_seed import ApplicationSeed
 from ..utils import now_utc_ms
-from .application_catalogue import library
+from .application_catalogue import labels, library
 
 LIBRARY_TEXTS = "library_texts"
 ENGLISH = "en"
@@ -70,3 +77,20 @@ async def ensure_library_seeded(db: AsyncSession) -> None:
         for key, clause in clauses.items()
     )
     await db.flush()
+
+
+async def ensure_labels_seeded(db: AsyncSession) -> None:
+    """Add each catalogue label the club's store lacks, as written there."""
+    catalogue: dict[str, dict[str, str]] = labels()
+    stored = set((await db.execute(select(ApplicationLabel.key))).scalars())
+    missing = [key for key in catalogue if key not in stored]
+    if not missing:
+        return
+    now = now_utc_ms()
+    _ = await db.execute(
+        insert(ApplicationLabel)
+        .values(
+            [{"key": key, "text": catalogue[key], "updated_at": now} for key in missing]
+        )
+        .on_conflict_do_nothing(index_elements=[ApplicationLabel.key])
+    )

@@ -10,8 +10,10 @@ The design is `club_client/docs/applications_design.md` §2. The PDF — its
 blocks, sizes, spacings and the fitting of page 1 — was settled in a
 standalone prototype and is ported as it was. The label catalogue (the
 form's fixed wording) and the clause library (sentences with gaps for a
-template's facts) ship with the server in English, Marathi and Hindi; a
-club adds its own texts beside them (#126). The editor pastes a text as
+template's facts) ship with the server in English, Marathi and Hindi, and
+are seeded once into the club's labels and library, from then on the
+club's own (#126, #133). The club's languages are its profile options'
+languages (R28). The editor pastes a text as
 written, gaps and all; a template stores only its text, and the form fills
 every gap from the template's facts when it is drawn.
 
@@ -48,7 +50,7 @@ signed-in user whose account is `registered`, `pending` or `active`
   copy is a new draft with the same content and no layout; the source is
   unchanged.
 - **R6** [✅] A template prints in `languages`: `["en"]` or `["en",
-  <one other>]`, the other a language of the label catalogue → otherwise
+  <one other>]`, the other one of the club's languages (R29) → otherwise
   422. Every printed text is custom text (`{language: text}`); a header
   item may be a list of them, one per line. A library clause (`{"clause":
   …}`) or a fact (`{"fact": …}`) in any printed text, a rule or a note →
@@ -65,11 +67,10 @@ signed-in user whose account is `registered`, `pending` or `active`
   `name` (`value`, text or `{language: text}` with English) or `choices`
   (`value`, a list of the library's choice ids). Any other shape → 422.
 - **R7** [✅] An admin reads the clauses, `GET /v1/applications/clauses`:
-  the library's languages and choices, and a list of the built-in clauses
-  (`source: "builtin"`, `key`, their kind, gaps and the gaps' fact types,
-  and text and heading, for a rule, in every language), then the club's
-  texts (R7a; `source: "club"`, `id`, `name`), each text as written, gaps
-  and all (#126). A fact fills a gap (R15a) in each language:
+  the club's languages (R28), the library's choices, and the club's library
+  texts (R7a), the seeded built-in clauses among them (R7b), oldest first,
+  each as `GET /v1/applications/library` returns it, gaps and all (#126,
+  #133). A fact fills a gap (R15a) in each language:
   a date as "19 November 2026" / "19 नोव्हेंबर 2026", a range as "1–15
   November 2026" / "1 ते 15 नोव्हेंबर 2026", a time with its part of the day
   ("6:00 am" / "सकाळी 6:00"), an amount with Indian grouping (1,50,000),
@@ -79,16 +80,33 @@ signed-in user whose account is `registered`, `pending` or `active`
   `/v1/applications/library`: club-wide, offered in every template. Each
   text has a `kind` (a kind of the built-in clauses: `header`,
   `selection`, `declaration`, `rule`, `note`), a short `name` (1–100
-  characters) and its `text` per catalogue language, gaps allowed; a rule
+  characters) and its `text` per club language (R30), gaps allowed; a rule
   may have a `heading`, any other kind → 422. An admin creates (201),
   lists, reads, edits (the fields sent replace the stored ones, null clears
   the heading; a result that is not a valid text → 422 and nothing changes)
   and deletes (204) them; an unknown one → 404
   `APPLICATION_LIBRARY_TEXT_NOT_FOUND`. Deleting a text changes no
   template. A coach or member → 403, anonymous → 401 (#126).
-- **R8** [✅] An admin reads the label catalogue, every label in
-  every catalogue language. A template's `labelOverrides` replace a label
-  on its form; an id the catalogue does not have → 422.
+- **R7b** [✅] The first use of the library copies every built-in clause
+  (`clauses.json`) into it as a club text: its `key` (unique; null on a
+  text the club wrote), kind, heading and text in every language the file
+  has, and as `name` its English heading or its key read aloud ("Header:
+  training camp"). The seeding is recorded and runs once: a later start
+  seeds nothing, a seeded text deleted stays deleted, one edited keeps its
+  edit, and every seeded text is edited and deleted as R7a says. Two
+  workers starting together seed once (#133).
+- **R8** [✅] An admin reads the club's labels, `GET
+  /v1/applications/labels`: the club's languages and every label in them,
+  seeded on first use from the label catalogue in every language it has. A
+  template's `labelOverrides` replace a label on its form; an id the
+  catalogue does not have → 422.
+- **R8a** [✅] An admin edits a label, `PATCH
+  /v1/applications/labels/{key}` with `{"text": {lang: text}}`, English
+  needed: it replaces the label's texts in the club's languages (one left
+  out is blank) and keeps the rest (R30); answers `{key, text}`. An unknown
+  key → 404 `APPLICATION_LABEL_NOT_FOUND`; no English, a blank text → 422; a
+  language the club does not have → 422 `APPLICATION_LANGUAGE_NOT_OFFERED`.
+  A coach or member → 403. An edit is never undone by a later start (#133).
 
 - **R6b** [✅] An age category's `bornOnOrAfterUtc` must not be later
   than its `bornOnOrBeforeUtc` when both are given → 422, and nothing is
@@ -98,7 +116,8 @@ signed-in user whose account is `registered`, `pending` or `active`
 
 - **R9** [✅] Save refuses a template whose title, declaration or
   footer line is missing, or whose title, declaration, footer line, terms, notes,
-  selections or label overrides lack a print language (header items and
+  selections or label overrides lack a print language, or a club label
+  the template does not override lacks one (`labels.<key>`, #133) (header items and
   age-category names may stay English only) → 422 `APPLICATION_INCOMPLETE`
   naming each text and the print languages it lacks (`missing: [{field,
   languages}]`; a text missing altogether lacks every print language); it
@@ -123,14 +142,15 @@ signed-in user whose account is `registered`, `pending` or `active`
 - **R13** [✅] Save decides the layout and stores it on the
   template (`layout`: its name and page 1's spread), with a frozen copy of
   the club's profile options it was measured with, and of the library's
-  formats and choices its facts were printed with (#126); revert drops
-  them. Every form prints the guardian block (R21), so one spread is
+  formats and choices its facts were printed with (#126), and of the
+  club's labels (#133); revert drops them. Every form prints the guardian block (R21), so one spread is
   measured; `layout.spread` carries it under both `withGuardian` and
   `withoutGuardian` (#128).
 - **R14** [✅] A saved or published template is drawn only from its
-  stored layout, its frozen profile options and its frozen fact formats,
+  stored layout, its frozen profile options, its frozen fact formats and
+  its frozen labels (a layout saved before #133: the label catalogue's),
   and is never measured again: a later change to the profile options
-  (positions), the label catalogue or the clause library (its clauses,
+  (positions), the club's labels, the label catalogue or the clause library (its clauses,
   formats and choices) changes none of its forms (#96, #97, #107, #126). To pick up such a change the admin unpublishes, reverts, saves and
   publishes again. The fonts ship with the server; the fixtures' measured
   layouts are pinned by a test, so a font change that measures differently
@@ -248,3 +268,29 @@ signed-in user whose account is `registered`, `pending` or `active`
   A draft has no layout → 422 `APPLICATION_NOT_SAVED`; an unknown template
   → 404 `APPLICATION_NOT_FOUND`. A coach or member → 403, no session → 401.
   The preview stays as R19 says (#129).
+
+## The club's languages
+
+- **R28** [✅] The club's languages are the profile options' languages
+  (users R69), each `{code, name}`; English (`en`) is always one, and a
+  club that has written none has English and Marathi. `languages` in the
+  labels and clauses reads is this list. A language written by name alone
+  takes its code (a known name its ISO code, any other `x-<name>`), and
+  the migration of #133 does that to the stored names, keeping every one
+  (#133).
+- **R29** [✅] A template prints only in the club's languages: a create or
+  edit naming another print language → 422
+  `APPLICATION_LANGUAGE_NOT_OFFERED` with `details.languages`, and nothing
+  is stored; save refuses a draft whose print language the club has since
+  removed the same way, and it stays a draft (#133).
+- **R30** [✅] A template, library text or label is read with its texts in
+  the club's languages only (a text with none of them is shown as stored);
+  a text written in another language → 422
+  `APPLICATION_LANGUAGE_NOT_OFFERED`. A text sent keeps its stored
+  translations in languages the club has removed, so adding a language
+  back restores them. A language added shows no translation until one is
+  written; save refuses a template printing in it while a text or label
+  lacks it (R9) (#133).
+- **R31** [✅] A fact prints in a club language the library has no
+  formats or choice words for as it does in English (#133).
+
