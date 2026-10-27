@@ -15,7 +15,7 @@ from .application_catalogue import JsonDict, fingerprint, labels, library
 from .application_pdf_builder import ApplicationFormBuilder
 from .application_pdf_fit import check, choose_layout
 from .application_pdf_layout import BOTTOM, LAYOUTS, layout_named
-from .application_text import incomplete, resolve
+from .application_text import incomplete, lacking, resolve
 
 FINGERPRINT = "fingerprint"
 
@@ -25,14 +25,15 @@ def resolved(template: JsonDict) -> JsonDict:
     return resolve(template, library())
 
 
-def missing_texts(template: JsonDict) -> list[str]:
-    """Texts, and label overrides, missing a print language (R9)."""
+def missing_texts(template: JsonDict) -> list[JsonDict]:
+    """Texts, and label overrides, missing print languages (R9)."""
     langs: list[str] = template["languages"]
     found = incomplete(template)
     overrides: JsonDict = template.get("label_overrides") or {}
     for key, value in overrides.items():
-        if any(not value.get(lang) for lang in langs):
-            found.append(f"labelOverrides.{key}")
+        entry = lacking(f"labelOverrides.{key}", value, langs)
+        if entry:
+            found.append(entry)
     return found
 
 
@@ -41,7 +42,7 @@ def decide_layout(template: JsonDict, options: JsonDict, today: date) -> JsonDic
     document = resolved(template)
     missing = missing_texts(document)
     if missing:
-        raise ApplicationIncompleteException(missing, document["languages"][-1])
+        raise ApplicationIncompleteException(missing)
     decided = check(document, labels(), options, today)
     decided[FINGERPRINT] = fingerprint()
     return decided
