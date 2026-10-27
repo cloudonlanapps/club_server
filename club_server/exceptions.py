@@ -1527,15 +1527,19 @@ class ApplicationTransitionException(Exception):
 
 
 class ApplicationIncompleteException(Exception):
-    """Raised when a save finds texts missing a print language (#93)."""
+    """Raised when a save finds texts missing print languages (#93, #101).
 
-    missing: list[str]
-    language: str
+    ``missing`` holds ``{"field": <API path>, "languages": [...]}`` per text.
+    """
 
-    def __init__(self, missing: list[str], language: str):
+    missing: list[dict[str, Any]]
+
+    def __init__(self, missing: list[dict[str, Any]]):
         self.missing = missing
-        self.language = language
-        super().__init__(f"No {language!r} text for {', '.join(missing)}")
+        named = ", ".join(
+            f"{m['field']} ({', '.join(m['languages'])})" for m in missing
+        )
+        super().__init__(f"Texts missing a print language: {named}")
 
 
 class ApplicationReferenceException(Exception):

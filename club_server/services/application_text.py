@@ -194,20 +194,30 @@ REQUIRED_TEXTS = {
 PRESENT_TEXTS = frozenset(REQUIRED_TEXTS)
 
 
-def incomplete(template: JsonDict) -> list[str]:
-    """Where a print language is missing from a text that needs it (R9).
+def lacking(
+    path: str, value: dict[str, str] | None, langs: list[str], present: bool = False
+) -> JsonDict | None:
+    """``{"field": path, "languages": [...]}`` when ``value`` lacks print
+    languages; a required text missing altogether lacks every one."""
+    if not value:
+        return {"field": path, "languages": list(langs)} if present else None
+    absent = [lang for lang in langs if not value.get(lang)]
+    return {"field": path, "languages": absent} if absent else None
 
-    ``template`` is resolved. The paths name the API's fields
+
+def incomplete(template: JsonDict) -> list[JsonDict]:
+    """Each text that needs a print language it lacks, with the languages (R9).
+
+    ``template`` is resolved. The fields name the API's paths
     (``termsNotes[0].text``).
     """
     langs: list[str] = template["languages"]
-    found: list[str] = []
+    found: list[JsonDict] = []
 
     def need(path: str, value: dict[str, str] | None, present: bool = False):
-        if (present and not value) or (
-            value and any(not value.get(lang) for lang in langs)
-        ):
-            found.append(path)
+        entry = lacking(path, value, langs, present)
+        if entry:
+            found.append(entry)
 
     for key, path in REQUIRED_TEXTS.items():
         need(path, template.get(key), present=key in PRESENT_TEXTS)
