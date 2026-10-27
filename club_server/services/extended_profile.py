@@ -2,7 +2,7 @@
 
 The fields ride on the ordinary profile edit (``PATCH /v1/users/by_id/…``);
 this module holds the rules that are theirs alone: an unapproved user may
-set their own and nothing else (users R66), only an admin sets the
+edit their own profile and no one else's (users R66), only an admin sets the
 membership date (R67), and a position or language must be one of the
 club's options when it is written (R64).
 """
@@ -11,11 +11,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User, UserStatus
-from ..schemas.extended_profile import (
-    CHOICE_COLUMNS,
-    SELF_EXTENDED_FIELDS,
-    decode_choices,
-)
+from ..schemas.extended_profile import CHOICE_COLUMNS, decode_choices
 from ..schemas.user import UserUpdate
 from ..validation import validate_utc_midnight
 from .profile_options import ProfileOptionsService
@@ -37,19 +33,19 @@ def check_profile_edit_access(
 ) -> None:
     """Refuse what the extended-profile rules forbid before anything is written.
 
-    A user not yet approved may edit only their own extended fields (R66);
-    anything else answers as it did before they could edit at all. Only an
-    admin may send the membership date (R67).
+    A user not yet approved (``registered`` or ``pending``) may edit their
+    own profile and no one else's (R66); gender and date of birth are
+    refused to them by the router's ``PROTECTED_FIELDS`` guard, as to any
+    non-admin. Only an admin may send the membership date (R67).
     """
     # Imported here: ``dependencies`` loads the services package, this module
     # among it.
     from ..dependencies import is_admin
 
     sent = data.model_fields_set
-    if current_user.status != UserStatus.active.value and (
-        username != current_user.username
-        or not sent
-        or not sent <= SELF_EXTENDED_FIELDS
+    if (
+        current_user.status != UserStatus.active.value
+        and username != current_user.username
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

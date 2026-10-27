@@ -5,6 +5,8 @@ are stored and returned whatever ``EXTENDED_PROFILE_ENABLED`` says; the
 setting only tells the app whether to show them.
 """
 
+from typing import Any
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +15,7 @@ from club_server.db.models.user import UserStatus
 
 from .extended_profile_helpers import (
     EXTENDED,
+    MIDNIGHT_2024_06_01,
     OPTIONS,
     auth,
     patch_user,
@@ -414,32 +417,124 @@ async def test_should_store_own_extended_fields_when_user_is_not_yet_approved(
     assert me.json()["status"] == status.value
 
 
+OWN_PROFILE: dict[str, Any] = {
+    "firstName": "Neha",
+    "phone": "+919812345678",
+    "address": {
+        "addrLine1": "12 Lake Road",
+        "addrLine2": None,
+        "city": "Pune",
+        "state": "Maharashtra",
+        "pincode": "411001",
+    },
+    "bio": "Played roller hockey at school.",
+}
+
+
 @pytest.mark.requirement("users:R66")
 @pytest.mark.asyncio
+@pytest.mark.parametrize("status", [UserStatus.registered, UserStatus.pending])
+async def test_should_store_own_profile_fields_when_user_is_not_yet_approved(
+    client: AsyncClient, db_session: AsyncSession, status: UserStatus
+):
+    """Issue 123: name, contact, address and bio are theirs to fill before
+    approval, so the application form they download is complete."""
+    admin = await create_admin_user(db_session)
+    newbie = await create_user_with_status(db_session, "newbie", status)
+    await db_session.commit()
+
+    response = await patch_user(client, newbie, "newbie", OWN_PROFILE)
+
+    assert response.status_code == 200, response.text
+    me = await client.get("/v1/auth/me", headers=auth(newbie))
+    assert me.status_code == 200, me.text
+    stored = await private(client, admin, "newbie")
+    for key, value in OWN_PROFILE.items():
+        assert me.json()[key] == value
+        assert stored[key] == value
+    assert me.json()["status"] == status.value
+
+
+@pytest.mark.requirement("users:R66")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [UserStatus.registered, UserStatus.pending])
 @pytest.mark.parametrize(
-    ("target", "body"),
+    ("body", "field"),
     [
-        ("newbie", {"bio": "Hello"}),
-        ("newbie", {"bio": "Hello", "clubDistrict": "Pune"}),
-        ("newbie", {}),
-        ("mira", {"clubDistrict": "Pune"}),
+        ({"gender": "female"}, "gender"),
+        ({"dateOfBirthUtc": MIDNIGHT_2024_06_01}, "dateOfBirthUtc"),
+        ({"bio": "Hello", "gender": "female"}, "gender"),
     ],
 )
-async def test_should_refuse_an_unapproved_user_when_edit_is_not_own_extended_fields(
+async def test_should_refuse_gender_and_birth_date_when_unapproved_user_edits_own(
     client: AsyncClient,
     db_session: AsyncSession,
-    target: str,
+    status: UserStatus,
+    body: dict[str, Any],
+    field: str,
+):
+    """Issue 123: gender and date of birth stay an admin's to change."""
+    admin = await create_admin_user(db_session)
+    newbie = await create_user_with_status(db_session, "newbie", status)
+    await db_session.commit()
+
+    response = await patch_user(client, newbie, "newbie", body)
+
+    assert response.status_code == 403, response.text
+    assert response.json()["detail"]["code"] == "PROTECTED_FIELDS"
+    assert response.json()["detail"]["fields"] == [field]
+    after = await private(client, admin, "newbie")
+    assert after["gender"] is None
+    assert after["dateOfBirthUtc"] is None
+    assert after["bio"] is None
+
+
+@pytest.mark.requirement("users:R66")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [UserStatus.registered, UserStatus.pending])
+@pytest.mark.parametrize(
+    "body",
+    [{"bio": "Hello"}, {"clubDistrict": "Pune"}, {"phone": "+919812345678"}],
+)
+async def test_should_refuse_an_unapproved_user_when_editing_another_profile(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    status: UserStatus,
     body: dict[str, str],
 ):
     admin = await create_admin_user(db_session)
-    newbie = await create_user_with_status(db_session, "newbie", UserStatus.registered)
+    newbie = await create_user_with_status(db_session, "newbie", status)
     _ = await create_member_user(db_session, "mira")
     await db_session.commit()
+    before = await private(client, admin, "mira")
 
-    response = await patch_user(client, newbie, target, body)
+    response = await patch_user(client, newbie, "mira", body)
 
     assert response.status_code == 403, response.text
     assert response.json()["detail"]["code"] == "ACCOUNT_NOT_ACTIVE"
-    after = await private(client, admin, target)
+    after = await private(client, admin, "mira")
     assert after["bio"] is None
     assert after["clubDistrict"] is None
+    assert after["phone"] == before["phone"]
+
+
+@pytest.mark.requirement("users:R66")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "code"),
+    [(UserStatus.blocked, "ACCOUNT_BLOCKED"), (UserStatus.left, "ACCOUNT_LEFT")],
+)
+async def test_should_refuse_a_blocked_or_left_user_when_editing_own_profile(
+    client: AsyncClient, db_session: AsyncSession, status: UserStatus, code: str
+):
+    """Issue 123: only `registered` and `pending` gain the self-edit; a
+    blocked or departed account is refused before the edit is looked at."""
+    admin = await create_admin_user(db_session)
+    gone = await create_user_with_status(db_session, "gone", status)
+    await db_session.commit()
+
+    response = await patch_user(client, gone, "gone", {"phone": "+919812345678"})
+
+    assert response.status_code == 401, response.text
+    assert response.json()["detail"]["code"] == code
+    assert (await private(client, admin, "gone"))["phone"] is None

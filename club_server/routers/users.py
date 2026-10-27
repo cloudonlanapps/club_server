@@ -219,7 +219,8 @@ async def update_user(
 ):
     """Update user profile. Users can update their own profile; admins can update any profile.
 
-    A user not yet approved may set only their own extended fields (#92).
+    A user not yet approved may edit their own profile, except gender and
+    date of birth (users R66).
     """
     check_profile_edit_access(data, username, current_user)
     require_self_or_admin(username, current_user)

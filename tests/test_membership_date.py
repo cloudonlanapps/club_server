@@ -78,16 +78,19 @@ async def test_should_clear_membership_date_when_admin_sends_null(
 
 @pytest.mark.requirement("users:R67")
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ["member", "coach"])
+@pytest.mark.parametrize("role", ["member", "coach", "registered", "pending"])
 async def test_should_refuse_membership_date_when_user_edits_their_own(
     client: AsyncClient, db_session: AsyncSession, role: str
 ):
+    """A user not yet approved is refused it too, now that they may edit the
+    rest of their own profile (issue 123)."""
     admin = await create_admin_user(db_session)
-    token = (
-        await create_member_user(db_session, "mira")
-        if role == "member"
-        else await create_coach_user(db_session, "mira")
-    )
+    if role == "member":
+        token = await create_member_user(db_session, "mira")
+    elif role == "coach":
+        token = await create_coach_user(db_session, "mira")
+    else:
+        token = await create_user_with_status(db_session, "mira", UserStatus(role))
     await db_session.commit()
 
     response = await patch_user(

@@ -122,12 +122,6 @@ EXTENDED_COLUMNS: dict[str, str] = {
 # The extended fields that hold a list of the club's options (#106).
 CHOICE_COLUMNS: tuple[str, ...] = ("preferred_positions", "preferred_languages")
 
-# The extended fields a user sets on their own profile; the membership date
-# is an admin's alone (users R67).
-SELF_EXTENDED_FIELDS: frozenset[str] = frozenset(EXTENDED_COLUMNS) - {
-    "membership_date_utc"
-}
-
 
 class ExtendedProfileUpdate(CamelCaseModel):
     """The extended fields of a profile edit; each optional, null clears it."""
