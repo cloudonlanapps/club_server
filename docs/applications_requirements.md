@@ -72,7 +72,9 @@ signed-in user whose account is `registered`, `pending` or `active`
   footer line is missing, or whose title, declaration, footer line, terms, notes,
   selections or label overrides lack a print language (header items and
   age-category names may stay English only) → 422 `APPLICATION_INCOMPLETE`
-  naming each text and the language; it stays a draft.
+  naming each text and the print languages it lacks (`missing: [{field,
+  languages}]`; a text missing altogether lacks every print language); it
+  stays a draft.
 - **R9a** [✅] Save refuses a text naming a clause the library does
   not have, a clause whose gaps are not all given facts, a fact the
   template does not have, or a fact of the wrong type for its gap → 422

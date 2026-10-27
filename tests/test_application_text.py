@@ -223,11 +223,11 @@ def test_should_name_each_text_missing_a_language_when_checked():
     )
 
     assert incomplete(doc) == [
-        "title",
-        "formFooter",
-        "terms[0].heading",
-        "termsNotes[0].text",
-        "selections[1]",
+        {"field": "title", "languages": ["mr"]},
+        {"field": "formFooter", "languages": ["mr"]},
+        {"field": "terms[0].heading", "languages": ["mr"]},
+        {"field": "termsNotes[0].text", "languages": ["mr"]},
+        {"field": "selections[1]", "languages": ["mr"]},
     ]
 
 
@@ -235,7 +235,10 @@ def test_should_name_each_text_missing_a_language_when_checked():
 def test_should_name_a_missing_title_or_declaration_when_checked():
     doc = resolve(template(form_footer={"en": "x", "mr": "य"}), LIB)
 
-    assert incomplete(doc) == ["title", "declaration"]
+    assert incomplete(doc) == [
+        {"field": "title", "languages": ["en", "mr"]},
+        {"field": "declaration", "languages": ["en", "mr"]},
+    ]
 
 
 @pytest.mark.requirement("applications:R9")
@@ -247,7 +250,7 @@ def test_should_name_a_missing_form_footer_when_checked():
         LIB,
     )
 
-    assert incomplete(doc) == ["formFooter"]
+    assert incomplete(doc) == [{"field": "formFooter", "languages": ["en", "mr"]}]
 
 
 @pytest.mark.requirement("applications:R9")

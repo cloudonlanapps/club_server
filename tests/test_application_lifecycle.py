@@ -171,8 +171,11 @@ async def test_should_refuse_save_when_a_text_lacks_a_print_language(
     detail = response.json()["detail"]
     assert detail["code"] == "APPLICATION_INCOMPLETE"
     assert detail["details"] == {
-        "missing": ["formFooter", "terms[3].body", "labelOverrides.field.phone"],
-        "language": "mr",
+        "missing": [
+            {"field": "formFooter", "languages": ["mr"]},
+            {"field": "terms[3].body", "languages": ["mr"]},
+            {"field": "labelOverrides.field.phone", "languages": ["mr"]},
+        ]
     }
     assert await status_of(client, admin, created["id"]) == "draft"
 
@@ -191,7 +194,10 @@ async def test_should_refuse_save_when_title_or_declaration_is_missing(
     response = await move(client, admin, created["id"], "save")
 
     assert response.status_code == 422
-    assert response.json()["detail"]["details"]["missing"] == ["title", "declaration"]
+    assert response.json()["detail"]["details"]["missing"] == [
+        {"field": "title", "languages": ["en"]},
+        {"field": "declaration", "languages": ["en"]},
+    ]
     assert await status_of(client, admin, created["id"]) == "draft"
 
 
@@ -211,7 +217,53 @@ async def test_should_refuse_save_when_form_footer_missing(
     assert response.status_code == 422, response.text
     detail = response.json()["detail"]
     assert detail["code"] == "APPLICATION_INCOMPLETE"
-    assert detail["details"]["missing"] == ["formFooter"]
+    assert detail["details"] == {
+        "missing": [{"field": "formFooter", "languages": ["en", "mr"]}]
+    }
+    assert await status_of(client, admin, created["id"]) == "draft"
+
+
+@pytest.mark.requirement("applications:R9")
+@pytest.mark.asyncio
+async def test_should_name_english_when_only_the_english_text_is_missing(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    body = template_body()
+    body["title"] = {"mr": "x"}
+    created = await create_application(client, admin, body)
+    await db_session.commit()
+
+    response = await move(client, admin, created["id"], "save")
+
+    assert response.status_code == 422, response.text
+    detail = response.json()["detail"]
+    assert detail["code"] == "APPLICATION_INCOMPLETE"
+    assert detail["details"] == {"missing": [{"field": "title", "languages": ["en"]}]}
+    assert await status_of(client, admin, created["id"]) == "draft"
+
+
+@pytest.mark.requirement("applications:R9")
+@pytest.mark.asyncio
+async def test_should_name_each_texts_own_language_when_two_texts_lack_different_ones(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    body = template_body()
+    body["title"] = {"mr": "x"}
+    body["declaration"] = {"en": "I agree to the rules."}
+    created = await create_application(client, admin, body)
+    await db_session.commit()
+
+    response = await move(client, admin, created["id"], "save")
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["details"] == {
+        "missing": [
+            {"field": "title", "languages": ["en"]},
+            {"field": "declaration", "languages": ["mr"]},
+        ]
+    }
     assert await status_of(client, admin, created["id"]) == "draft"
 
 
