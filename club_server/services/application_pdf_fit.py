@@ -52,10 +52,10 @@ WORST_CASE_MEMBER: JsonDict = {
     "phone": "+91 98220 12345",
     "email": "a.very.long.email.address@example.com",
     "nationality": "Indian",
-    "preferred_language": "Marathi",
+    "preferred_languages": ["Marathi"],
     "membership_date": "2026-01-01",
     "club_district": "Pune",
-    "preferred_position": "Forward",
+    "preferred_positions": ["Forward"],
     "past_experience": "w " * 300,
     "guardian": {
         "name": "Wwwwwwwwwwww Wwwwwwwwwwwwwwww",
@@ -63,6 +63,19 @@ WORST_CASE_MEMBER: JsonDict = {
         "phone": "+91 98220 54321",
     },
 }
+
+
+def worst_case_member(options: JsonDict) -> JsonDict:
+    """The member a template is measured for: every field at its longest,
+    every club position chosen and every club language listed (#106)."""
+    member = dict(WORST_CASE_MEMBER)
+    positions: list[JsonDict] = options.get("positions") or []
+    languages: list[str] = list(options.get("languages") or [])
+    member["preferred_positions"] = [p["value"] for p in positions]
+    member["preferred_languages"] = (
+        languages or WORST_CASE_MEMBER["preferred_languages"]
+    )
+    return member
 
 
 def choose_layout(
@@ -105,13 +118,12 @@ def check(
     layout fits (R17).
     """
     logo = WORST_CASE_LOGO
-    chosen = choose_layout(
-        template, WORST_CASE_MEMBER, labels, options, logo, today, worst=True
-    )
+    worst = worst_case_member(options)
+    chosen = choose_layout(template, worst, labels, options, logo, today, worst=True)
     if chosen is None:
         b = ApplicationFormBuilder(
             template,
-            WORST_CASE_MEMBER,
+            worst,
             labels,
             options,
             logo,
@@ -125,7 +137,7 @@ def check(
     layout, with_guardian, _room = chosen
     b = ApplicationFormBuilder(
         template,
-        WORST_CASE_MEMBER,
+        worst,
         labels,
         options,
         logo,

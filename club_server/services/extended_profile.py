@@ -11,7 +11,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User, UserStatus
-from ..schemas.extended_profile import SELF_EXTENDED_FIELDS
+from ..schemas.extended_profile import (
+    CHOICE_COLUMNS,
+    SELF_EXTENDED_FIELDS,
+    decode_choices,
+)
 from ..schemas.user import UserUpdate
 from ..validation import validate_utc_midnight
 from .profile_options import ProfileOptionsService
@@ -19,14 +23,13 @@ from .profile_options import ProfileOptionsService
 # ``users`` column → the name a client sends, for each extended field.
 EXTENDED_FIELD_NAMES: dict[str, str] = {
     "club_district": "clubDistrict",
-    "preferred_position": "preferredPosition",
+    "preferred_positions": "preferredPositions",
     "past_experience": "pastExperience",
     "nationality": "nationality",
-    "preferred_language": "preferredLanguage",
+    "preferred_languages": "preferredLanguages",
     "guardian": "guardian",
     "membership_date": "membershipDateUtc",
 }
-_CHOICE_COLUMNS = ("preferred_position", "preferred_language")
 
 
 def check_profile_edit_access(
@@ -68,9 +71,9 @@ async def check_extended_changes(
 ) -> None:
     """Refuse an extended value the profile cannot hold (R64, R67).
 
-    A position or language must be one of the club's options, unless it is
-    the value already stored: an option removed later leaves the member's
-    choice as it is, and re-sending it is not a change.
+    Each position or language must be one of the club's options, unless the
+    member already holds it: an option removed later leaves the member's
+    choice as it is, and re-sending it is not a change (#106).
     """
     membership_date = changes.get("membership_date")
     validate_utc_midnight(
@@ -78,11 +81,14 @@ async def check_extended_changes(
         "membershipDateUtc",
     )
     options = ProfileOptionsService(db)
-    for column in _CHOICE_COLUMNS:
-        value = changes.get(column)
-        if not isinstance(value, str) or value == getattr(user, column):
+    for column in CHOICE_COLUMNS:
+        if column not in changes:
             continue
-        if not await options.allows(column, value):
+        sent = changes[column]
+        held = set(decode_choices(getattr(user, column)))
+        for value in decode_choices(sent if isinstance(sent, str) else None):
+            if value in held or await options.allows(column, value):
+                continue
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={

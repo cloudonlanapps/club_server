@@ -376,13 +376,14 @@ class ApplicationFormBuilder:
         self,
         key: str,
         options: list[str],
-        ticked: int | None,
+        ticked: int | set[int] | None,
         x: float = MARGIN,
         width: float = CONTENT_W,
         columns: int = 3,
     ) -> float:
-        """A label and a checkbox per option, the member's ticked."""
+        """A label and a checkbox per option, the member's ticked (one or several)."""
         p = self.pdf
+        chosen = {ticked} if isinstance(ticked, int) else ticked or set()
         y = self.field_label(x, self.y, width, key) + 3
         lx = x + INDENT
         # fewer columns when an option would not fit on one line
@@ -397,7 +398,7 @@ class ApplicationFormBuilder:
             if i and i % columns == 0:
                 row_top = row_bottom + 2
             cx = lx + (i % columns) * col
-            p.checkbox(cx, row_top + 2, i == ticked)
+            p.checkbox(cx, row_top + 2, i in chosen)
             row_bottom = max(
                 row_bottom, p.text_at(cx + 12, row_top, col - 15, text, CHOICE)
             )

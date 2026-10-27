@@ -35,6 +35,10 @@ PHOTO_W, PHOTO_H = 99.0, 127.0  # 35 x 45 mm
 GENDERS = ["male", "female", "other"]
 
 
+# The member's preferred languages, printed in one field (#106).
+LIST_JOIN = ", "
+
+
 def full_name(m: JsonDict) -> str | None:
     """First, middle and last name."""
     parts = [m.get(k) for k in ("first_name", "middle_name", "last_name")]
@@ -166,7 +170,10 @@ def personal(b: "ApplicationFormBuilder", category: int | None):
     b.y = b.fields_row(
         [
             ("field.nationality", m.get("nationality")),
-            ("field.preferred_language", m.get("preferred_language")),
+            (
+                "field.preferred_language",
+                LIST_JOIN.join(m.get("preferred_languages") or []) or None,
+            ),
         ]
     )
 
@@ -179,11 +186,11 @@ def sports(b: "ApplicationFormBuilder"):
     positions: list[JsonDict] = b.options.get("positions") or []
     if positions:
         values = [pos["value"] for pos in positions]
-        chosen = m.get("preferred_position")
+        chosen: list[str] = m.get("preferred_positions") or []
         b.y = b.choices(
             "field.preferred_position",
             [SEPARATOR.join(b.ml(pos["label"])) for pos in positions],
-            values.index(chosen) if chosen in values else None,
+            {values.index(c) for c in chosen if c in values},
         )
     b.y = b.field(
         MARGIN,

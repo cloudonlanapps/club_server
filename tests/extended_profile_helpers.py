@@ -20,10 +20,10 @@ OPTIONS: dict[str, Any] = {
 
 EXTENDED: dict[str, Any] = {
     "clubDistrict": "Pune District",
-    "preferredPosition": "Forward",
+    "preferredPositions": ["Forward"],
     "pastExperience": "Two seasons of roller hockey.\nState camp 2024.",
     "nationality": "Indian",
-    "preferredLanguage": "Marathi",
+    "preferredLanguages": ["Marathi"],
     "guardian": {"name": "Sunita Rao", "relation": "Mother", "phone": "+919876543210"},
 }
 

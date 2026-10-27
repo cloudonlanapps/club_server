@@ -17,12 +17,17 @@ from club_server.exceptions import (
 from club_server.services.application_catalogue import labels
 from club_server.services.application_form import draw
 from club_server.services.application_pdf_builder import ApplicationFormBuilder
-from club_server.services.application_pdf_fit import WORST_CASE_MEMBER, check
+from club_server.services.application_pdf_fit import (
+    WORST_CASE_MEMBER,
+    check,
+    worst_case_member,
+)
 from club_server.services.application_pdf_canvas import ApplicationPdfCanvas
 from club_server.services.application_pdf_layout import (
     CONTENT_W,
     DEVA,
     FIT_SIZES,
+    LAYOUTS,
     MARGIN,
     PRINT,
     VALUE,
@@ -260,12 +265,13 @@ def test_should_give_the_preview_member_a_birthday_inside_the_first_category():
         "2014-06-15",
         "male",
     )
-    assert boy["preferred_position"] == "Forward"
+    assert boy["preferred_positions"] == ["Forward"]
+    assert boy["preferred_languages"] == ["Marathi"]
     assert boy["membership_date"] == "2025-10-26"
     assert (girl["gender"], girl["first_name"]) == ("female", "Ananya")
     assert senior["date_of_birth"] == "2008-03-10"
     assert anyone["date_of_birth"] == "2014-06-15"
-    assert anyone["preferred_position"] is None
+    assert anyone["preferred_positions"] == []
     assert "at a local rink" in boy["past_experience"]
     assert all(
         is_eligible(t["age_categories"], m)
@@ -398,3 +404,72 @@ def test_should_detect_a_switch_inside_a_word_when_it_holds_a_joiner():
     runs = font_runs("कार्‍यालय")
 
     assert len(runs) > len(font_runs("कार्यालय"))
+
+
+# Several preferred positions and languages (#106) ------------------------
+
+
+def ticked_boxes(member: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> int:
+    """How many checkboxes the form ticks for ``member``."""
+    ticks: list[bool] = []
+    drawn = ApplicationPdfCanvas.checkbox
+
+    def record(
+        canvas: ApplicationPdfCanvas,
+        x: float,
+        y: float,
+        ticked: bool,
+        size: float = 8.0,
+    ):
+        ticks.append(ticked)
+        drawn(canvas, x, y, ticked, size)
+
+    monkeypatch.setattr(ApplicationPdfCanvas, "checkbox", record)
+    builder = ApplicationFormBuilder(
+        document(), member, labels(), OPTIONS, None, TODAY, LAYOUTS[0]
+    )
+    _ = builder.build()  # drawn once, at one layout
+    monkeypatch.undo()
+    return sum(ticks)
+
+
+@pytest.mark.requirement("applications:R15")
+def test_should_tick_every_chosen_position_when_member_has_several(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    base = {
+        "username": "ravi",
+        "date_of_birth": "2015-01-01",
+        "gender": "male",
+        "chosen_category": 0,  # fits both groups
+    }
+
+    one = ticked_boxes({**base, "preferred_positions": ["Forward"]}, monkeypatch)
+    both = ticked_boxes(
+        {**base, "preferred_positions": ["Forward", "Goalie"]}, monkeypatch
+    )
+
+    assert both == one + 1
+
+
+@pytest.mark.requirement("applications:R15")
+def test_should_print_every_chosen_language_when_member_has_several():
+    member = {
+        "username": "ravi",
+        "date_of_birth": "2015-01-01",
+        "gender": "male",
+        "chosen_category": 0,  # fits both groups
+        "preferred_languages": ["Marathi", "English"],
+    }
+
+    text = pdf_text(draw(document(), member, OPTIONS, None, TODAY, None))
+
+    assert "Marathi, English" in text
+
+
+@pytest.mark.requirement("applications:R17")
+def test_should_measure_with_every_position_and_language_chosen_when_saving():
+    worst = worst_case_member(OPTIONS)
+
+    assert worst["preferred_positions"] == ["Forward", "Goalie"]
+    assert worst["preferred_languages"] == ["English"]

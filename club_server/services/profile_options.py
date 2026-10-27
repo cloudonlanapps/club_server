@@ -1,7 +1,7 @@
 """The club's profile options, the ``profile_options`` system preference (#92).
 
-Positions and languages a member chooses from for ``preferred_position``
-and ``preferred_language`` (users R64, R69–R69c). Stored in the generic
+Positions and languages a member chooses from for ``preferred_positions``
+and ``preferred_languages`` (users R64, R69–R69c). Stored in the generic
 preference store and written only through the super admin's
 ``PATCH /v1/admin/preferences/profile_options`` (#98), so a write is
 audited like any other (platform R7).
@@ -48,6 +48,6 @@ class ProfileOptionsService:
     async def allows(self, column: str, value: str) -> bool:
         """Whether ``value`` is one of the club's options for ``column``."""
         options = await self.read()
-        if column == "preferred_position":
+        if column == "preferred_positions":
             return value in {position.value for position in options.positions}
         return value in options.languages
