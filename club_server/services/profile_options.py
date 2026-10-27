@@ -1,8 +1,10 @@
 """The club's profile options, the ``profile_options`` system preference (#92).
 
 Positions and languages a member chooses from for ``preferred_position``
-and ``preferred_language`` (users R64, R69–R69b). Stored in the generic
-preference store, so a write is audited like any other (platform R7).
+and ``preferred_language`` (users R64, R69–R69c). Stored in the generic
+preference store and written only through the super admin's
+``PATCH /v1/admin/preferences/profile_options`` (#98), so a write is
+audited like any other (platform R7).
 """
 
 from typing import Any
@@ -42,18 +44,6 @@ class ProfileOptionsService:
         if stored is None:
             return ProfileOptions(positions=[], languages=[])
         return ProfileOptions.model_validate(stored)
-
-    async def write(
-        self, options: ProfileOptions, actor_username: str, ip_address: str | None
-    ) -> ProfileOptions:
-        """Replace the options; the write is audited (R69a)."""
-        _ = await self._prefs.write(
-            PROFILE_OPTIONS_KEY,
-            options.model_dump(mode="json"),
-            actor_username,
-            ip_address,
-        )
-        return options
 
     async def allows(self, column: str, value: str) -> bool:
         """Whether ``value`` is one of the club's options for ``column``."""

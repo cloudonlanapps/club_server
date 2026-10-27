@@ -343,14 +343,15 @@ form may print it in; a language is a plain name.
 - **R69** [✅] Any signed-in user, approved or not, can read the
   profile options at `GET /v1/system/preferences/profile_options`; both
   lists are empty until an admin writes them. An anonymous caller → 401.
-- **R69a** [✅] An admin can replace them with `PUT` on the same
-  path, and the write is audited as every preference write is
-  (platform R7). A coach or member → 403, and nothing is stored.
+- **R69a** [✅] The super admin replaces them with `PATCH
+  /v1/admin/preferences/profile_options` (`{"value": <options>}`), the one
+  write path; the write is audited as every preference write is
+  (platform R7). An admin, coach or member → 403, and nothing is stored;
+  `PUT` on the read path → 405.
 - **R69b** [X] A write is checked: every position has a
   non-empty `value` and at least one non-empty label, no two positions
-  share a value, and the languages are non-empty and distinct → 422, and
-  nothing is stored. A super admin writing the key through
-  `/v1/admin/preferences/profile_options` is checked the same way.
-- **R69c** [X] With `EXTENDED_PROFILE_ENABLED` off the write
-  answers 503 `EXTENDED_PROFILE_DISABLED`; the read and the profile
-  fields answer as when it is on.
+  share a value, and the languages are non-empty and distinct → 422
+  `INVALID_PREFERENCE_VALUE`, and nothing is stored.
+- **R69c** [X] With `EXTENDED_PROFILE_ENABLED` off the `PATCH`
+  answers 503 `EXTENDED_PROFILE_DISABLED` and nothing is stored; the read
+  and the profile fields answer as when it is on.
