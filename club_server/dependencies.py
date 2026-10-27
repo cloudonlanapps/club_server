@@ -230,7 +230,7 @@ def require_event_marketing_enabled() -> None:
 
 
 def require_extended_profile_enabled() -> None:
-    """Refuse the profile-options write where the extended profile is off (#92, users R69c).
+    """Refuse the profile-options write where the extended profile is off (#92, #98, users R69c).
 
     The profile fields themselves are stored and returned either way; only
     the club's choice lists are a write of the module's own.

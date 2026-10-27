@@ -1,7 +1,9 @@
-"""The club's profile options: positions and languages (#92, users R69–R69c).
+"""The club's profile options: positions and languages (#92, #98, users R69–R69c).
 
 Read by every signed-in user (the onboarding step needs them before
-approval), written by admins, checked on write.
+approval); written only by the super admin through
+``PATCH /v1/admin/preferences/profile_options``, checked on write, and
+refused while the extended profile is off.
 """
 
 from typing import Any
@@ -69,30 +71,44 @@ async def test_should_refuse_profile_options_read_when_caller_is_anonymous(
     assert response.status_code == 401, response.text
 
 
+async def patch_options(client: AsyncClient, token: str | None, value: Any):
+    """The super admin's write: ``PATCH /v1/admin/preferences/profile_options``."""
+    return await client.patch(
+        ADMIN_PROFILE_OPTIONS,
+        json={"value": value},
+        headers=auth(token) if token else {},
+    )
+
+
 @pytest.mark.requirement("users:R69a")
 @pytest.mark.asyncio
-@pytest.mark.parametrize("admin_kind", ["super", "regular"])
-async def test_should_store_profile_options_when_admin_writes_them(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    extended_profile_enabled: None,
-    admin_kind: str,
+async def test_should_store_profile_options_when_super_admin_writes_them(
+    client: AsyncClient, db_session: AsyncSession, extended_profile_enabled: None
 ):
-    super_admin = await create_admin_user(db_session)
-    admin = (
-        super_admin
-        if admin_kind == "super"
-        else await create_regular_admin_user(db_session, "ravi")
-    )
+    admin = await create_admin_user(db_session)
     member = await create_member_user(db_session, "mira")
     pending = await create_user_with_status(db_session, "pen", UserStatus.pending)
 
-    written = await client.put(PROFILE_OPTIONS, json=OPTIONS, headers=auth(admin))
+    written = await patch_options(client, admin, OPTIONS)
 
     assert written.status_code == 200, written.text
-    assert written.json() == OPTIONS
+    assert written.json()["value"] == OPTIONS
     assert await read_options(client, member) == OPTIONS
     assert await read_options(client, pending) == OPTIONS
+
+
+@pytest.mark.requirement("users:R69a")
+@pytest.mark.asyncio
+async def test_should_answer_method_not_allowed_when_options_are_put(
+    client: AsyncClient, db_session: AsyncSession, extended_profile_enabled: None
+):
+    admin = await create_admin_user(db_session)
+    await db_session.commit()
+
+    response = await client.put(PROFILE_OPTIONS, json=OPTIONS, headers=auth(admin))
+
+    assert response.status_code == 405, response.text
+    assert await read_options(client, admin) == EMPTY
 
 
 @pytest.mark.requirement("users:R69a")
@@ -101,9 +117,8 @@ async def test_should_audit_a_profile_options_write(
     client: AsyncClient, db_session: AsyncSession, extended_profile_enabled: None
 ):
     admin = await create_admin_user(db_session)
-    regular = await create_regular_admin_user(db_session, "ravi")
 
-    written = await client.put(PROFILE_OPTIONS, json=OPTIONS, headers=auth(regular))
+    written = await patch_options(client, admin, OPTIONS)
 
     assert written.status_code == 200, written.text
     log = await client.get("/v1/audit_log", headers=auth(admin))
@@ -111,29 +126,30 @@ async def test_should_audit_a_profile_options_write(
     rows = log.json()["rows"]
     assert len(rows) == 1
     assert rows[0]["action"] == "update_system_preference"
-    assert rows[0]["actor"]["username"] == "ravi"
+    assert rows[0]["actor"]["username"] == "admin"
     assert rows[0]["details"]["key"] == "profile_options"
     assert rows[0]["details"]["previousValue"] is None
 
 
 @pytest.mark.requirement("users:R69a")
 @pytest.mark.asyncio
-@pytest.mark.parametrize("writer", ["coach", "member"])
-async def test_should_refuse_profile_options_write_when_caller_is_not_an_admin(
+@pytest.mark.parametrize("writer", ["admin", "coach", "member"])
+async def test_should_refuse_profile_options_write_when_caller_is_not_the_super_admin(
     client: AsyncClient,
     db_session: AsyncSession,
     extended_profile_enabled: None,
     writer: str,
 ):
     admin = await create_admin_user(db_session)
-    token = (
-        await create_coach_user(db_session, "cora")
-        if writer == "coach"
-        else await create_member_user(db_session, "mira")
-    )
+    if writer == "admin":
+        token = await create_regular_admin_user(db_session, "ravi")
+    elif writer == "coach":
+        token = await create_coach_user(db_session, "cora")
+    else:
+        token = await create_member_user(db_session, "mira")
     await db_session.commit()
 
-    response = await client.put(PROFILE_OPTIONS, json=OPTIONS, headers=auth(token))
+    response = await patch_options(client, token, OPTIONS)
 
     assert response.status_code == 403, response.text
     assert await read_options(client, admin) == EMPTY
@@ -147,7 +163,7 @@ async def test_should_refuse_profile_options_write_when_caller_is_anonymous(
     admin = await create_admin_user(db_session)
     await db_session.commit()
 
-    response = await client.put(PROFILE_OPTIONS, json=OPTIONS)
+    response = await patch_options(client, None, OPTIONS)
 
     assert response.status_code == 401, response.text
     assert await read_options(client, admin) == EMPTY
@@ -185,44 +201,11 @@ async def test_should_refuse_profile_options_when_the_document_is_invalid(
     admin = await create_admin_user(db_session)
     await db_session.commit()
 
-    response = await client.put(PROFILE_OPTIONS, json=bad, headers=auth(admin))
-
-    assert response.status_code == 422, response.text
-    assert await read_options(client, admin) == EMPTY
-
-
-@pytest.mark.requirement("users:R69b")
-@pytest.mark.asyncio
-@pytest.mark.parametrize("bad", INVALID_OPTIONS)
-async def test_should_refuse_profile_options_when_written_as_a_generic_preference(
-    client: AsyncClient, db_session: AsyncSession, bad: Any
-):
-    admin = await create_admin_user(db_session)
-    await db_session.commit()
-
-    response = await client.patch(
-        ADMIN_PROFILE_OPTIONS, json={"value": bad}, headers=auth(admin)
-    )
+    response = await patch_options(client, admin, bad)
 
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "INVALID_PREFERENCE_VALUE"
     assert await read_options(client, admin) == EMPTY
-
-
-@pytest.mark.requirement("users:R69b")
-@pytest.mark.asyncio
-async def test_should_store_profile_options_when_written_as_a_generic_preference(
-    client: AsyncClient, db_session: AsyncSession
-):
-    admin = await create_admin_user(db_session)
-    member = await create_member_user(db_session, "mira")
-
-    response = await client.patch(
-        ADMIN_PROFILE_OPTIONS, json={"value": OPTIONS}, headers=auth(admin)
-    )
-
-    assert response.status_code == 200, response.text
-    assert await read_options(client, member) == OPTIONS
 
 
 @pytest.mark.requirement("users:R69c")
@@ -234,7 +217,7 @@ async def test_should_refuse_profile_options_write_when_extended_profile_is_off(
     member = await create_member_user(db_session, "mira")
     await db_session.commit()
 
-    response = await client.put(PROFILE_OPTIONS, json=OPTIONS, headers=auth(admin))
+    response = await patch_options(client, admin, OPTIONS)
 
     assert response.status_code == 503, response.text
     assert response.json()["detail"]["code"] == "EXTENDED_PROFILE_DISABLED"

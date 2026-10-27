@@ -6,13 +6,18 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models.user import User
-from ..dependencies import get_db, require_super_admin
+from ..dependencies import (
+    get_db,
+    require_extended_profile_enabled,
+    require_super_admin,
+)
 from ..schemas.system_preference import (
     SystemPreferenceList,
     SystemPreferenceResponse,
     SystemPreferenceUpdate,
 )
 from ..services.club_info import validate_preference_value
+from ..services.profile_options import PROFILE_OPTIONS_KEY
 from ..services.system_preferences import SystemPreferenceService
 from ..utils import get_client_ip
 
@@ -51,7 +56,13 @@ async def update_preference(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(require_super_admin())],
 ):
-    """Write a preference; the write is audited (platform R7)."""
+    """Write a preference; the write is audited (platform R7).
+
+    The club's profile options belong to the extended profile: their write
+    answers 503 while it is off (#98, users R69c).
+    """
+    if key == PROFILE_OPTIONS_KEY:
+        require_extended_profile_enabled()
     await validate_preference_value(db, key, payload.value)
     service = SystemPreferenceService(db)
     row = await service.write(

@@ -4,6 +4,8 @@ from typing import Any
 
 from httpx import AsyncClient
 
+from club_server.config import settings
+
 PROFILE_OPTIONS = "/v1/system/preferences/profile_options"
 ADMIN_PROFILE_OPTIONS = "/v1/admin/preferences/profile_options"
 MIDNIGHT_2024_06_01 = 1717200000000  # 2024-06-01 00:00 UTC
@@ -34,13 +36,21 @@ def auth(token: str) -> dict[str, str]:
 async def write_options(
     client: AsyncClient, admin: str, options: dict[str, Any] | None = None
 ) -> None:
-    """Store the club's profile options through the super admin's generic
-    preference write, which answers whatever the module flag says."""
-    response = await client.patch(
-        ADMIN_PROFILE_OPTIONS,
-        json={"value": OPTIONS if options is None else options},
-        headers=auth(admin),
-    )
+    """Store the club's profile options as the super admin does (users R69a).
+
+    The write answers 503 while the extended profile is off (R69c), so the
+    module is on for this write alone and the test's own setting is kept.
+    """
+    previous = settings.extended_profile_enabled
+    settings.extended_profile_enabled = True
+    try:
+        response = await client.patch(
+            ADMIN_PROFILE_OPTIONS,
+            json={"value": OPTIONS if options is None else options},
+            headers=auth(admin),
+        )
+    finally:
+        settings.extended_profile_enabled = previous
     assert response.status_code == 200, response.text
 
 
