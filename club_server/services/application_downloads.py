@@ -25,11 +25,12 @@ from ..dependencies import is_admin
 from ..exceptions import (
     ApplicationNotFoundException,
     ApplicationNotPublishedException,
+    ApplicationNotSavedException,
     IdentityDocumentRequiredException,
 )
 from ..schemas.application import ApplicationResponse
 from ..schemas.common import PaginatedResponse
-from .application import PUBLISHED, ApplicationService
+from .application import PUBLISHED, SAVED, ApplicationService
 from .application_catalogue import JsonDict
 from .application_document import member_document, options_document, template_document
 from .application_drawing import ApplicationDrawingService
@@ -130,6 +131,22 @@ class ApplicationDownloadService:
             stored,
             preview=True,
         )
+
+    async def blank_form(self, application_id: int) -> bytes:
+        """A saved or published template's form with no member in it and
+        no watermark, for filling in by hand (R27): a published one's
+        stored drawing, with its publish mark; a saved one's drawn from its
+        stored layout. A draft has no layout and is refused."""
+        application = await self._applications.get_or_raise(application_id)
+        if application.status not in (SAVED, PUBLISHED):
+            raise ApplicationNotSavedException(application_id)
+        options = frozen_options(application.layout, await self._options())
+        logo = await club_logo(self.db)
+        drawings = ApplicationDrawingService(self.db)
+        if application.status == PUBLISHED:
+            return (await drawings.current(application, logo, options)).pdf
+        pdf, _places = await drawings.draw(application, logo, options, None)
+        return pdf
 
     async def _options(self) -> JsonDict:
         return options_document(await ProfileOptionsService(self.db).read())

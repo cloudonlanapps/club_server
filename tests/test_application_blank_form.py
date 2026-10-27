@@ -6,6 +6,8 @@ with none. A draft has no layout and is refused. Neither carries a
 watermark or any member's value.
 """
 
+import re
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -30,6 +32,7 @@ pytestmark = pytest.mark.usefixtures("applications_enabled")
 
 GUARDIAN_NOTE = "Only for applicants below 18 years of age"
 WATERMARK = "PREVIEW"
+PUBLISH_MARK = re.compile(r"Form [0-9a-f]{8}-[0-9a-f]{4}-")
 BLANK = "blank"  # the file name's last part: application-<id>-blank.pdf
 
 
@@ -71,6 +74,7 @@ async def test_should_return_the_stored_drawing_when_the_template_is_published(
     assert response.content == stored.pdf
     assert draws == []  # the drawing made on publish, not drawn again
     assert f"Form {published['publishId']}" in text
+    assert PUBLISH_MARK.search(text) is not None
     assert_blank(text)
 
 
@@ -95,7 +99,7 @@ async def test_should_draw_the_blank_form_from_the_stored_layout_when_saved(
 
     text = assert_pdf(response, created["id"], BLANK)
     assert len(seen) == 1 and seen[0] is not None
-    assert "Form " not in text  # no publish mark before a publish
+    assert PUBLISH_MARK.search(text) is None  # no publish mark before a publish
     assert_blank(text)
     rows = (
         await db_session.execute(

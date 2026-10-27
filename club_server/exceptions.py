@@ -1507,6 +1507,16 @@ class ApplicationNotPublishedException(Exception):
         super().__init__(f"Application {application_id} is not published")
 
 
+class ApplicationNotSavedException(Exception):
+    """Raised when a blank form is asked of a draft, which has no layout (#129)."""
+
+    application_id: int
+
+    def __init__(self, application_id: int):
+        self.application_id = application_id
+        super().__init__(f"Application {application_id} is a draft, not saved")
+
+
 class ApplicationNotEligibleException(Exception):
     """Raised when no age category of the application matches the member (#93)."""
 

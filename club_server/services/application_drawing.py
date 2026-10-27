@@ -65,19 +65,10 @@ class ApplicationDrawingService:
         """Draw the published ``application``'s form with no member in it
         and store it, replacing any drawing it had. ``options`` are the
         live profile options; the stored layout's frozen ones win (R14)."""
-        stored = application.layout
         publish_id = application.publish_id
-        if stored is None or publish_id is None:
+        if publish_id is None:
             raise ValueError(f"application {application.id} is not published")
-        pdf, places = await asyncio.to_thread(
-            draw_blank,
-            template_document(application),
-            frozen_options(stored, options),
-            logo,
-            day_to_date(club_today()),
-            stored,
-            publish_id,
-        )
+        pdf, places = await self.draw(application, logo, options, publish_id)
         values = {
             "publish_id": publish_id,
             "logo_key": logo_key(logo),
@@ -97,6 +88,30 @@ class ApplicationDrawingService:
         )
         assert drawing is not None
         return drawing
+
+    async def draw(
+        self,
+        application: Application,
+        logo: bytes | None,
+        options: JsonDict,
+        publish_id: str | None,
+    ) -> tuple[bytes, JsonDict]:
+        """The saved or published ``application``'s form with no member in
+        it, and its places, drawn in a worker thread from its stored layout;
+        ``publish_id`` is printed in the side margin when given. Not stored:
+        a saved template's blank form (R27) is drawn per request."""
+        stored = application.layout
+        if stored is None:
+            raise ValueError(f"application {application.id} has no stored layout")
+        return await asyncio.to_thread(
+            draw_blank,
+            template_document(application),
+            frozen_options(stored, options),
+            logo,
+            day_to_date(club_today()),
+            stored,
+            publish_id,
+        )
 
     async def drop(self, application_id: int) -> None:
         """Forget a template's drawing (it is unpublished)."""

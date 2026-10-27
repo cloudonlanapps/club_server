@@ -1,9 +1,10 @@
 """Application state moves, duplicate, preview and forms (#93).
 
 The four moves of the lifecycle (save, publish, unpublish, revert) and
-duplicate are an admin's, as is the preview drawn for the demo member. A
-member downloads their own form of a published application; an admin
-downloads any member's. Every PDF is drawn per request, never stored.
+duplicate are an admin's, as are the preview drawn for the demo member and
+the blank form for filling in by hand. A member downloads their own form of
+a published application; an admin downloads any member's. A published
+template's form is drawn once and filled per download (R25).
 """
 
 from typing import Annotated
@@ -26,6 +27,8 @@ from ..utils import get_client_ip
 from . import application_errors as err
 
 PDF_MEDIA_TYPE = "application/pdf"
+# The file name's last part of a blank form: application-<id>-blank.pdf (R27).
+BLANK_FORM = "blank"
 CategoryChoice = Annotated[
     int | None,
     Query(
@@ -148,6 +151,25 @@ async def preview_application(
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
     return pdf_response(content, application_id, PREVIEW_MEMBER["username"])
+
+
+@router.get(
+    "/{application_id}/blank-form", response_class=Response, responses=PDF_RESPONSES
+)
+async def blank_form(
+    application_id: int,
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+    _current_user: Annotated[User, Depends(require_admin())],
+) -> Response:
+    """A saved or published template's form with no member in it and no
+    watermark, as ``application-<id>-blank.pdf``, for filling in by hand
+    (R27): a published one's stored drawing, a saved one's drawn now; a
+    draft → 422 ``APPLICATION_NOT_SAVED``."""
+    try:
+        content = await ApplicationDownloadService(db).blank_form(application_id)
+    except err.DOMAIN_ERRORS as exc:
+        raise err.to_http(exc)
+    return pdf_response(content, application_id, BLANK_FORM)
 
 
 @router.get("/{application_id}/form", response_class=Response, responses=PDF_RESPONSES)
