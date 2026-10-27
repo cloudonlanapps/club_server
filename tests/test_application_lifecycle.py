@@ -145,7 +145,8 @@ async def test_should_store_the_layout_when_saved_and_drop_it_when_reverted(
     layout = (await get_application(client, admin, created["id"])).json()["layout"]
     assert saved.json()["layout"] == layout
     assert layout["name"] == "one page"
-    assert layout["spread"]["withoutGuardian"] > layout["spread"]["withGuardian"] >= 0
+    # every form prints the guardian block: one spread, under both keys (#128)
+    assert layout["spread"]["withoutGuardian"] == layout["spread"]["withGuardian"] >= 0
     assert set(layout) == {"name", "spread"}  # the frozen options stay inside
 
     assert (await move(client, admin, created["id"], "revert")).status_code == 200
@@ -332,12 +333,17 @@ async def test_should_draw_from_the_stored_layout_without_measuring_again(
 ):
     admin = await create_admin_user(db_session)
     _ = await create_applicant(db_session, "ravi")
-    published = await published_application(client, admin)
-    row = await db_session.get(Application, published["id"])
+    created = await create_application(client, admin)
+    assert (await move(client, admin, created["id"], "save")).status_code == 200
+    row = await db_session.get(Application, created["id"])
     assert row is not None and row.layout is not None
+    # the stored layout is what publishing draws the form with (#128)
     stored = {**row.layout, "name": "signing part on page 2"}
     row.layout = stored
     await db_session.commit()
+    publish = await move(client, admin, created["id"], "publish")
+    assert publish.status_code == 200, publish.text
+    published = publish.json()
 
     response = await client.get(
         f"{APPLICATIONS}/{published['id']}/form/ravi", headers=auth(admin)

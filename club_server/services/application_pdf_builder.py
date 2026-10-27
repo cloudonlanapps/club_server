@@ -9,6 +9,13 @@ A form prints the template's ``languages``: English, or English and one
 other language. The member's preferred language plays no part. Page 1 is
 spread to fill the page: the form is laid out once to measure, then again
 with the spare height shared out between its gaps (``application_pdf_fit``).
+
+A builder records where each member value and tick goes (``places``). A
+blank builder draws the form with no member in it: that drawing and its
+places are stored on publish, and a download writes only the member's
+values over it (``application_pdf_fill``, #128). Both write a value with
+the canvas's ``write_lines`` and ``tick``, so a filled form is
+the full drawing's twin.
 """
 
 import io
@@ -22,21 +29,18 @@ from ..exceptions import (
 )
 from . import application_pdf_blocks as blocks
 from .application_catalogue import JsonDict
-from .application_pdf_canvas import ApplicationPdfCanvas
+from .application_pdf_canvas import ApplicationPdfCanvas, Mark
 from .application_pdf_layout import (
     ACCENT,
     BOTTOM,
     CHOICE,
     COL_GAP,
     CONTENT_W,
-    ELLIPSIS,
     ENGLISH,
-    FIT_SIZES,
     FOOTER_DAY,
     INDENT,
     LABEL,
     LAYOUTS,
-    LEADING,
     MARGIN,
     MEMBER_FOOTER,
     MUTED,
@@ -46,21 +50,37 @@ from .application_pdf_layout import (
     RULE,
     SEPARATOR,
     TINT,
-    VALUE,
     WHITE,
     Layout,
 )
-from .application_rules import choose_category, is_minor
+from .application_rules import choose_category
 
 MAX_LANGUAGES = 2
 LOGO = 58.0
 SECTION_NEED = 60
+# Bumped when what ``places`` records, or how a value is written from it,
+# changes: a stored drawing of another version is drawn again (#128).
+PLACES_VERSION = 1
+
+
+def form_category(template: JsonDict, member: JsonDict) -> int | None:
+    """The age category ticked: the one the member fits, or the one they
+    chose among several (R11, R11a)."""
+    cats: list[JsonDict] = template.get("age_categories") or []
+    chosen: int | None = member.get("chosen_category")
+    if not cats:
+        if chosen is not None:  # a template without categories has none to choose
+            raise ApplicationCategoryNotFittingException(chosen, [])
+        return None
+    v = member.get("date_of_birth")
+    return choose_category(
+        cats, date.fromisoformat(v) if v else None, member.get("gender"), chosen
+    )
 
 
 class ApplicationFormBuilder:
     """One drawing (or measuring) of a member's form."""
 
-    guardian_forced: bool | None
     layout: Layout
     row: float
     gap_base: float
@@ -78,6 +98,11 @@ class ApplicationFormBuilder:
     page1_end: float | None
     pdf: ApplicationPdfCanvas
     y: float
+    blank: bool
+    values: dict[str, str | None]
+    ticks: dict[str, set[int]]
+    places: JsonDict
+    marks: list[Mark]
 
     def __init__(
         self,
@@ -91,22 +116,24 @@ class ApplicationFormBuilder:
         extra: float = 0,
         measure: bool = False,
         worst: bool = False,
-        guardian: bool | None = None,
         preview: bool = False,
         publish_id: str | None = None,
+        blank: bool = False,
     ):
         """A builder for ``member``'s form of the printable ``template``;
-        ``publish_id`` is printed in the side margin of every page."""
-        self.guardian_forced = guardian  # None: decided by the member
+        ``publish_id`` is printed in the side margin of every page. A
+        ``blank`` form has no member in it: no values, no ticks, no
+        signature date and no footer text, only the places they go."""
+        self.blank = blank
         self.layout = layout or LAYOUTS[0]
         self.row = self.layout.row
         self.gap_base = self.layout.gap
         self.measure = (
             measure  # laying out only to measure page 1: no page breaks, no terms
         )
-        self.worst = worst  # the worst case: no eligibility test, guardian block shown
+        self.worst = worst  # the worst case: no eligibility test
         self.t = template
-        self.m = member
+        self.m = {} if blank else member
         self.options = options
         self.labels = {**labels, **(template.get("label_overrides") or {})}
         self.langs = self.print_languages()
@@ -117,6 +144,16 @@ class ApplicationFormBuilder:
         )
         self.gaps = 0  # how many gaps page 1 has
         self.page1_end = None  # where page 1's content ends, if it fits
+        self.values = blocks.field_values(self.m)
+        self.ticks = {}
+        self.places = {
+            "version": PLACES_VERSION,
+            "pages": 0,
+            "fields": {},
+            "choices": {},
+            "sign_date": None,
+        }
+        self.marks = []
         day = f"{today:{FOOTER_DAY}}"
         if preview:
             self.pdf = ApplicationPdfCanvas(
@@ -124,7 +161,9 @@ class ApplicationFormBuilder:
             )
         else:
             self.pdf = ApplicationPdfCanvas(
-                MEMBER_FOOTER.format(username=member["username"], day=day),
+                ""
+                if blank
+                else MEMBER_FOOTER.format(username=member["username"], day=day),
                 side_text=PUBLISH_MARK.format(publish_id=publish_id)
                 if publish_id
                 else None,
@@ -195,12 +234,12 @@ class ApplicationFormBuilder:
     def build(self) -> FPDF:
         """Lay the form out and draw it."""
         category = self.age_category()
+        self.ticks = blocks.ticks(self.m, self.options, category)
         self.pdf.add_page()
         self.header()
-        blocks.personal(self, category)
+        blocks.personal(self)
         blocks.sports(self)
-        if self.shows_guardian():
-            blocks.guardian(self)
+        blocks.guardian(self)
         if self.layout.split:  # the signing part opens page 2
             self.page1_end = self.y
             self.pdf.add_page()
@@ -212,37 +251,17 @@ class ApplicationFormBuilder:
             self.page1_end = self.y
         if not self.measure:
             blocks.terms(self)
+        self.places["pages"] = self.pdf.page_no()
         return self.pdf
 
     # Eligibility ------------------------------------------------------------
 
     def age_category(self) -> int | None:
-        """The age category ticked: the one the member fits, or the one they
-        chose among several (R11, R11a)."""
-        cats: list[JsonDict] = self.t.get("age_categories") or []
-        chosen: int | None = self.m.get("chosen_category")
-        if self.worst:
+        """The age category ticked (R11, R11a); none for the worst case or a
+        blank form."""
+        if self.worst or self.blank:
             return None
-        if not cats:
-            if chosen is not None:  # a template without categories has none to choose
-                raise ApplicationCategoryNotFittingException(chosen, [])
-            return None
-        return choose_category(cats, self.dob(), self.m.get("gender"), chosen)
-
-    def dob(self) -> date | None:
-        """The member's date of birth."""
-        v = self.m.get("date_of_birth")
-        return date.fromisoformat(v) if v else None
-
-    def shows_guardian(self) -> bool:
-        """Whether the guardian block prints: a minor, or a guardian set."""
-        if self.guardian_forced is not None:
-            return self.guardian_forced
-        return (
-            self.worst
-            or is_minor(self.dob(), self.today)
-            or bool(self.m.get("guardian"))
-        )
+        return form_category(self.t, self.m)
 
     # Shared blocks ----------------------------------------------------------
 
@@ -321,44 +340,37 @@ class ApplicationFormBuilder:
         y: float,
         width: float,
         key: str,
-        value: str | None,
         rows: int = 1,
     ) -> float:
-        """A label, then `rows` dotted lines set in from it, the value written on
-        the first ones; return the y below."""
+        """A label, then `rows` dotted lines set in from it, the member's value
+        for ``key`` written on the first ones; return the y below."""
         p = self.pdf
         y = self.field_label(x, y, width, key)
         lx, lw = x + INDENT, width - INDENT
-        lines, size = self.fit(value, lw - 4, rows) if value else ([], VALUE)
         for r in range(rows):
-            base = y + self.row * (r + 1)
-            if r < len(lines):
-                _ = p.text_at(
-                    lx + 2, base - size * LEADING - 1.5, lw - 4, lines[r], size
-                )
-            p.dotted(lx, base, lw)
+            p.dotted(lx, y + self.row * (r + 1), lw)
+        place: JsonDict = {
+            "page": p.page_no(),
+            "x": lx + 2,
+            "y": y,
+            "width": lw - 4,
+            "rows": rows,
+            "row": self.row,
+        }
+        self.places["fields"][key] = place
+        value = self.values.get(key)
+        if value:
+            lines, size = p.fit(value, place["width"], rows)
+            self.marks += p.write_lines(place, lines, size)
         return y + self.row * rows + self.gap()
 
     def fit(self, value: str, width: float, rows: int) -> tuple[list[str], float]:
-        """`value` in at most `rows` lines: smaller type if it must, then cut
-        with "…". A member's answer never changes the form's shape."""
-        p = self.pdf
-        lines: list[str] = []
-        size = VALUE
-        for size in FIT_SIZES:
-            lines = p.lines(value, width, size)
-            if len(lines) <= rows:
-                return lines, size
-        lines = lines[:rows]
-        last = lines[-1].rstrip()
-        while last and len(p.lines(last + ELLIPSIS, width, size)) > 1:
-            last = last[:-1].rstrip()
-        lines[-1] = last + ELLIPSIS
-        return lines, size
+        """`value` fitted to `rows` lines (R18): ``ApplicationPdfCanvas.fit``."""
+        return self.pdf.fit(value, width, rows)
 
     def fields_row(
         self,
-        specs: list[tuple[str, str | None]],
+        specs: list[str],
         x: float = MARGIN,
         width: float = CONTENT_W,
     ) -> float:
@@ -366,8 +378,8 @@ class ApplicationFormBuilder:
         col = (width - COL_GAP * (len(specs) - 1)) / len(specs)
         gaps = self.gaps
         bottom = max(
-            self.field(x + i * (col + COL_GAP), self.y, col, k, v)
-            for i, (k, v) in enumerate(specs)
+            self.field(x + i * (col + COL_GAP), self.y, col, k)
+            for i, k in enumerate(specs)
         )
         self.gaps = gaps + (1 if self.pdf.page_no() == 1 else 0)  # one row, one gap
         return bottom
@@ -376,14 +388,15 @@ class ApplicationFormBuilder:
         self,
         key: str,
         options: list[str],
-        ticked: int | set[int] | None,
         x: float = MARGIN,
         width: float = CONTENT_W,
         columns: int = 3,
     ) -> float:
         """A label and a checkbox per option, the member's ticked (one or several)."""
         p = self.pdf
-        chosen = {ticked} if isinstance(ticked, int) else ticked or set()
+        chosen = self.ticks.get(key) or set()
+        boxes: list[JsonDict] = []
+        self.places["choices"][key] = boxes
         y = self.field_label(x, self.y, width, key) + 3
         lx = x + INDENT
         # fewer columns when an option would not fit on one line
@@ -398,7 +411,11 @@ class ApplicationFormBuilder:
             if i and i % columns == 0:
                 row_top = row_bottom + 2
             cx = lx + (i % columns) * col
-            p.checkbox(cx, row_top + 2, i in chosen)
+            box: JsonDict = {"page": p.page_no(), "x": cx, "y": row_top + 2}
+            boxes.append(box)
+            p.checkbox(cx, box["y"], i in chosen)
+            if i in chosen:
+                self.marks.append(("tick", box["page"], cx, box["y"]))
             row_bottom = max(
                 row_bottom, p.text_at(cx + 12, row_top, col - 15, text, CHOICE)
             )
