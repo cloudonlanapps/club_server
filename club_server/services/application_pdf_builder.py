@@ -42,6 +42,7 @@ from .application_pdf_layout import (
     MUTED,
     PREVIEW_FOOTER,
     PREVIEW_WATERMARK,
+    PUBLISH_MARK,
     RULE,
     SEPARATOR,
     TINT,
@@ -92,8 +93,10 @@ class ApplicationFormBuilder:
         worst: bool = False,
         guardian: bool | None = None,
         preview: bool = False,
+        publish_id: str | None = None,
     ):
-        """A builder for ``member``'s form of the resolved ``template``."""
+        """A builder for ``member``'s form of the printable ``template``;
+        ``publish_id`` is printed in the side margin of every page."""
         self.guardian_forced = guardian  # None: decided by the member
         self.layout = layout or LAYOUTS[0]
         self.row = self.layout.row
@@ -121,7 +124,10 @@ class ApplicationFormBuilder:
             )
         else:
             self.pdf = ApplicationPdfCanvas(
-                MEMBER_FOOTER.format(username=member["username"], day=day)
+                MEMBER_FOOTER.format(username=member["username"], day=day),
+                side_text=PUBLISH_MARK.format(publish_id=publish_id)
+                if publish_id
+                else None,
             )
         self.y = MARGIN
 

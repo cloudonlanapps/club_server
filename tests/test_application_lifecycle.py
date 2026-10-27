@@ -1,7 +1,9 @@
 """Saving and moving application templates (#93, R9, R9a, R12–R14, R17)."""
 
 import json
+import uuid
 from pathlib import Path
+from typing import Any
 
 import pytest
 from httpx import AsyncClient
@@ -9,11 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from club_server.db.models.application import Application
 from club_server.services import application_catalogue
-from club_server.services.application_catalogue import (
-    CLAUSES_FILE,
-    fingerprint,
-    library,
-)
+from club_server.services.application_catalogue import CLAUSES_FILE, library
 
 from .application_helpers import (
     APPLICATIONS,
@@ -22,10 +20,12 @@ from .application_helpers import (
     create_application,
     get_application,
     move,
+    page_texts,
     pdf_text,
     published_application,
     template_body,
 )
+from .extended_profile_helpers import OPTIONS, write_options
 from .helpers import create_admin_user, create_coach_user, create_regular_admin_user
 
 pytestmark = pytest.mark.usefixtures("applications_enabled")
@@ -146,7 +146,7 @@ async def test_should_store_the_layout_when_saved_and_drop_it_when_reverted(
     assert saved.json()["layout"] == layout
     assert layout["name"] == "one page"
     assert layout["spread"]["withoutGuardian"] > layout["spread"]["withGuardian"] >= 0
-    assert set(layout) == {"name", "spread"}  # the fingerprint stays inside
+    assert set(layout) == {"name", "spread"}  # the frozen options stay inside
 
     assert (await move(client, admin, created["id"], "revert")).status_code == 200
     assert (await get_application(client, admin, created["id"])).json()[
@@ -327,7 +327,7 @@ async def test_should_refuse_save_when_the_details_do_not_fit_page_one(
 
 @pytest.mark.requirement("applications:R14")
 @pytest.mark.asyncio
-async def test_should_measure_again_when_the_stored_layout_is_out_of_date(
+async def test_should_draw_from_the_stored_layout_without_measuring_again(
     client: AsyncClient, db_session: AsyncSession
 ):
     admin = await create_admin_user(db_session)
@@ -335,12 +335,8 @@ async def test_should_measure_again_when_the_stored_layout_is_out_of_date(
     published = await published_application(client, admin)
     row = await db_session.get(Application, published["id"])
     assert row is not None and row.layout is not None
-    assert row.layout["fingerprint"] == fingerprint()
-    row.layout = {
-        "name": "signing part on page 2",
-        "spread": {"with_guardian": 0, "without_guardian": 0},
-        "fingerprint": "an older catalogue",
-    }
+    stored = {**row.layout, "name": "signing part on page 2"}
+    row.layout = stored
     await db_session.commit()
 
     response = await client.get(
@@ -348,12 +344,30 @@ async def test_should_measure_again_when_the_stored_layout_is_out_of_date(
     )
 
     assert response.status_code == 200, response.text
-    layout = (await get_application(client, admin, published["id"])).json()["layout"]
-    assert layout == published["layout"]
+    first, second = page_texts(response.content)[:2]
+    assert "Declaration" not in first  # drawn as stored: signing part on page 2
+    assert "Declaration" in second
     db_session.expire_all()
     row = await db_session.get(Application, published["id"])
+    assert row is not None and row.layout == stored
+
+
+@pytest.mark.requirement("applications:R14")
+@pytest.mark.asyncio
+async def test_should_freeze_the_profile_options_with_the_layout_when_saved(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    await write_options(client, admin)
+    created = await create_application(client, admin)
+
+    saved = await move(client, admin, created["id"], "save")
+
+    assert saved.status_code == 200, saved.text
+    row = await db_session.get(Application, created["id"])
     assert row is not None and row.layout is not None
-    assert row.layout["fingerprint"] == fingerprint()
+    assert row.layout["profile_options"] == OPTIONS
+    assert set(saved.json()["layout"]) == {"name", "spread"}
 
 
 @pytest.mark.requirement("applications:R14")
@@ -377,7 +391,6 @@ async def test_should_keep_the_form_when_the_clause_library_changes(
     _ = changed.write_text(json.dumps(reworded), encoding="utf-8")
     monkeypatch.setattr(application_catalogue, "CLAUSES_FILE", changed)
     library.cache_clear()
-    fingerprint.cache_clear()
     try:
         after = await client.get(
             f"{APPLICATIONS}/{published['id']}/form/ravi", headers=auth(admin)
@@ -386,10 +399,103 @@ async def test_should_keep_the_form_when_the_clause_library_changes(
     finally:
         monkeypatch.undo()
         library.cache_clear()
-        fingerprint.cache_clear()
 
     assert after.status_code == 200, after.text
     assert pdf_text(after.content) == pdf_text(before.content)
     assert "Tournament matches will take place" in pdf_text(after.content)
     assert read["layout"] == published["layout"]
     assert read["terms"] == published["terms"]
+
+
+# R22, R24 -----------------------------------------------------------------
+
+
+@pytest.mark.requirement("applications:R22")
+@pytest.mark.asyncio
+async def test_should_give_a_publish_id_only_while_published(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    member = await create_applicant(db_session, "ravi")
+    created = await create_application(client, admin)
+    assert created["publishId"] is None
+
+    saved = await move(client, admin, created["id"], "save")
+    published = await move(client, admin, created["id"], "publish")
+
+    assert saved.json()["publishId"] is None
+    publish_id = published.json()["publishId"]
+    assert str(uuid.UUID(publish_id)) == publish_id
+    assert (await get_application(client, admin, created["id"])).json()[
+        "publishId"
+    ] == publish_id
+    assert (await get_application(client, member, created["id"])).json()[
+        "publishId"
+    ] == publish_id
+    listed = await client.get(APPLICATIONS, headers=auth(admin))
+    assert [i["publishId"] for i in listed.json()["items"]] == [publish_id]
+    unpublished = await move(client, admin, created["id"], "unpublish")
+    assert unpublished.json()["publishId"] is None
+    assert (await get_application(client, admin, created["id"])).json()[
+        "publishId"
+    ] is None
+
+
+@pytest.mark.requirement("applications:R22")
+@pytest.mark.asyncio
+async def test_should_replace_the_publish_id_when_published_again(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    first = await published_application(client, admin)
+
+    assert (await move(client, admin, first["id"], "unpublish")).status_code == 200
+    again = await move(client, admin, first["id"], "publish")
+
+    assert again.status_code == 200, again.text
+    assert again.json()["publishId"] not in (None, first["publishId"])
+    assert (await get_application(client, admin, first["id"])).json()[
+        "publishId"
+    ] == again.json()["publishId"]
+
+
+async def application_audit(client: AsyncClient, admin: str) -> list[dict[str, Any]]:
+    response = await client.get("/v1/audit_log?limit=100", headers=auth(admin))
+    assert response.status_code == 200, response.text
+    rows: list[dict[str, Any]] = response.json()["rows"]
+    return [r for r in reversed(rows) if r["action"].endswith("_application")]
+
+
+@pytest.mark.requirement("applications:R24")
+@pytest.mark.asyncio
+async def test_should_audit_each_move_with_the_publish_ids(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    created = await create_application(client, admin)
+    ids: list[str | None] = []
+    for action in ("save", "publish", "unpublish", "publish", "unpublish", "revert"):
+        response = await move(client, admin, created["id"], action)
+        assert response.status_code == 200, response.text
+        ids.append(response.json()["publishId"])
+
+    rows = await application_audit(client, admin)
+
+    assert [r["action"] for r in rows] == [
+        "save_application",
+        "publish_application",
+        "unpublish_application",
+        "publish_application",
+        "unpublish_application",
+        "revert_application",
+    ]
+    assert all(r["actor"]["username"] == "admin" for r in rows)
+    assert all(r["details"]["applicationId"] == created["id"] for r in rows)
+    first, second = ids[1], ids[3]
+    assert first and second and first != second
+    assert rows[1]["details"]["publishId"] == first
+    assert rows[1]["details"]["previousPublishId"] is None
+    assert rows[2]["details"]["publishId"] == first
+    assert rows[3]["details"]["publishId"] == second
+    assert rows[3]["details"]["previousPublishId"] == first
+    assert rows[4]["details"]["publishId"] == second

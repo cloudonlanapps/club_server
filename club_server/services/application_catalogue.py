@@ -6,19 +6,15 @@ declaration, rules, selections and notes from, each in English, Marathi and
 Hindi. Keys starting with ``_`` are notes for reviewers: they are dropped
 when the files are read and never printed or served.
 
-The fingerprint changes whenever the label catalogue or a PDF font changes;
-a stored layout carrying an older one is measured again (applications R14).
-The clause library is not part of it: a template holds only custom text, so
-no change to the library can change a form (#107).
+A template holds only custom text, so no change to the library can change
+a form (#107); a saved form is never measured again, so a change to the
+catalogue reaches only templates saved after it (applications R14).
 """
 
-import hashlib
 import json
 from functools import cache
 from pathlib import Path
 from typing import Any
-
-from .application_pdf_layout import FONT_DIR, FONT_FILES
 
 JsonDict = dict[str, Any]
 
@@ -61,12 +57,3 @@ def catalogue_languages() -> list[str]:
     """The languages every label is written in, English first."""
     first: JsonDict = next(iter(labels().values()))
     return list(first)
-
-
-@cache
-def fingerprint() -> str:
-    """A hash of the label catalogue and the PDF fonts."""
-    digest = hashlib.sha256()
-    for path in (LABELS_FILE, *(FONT_DIR / file for _, _, file in FONT_FILES)):
-        digest.update(path.read_bytes())
-    return digest.hexdigest()

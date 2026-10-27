@@ -6,8 +6,8 @@ Create Date: 2026-10-26 23:03:09.781754
 
 Adds the ``applications`` table (#93): admin-defined application templates
 whose printed texts sit in JSONB columns, a status (draft / saved /
-published), the layout decided on save, and soft delete. The downgrade
-drops it.
+published), the layout decided on save, the publish ID of the latest
+publish (#97), and soft delete. The downgrade drops it.
 """
 
 from typing import Sequence, Union
@@ -44,6 +44,7 @@ def upgrade() -> None:
         sa.Column("terms_notes", JSONB(), nullable=False),
         sa.Column("label_overrides", JSONB(), nullable=False),
         sa.Column("layout", JSONB(), nullable=True),
+        sa.Column("publish_id", sa.String(36), nullable=True),
         sa.Column(
             "created_by",
             sa.String(50),

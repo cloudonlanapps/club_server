@@ -415,6 +415,11 @@ _EN: dict[AuditAction, Builder] = {
     AuditAction.HARD_DELETE_EVALUATION_TEMPLATE: _on_resource(
         "permanently deleted", "evaluation template"
     ),
+    # Applications (#97)
+    AuditAction.SAVE_APPLICATION: _on_resource("saved", "application"),
+    AuditAction.PUBLISH_APPLICATION: _on_resource("published", "application"),
+    AuditAction.UNPUBLISH_APPLICATION: _on_resource("unpublished", "application"),
+    AuditAction.REVERT_APPLICATION: _on_resource("reverted", "application"),
     AuditAction.CREATE_EVALUATION_MEDIA: _media_link("attached media to {o} {tag}"),
     AuditAction.UPDATE_EVALUATION_MEDIA: _media_link("updated media on {o} {tag}"),
     AuditAction.DELETE_EVALUATION_MEDIA: _media_link("removed media from {o} {tag}"),

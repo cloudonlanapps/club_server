@@ -197,3 +197,9 @@ class AuditAction(StrEnum):
     UPDATE_EVALUATION_MEDIA = "update_evaluation_media"
     DELETE_EVALUATION_MEDIA = "delete_evaluation_media"
     DELETE_EVALUATION_MEDIA_TAG = "delete_evaluation_media_tag"
+
+    # --- Applications (routers/application_forms.py) ---
+    SAVE_APPLICATION = "save_application"
+    PUBLISH_APPLICATION = "publish_application"
+    UNPUBLISH_APPLICATION = "unpublish_application"
+    REVERT_APPLICATION = "revert_application"

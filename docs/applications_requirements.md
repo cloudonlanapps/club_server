@@ -98,11 +98,17 @@ signed-in user whose account is `registered`, `pending` or `active`
   and the state is unchanged. A coach or member → 403.
 - **R13** [✅] Save decides the layout and stores it on the
   template (`layout`: its name and page 1's spread with and without the
-  guardian block); revert drops it.
-- **R14** [✅] A stored layout records the label catalogue and fonts
-  it was measured with; a download that finds them changed measures the
-  template again and stores the new layout. A change to the clause library
-  changes no saved or published form (#107).
+  guardian block), with a frozen copy of the club's profile options it was
+  measured with; revert drops both.
+- **R14** [✅] A saved or published template is drawn only from its
+  stored layout and its frozen profile options, and is never measured
+  again: a later change to the profile options (positions), the label
+  catalogue or the clause library changes none of its forms (#96, #97,
+  #107). To pick up such a change the admin unpublishes, reverts, saves and
+  publishes again. The fonts ship with the server; the fixtures' measured
+  layouts are pinned by a test, so a font change that measures differently
+  is caught before release. A draft's preview is measured on the spot
+  (R19).
 
 ## Who sees what
 
@@ -127,7 +133,9 @@ signed-in user whose account is `registered`, `pending` or `active`
   download.
 - **R20** [✅] An admin downloads any member's form of a published
   template, choosing the category as the member does (R11a). A template not published → 422 `APPLICATION_NOT_PUBLISHED`; a
-  user who does not exist → 404 `USER_NOT_FOUND`.
+  user who does not exist → 404 `USER_NOT_FOUND`. Every check happens
+  before publishing: the download of a published template by a member it
+  is offered to never fails for the template's sake (#97).
 
 ## The PDF
 
@@ -157,3 +165,18 @@ signed-in user whose account is `registered`, `pending` or `active`
 - **R21** [✅] The parent / guardian block, and the guardian's
   signature line, print for a member under 18 on the download day, or for
   anyone whose guardian is set.
+
+## Publishing and tracing
+
+- **R22** [✅] Each publish gives the template a new publish ID (a
+  UUID): `publishId` on the template read and in the list, null unless the
+  template is published. Unpublishing and publishing again replaces it
+  (#97).
+- **R23** [✅] Every page of a downloaded form prints its template's
+  publish ID ("Form <publishId>") in small grey text, rotated, in the left
+  margin, so a printed form can be matched to its template (#97).
+- **R24** [✅] Save, publish, unpublish and revert are audited
+  (`save_application`, `publish_application`, `unpublish_application`,
+  `revert_application`; resource `application`) with `applicationId`; a
+  publish also records its `publishId` and the `previousPublishId` (null on
+  the first), an unpublish the `publishId` it withdraws (#97).

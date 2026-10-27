@@ -64,6 +64,9 @@ SEPARATOR = "  |  "
 PREVIEW_WATERMARK = "PREVIEW"
 PREVIEW_FOOTER = "PREVIEW — not for submission  ·  {day}"
 MEMBER_FOOTER = "{username}  ·  downloaded {day}"
+# The template's publish ID, printed in the side margin of every page so a
+# printed form can be traced to the publish it came from (applications R23).
+PUBLISH_MARK = "Form {publish_id}"
 PAGE_OF = "Page {page} of {{nb}}"
 FOOTER_DAY = "%d %b %Y"
 FORM_DAY = "%d / %m / %Y"

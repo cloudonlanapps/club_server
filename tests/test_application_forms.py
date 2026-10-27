@@ -30,9 +30,13 @@ pytestmark = pytest.mark.usefixtures("applications_enabled")
 GUARDIAN_HEADING = "Parent / guardian contact"
 
 
-async def own_form(client: AsyncClient, token: str, application_id: int):
+async def own_form(
+    client: AsyncClient, token: str, application_id: int, category: int | None = None
+):
     return await client.get(
-        f"{APPLICATIONS}/{application_id}/form", headers=auth(token)
+        f"{APPLICATIONS}/{application_id}/form",
+        params={} if category is None else {"category": category},
+        headers=auth(token),
     )
 
 
@@ -512,6 +516,66 @@ async def test_should_refuse_another_members_form_when_caller_is_not_an_admin(
     response = await member_form(client, token, published["id"], "ravi")
 
     assert response.status_code == 403
+
+
+FORTY_POSITIONS = {
+    "positions": [
+        {"value": f"pos{i}", "label": {"en": f"Position {i}"}} for i in range(40)
+    ],
+    "languages": ["English"],
+}
+
+
+@pytest.mark.requirement("applications:R14")
+@pytest.mark.requirement("applications:R20")
+@pytest.mark.asyncio
+async def test_should_draw_published_forms_unchanged_when_positions_change_later(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin)  # no positions yet
+    _ = await create_applicant(db_session, "ravi")
+    asha = await create_applicant(db_session, "asha", gender="female")
+    await db_session.commit()
+    before = {
+        "ravi": await member_form(client, admin, published["id"], "ravi"),
+        "asha": await own_form(client, asha, published["id"], category=1),
+    }
+
+    await write_options(client, admin, FORTY_POSITIONS)
+    after = {
+        "ravi": await member_form(client, admin, published["id"], "ravi"),
+        "asha": await own_form(client, asha, published["id"], category=1),
+    }
+
+    for username in ("ravi", "asha"):
+        text = assert_pdf(after[username], published["id"], username)
+        assert page_texts(after[username].content) == page_texts(
+            before[username].content
+        )
+        assert "Position 39" not in text
+        assert published["publishId"] in text
+
+
+# R23 ----------------------------------------------------------------------
+
+
+@pytest.mark.requirement("applications:R23")
+@pytest.mark.asyncio
+async def test_should_print_the_publish_id_on_every_page_of_a_form(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    published = await published_application(client, admin)
+    member = await create_applicant(db_session, "ravi")
+    await db_session.commit()
+
+    response = await own_form(client, member, published["id"])
+
+    _ = assert_pdf(response, published["id"], "ravi")
+    pages = page_texts(response.content)
+    assert len(pages) == 2
+    assert all(published["publishId"] in page for page in pages)
 
 
 # R19 ----------------------------------------------------------------------

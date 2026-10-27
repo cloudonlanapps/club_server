@@ -2,22 +2,25 @@
 
 ``decide_layout`` runs on save: it refuses the template when a text lacks a
 print language, measures it for the worst-case member and returns the
-layout to store. ``draw`` produces one member's PDF (or the preview's) with
-the stored layout, measuring again first when the label catalogue or the
-fonts have changed since it was stored. The texts are the template's own
+layout to store, with a frozen copy of the profile options it was measured
+with (#96, #97). ``draw`` produces one member's PDF (or the preview's). A
+saved or published template is drawn only from its stored layout and its
+frozen options and is never measured again, so a download never fails; a
+draft's preview is measured on the spot. The texts are the template's own
 custom text; nothing is read from the clause library (#107).
 """
 
 from datetime import date
 
 from ..exceptions import ApplicationDoesNotFitException, ApplicationIncompleteException
-from .application_catalogue import JsonDict, fingerprint, labels
+from .application_catalogue import JsonDict, labels
 from .application_pdf_builder import ApplicationFormBuilder
 from .application_pdf_fit import check, choose_layout
 from .application_pdf_layout import BOTTOM, LAYOUTS, layout_named
 from .application_text import incomplete, lacking, printable
 
-FINGERPRINT = "fingerprint"
+# The stored layout's copy of the profile options it was measured with.
+FROZEN_OPTIONS = "profile_options"
 
 
 def missing_texts(template: JsonDict) -> list[JsonDict]:
@@ -33,19 +36,24 @@ def missing_texts(template: JsonDict) -> list[JsonDict]:
 
 
 def decide_layout(template: JsonDict, options: JsonDict, today: date) -> JsonDict:
-    """The layout to store on save (R13, R16, R17)."""
+    """The layout to store on save, with the options it was measured with
+    (R13, R14, R16, R17)."""
     document = printable(template)
     missing = missing_texts(document)
     if missing:
         raise ApplicationIncompleteException(missing)
     decided = check(document, labels(), options, today)
-    decided[FINGERPRINT] = fingerprint()
+    decided[FROZEN_OPTIONS] = options
     return decided
 
 
-def is_current(stored: JsonDict | None) -> bool:
-    """Whether a stored layout was measured with today's catalogue and fonts."""
-    return stored is not None and stored.get(FINGERPRINT) == fingerprint()
+def frozen_options(stored: JsonDict | None, live: JsonDict) -> JsonDict:
+    """The profile options a form is drawn with: the stored layout's frozen
+    copy, or ``live`` for a draft (R14)."""
+    if stored is None:
+        return live
+    frozen: JsonDict = stored.get(FROZEN_OPTIONS, live)
+    return frozen
 
 
 def draw(
@@ -56,16 +64,20 @@ def draw(
     today: date,
     stored: JsonDict | None,
     preview: bool = False,
+    publish_id: str | None = None,
 ) -> bytes:
     """One form as PDF bytes.
 
-    With a stored layout the form is drawn once; without one (a draft's
-    preview) it is measured for this member first (R19).
+    With a stored layout the form is drawn once, as stored; without one (a
+    draft's preview) it is measured for this member first (R19).
+    ``options`` are those ``frozen_options`` gives.
     """
     document = printable(template)
     all_labels = labels()
-    layout = layout_named(stored["name"]) if stored else None
-    if stored and layout:
+    if stored:
+        layout = layout_named(stored["name"])
+        if layout is None:
+            raise ValueError(f"unknown stored layout {stored['name']!r}")
         probe = ApplicationFormBuilder(
             document, member, all_labels, options, logo, today, layout
         )
@@ -99,5 +111,6 @@ def draw(
         layout,
         extra,
         preview=preview,
+        publish_id=publish_id,
     ).build()
     return bytes(pdf.output())

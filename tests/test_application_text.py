@@ -13,7 +13,6 @@ import pytest
 from club_server.exceptions import ApplicationReferenceException
 from club_server.services.application_catalogue import (
     catalogue_languages,
-    fingerprint,
     labels,
     library,
     strip_notes,
@@ -278,9 +277,8 @@ def test_should_ship_every_label_and_clause_in_every_catalogue_language():
     assert not any(key.startswith("_") for key in labels())
 
 
-@pytest.mark.requirement("applications:R14")
-def test_should_strip_reviewer_notes_and_fingerprint_the_catalogue():
+@pytest.mark.requirement("applications:R8")
+def test_should_strip_reviewer_notes_when_the_catalogue_is_read():
     assert strip_notes({"a": {"_review": ["hi"], "en": "x"}, "_comment": "y"}) == {
         "a": {"en": "x"}
     }
-    assert len(fingerprint()) == 64
