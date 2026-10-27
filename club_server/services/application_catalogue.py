@@ -6,9 +6,11 @@ declaration, rules, selections and notes from, each in English, Marathi and
 Hindi. Keys starting with ``_`` are notes for reviewers: they are dropped
 when the files are read and never printed or served.
 
-A template holds only custom text, so no change to the library can change
-a form (#107); a saved form is never measured again, so a change to the
-catalogue reaches only templates saved after it (applications R14).
+A template holds only custom text, so no change to the library's clauses
+can change a form (#107); its gaps are filled with the library's formats
+and choices, frozen with the layout on save (#126). A saved form is never
+measured again, so a change to the catalogue or the formats reaches only
+templates saved after it (applications R14).
 """
 
 import json

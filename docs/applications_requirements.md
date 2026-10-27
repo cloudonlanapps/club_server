@@ -10,8 +10,10 @@ The design is `club_client/docs/applications_design.md` §2. The PDF — its
 blocks, sizes, spacings and the fitting of page 1 — was settled in a
 standalone prototype and is ported as it was. The label catalogue (the
 form's fixed wording) and the clause library (sentences with gaps for a
-template's facts) ship with the server in English, Marathi and Hindi. The
-library fills a clause for the editor; a template stores only the text.
+template's facts) ship with the server in English, Marathi and Hindi; a
+club adds its own texts beside them (#126). The editor pastes a text as
+written, gaps and all; a template stores only its text, and the form fills
+every gap from the template's facts when it is drawn.
 
 Each rule's test names it with `@pytest.mark.requirement("applications:Rn")`,
 and `tests/test_requirement_coverage.py` checks every marked rule has one.
@@ -50,22 +52,40 @@ signed-in user whose account is `registered`, `pending` or `active`
   422. Every printed text is custom text (`{language: text}`); a header
   item may be a list of them, one per line. A library clause (`{"clause":
   …}`) or a fact (`{"fact": …}`) in any printed text, a rule or a note →
-  422 (#107). A template's facts are kept as the editor's aid: save and
-  print never read them, nor the clause library.
+  422 (#107). The organisation, title, subtitle, header items, selections,
+  declaration, footer line, terms (heading and body) and terms notes (text
+  and attribution) may hold gaps, `{name}` with `name` matching
+  `^[a-z][a-z0-9_]*$`, in any language; any other brace text is literal.
+  They are stored exactly as written, and a draft's create and edit accept
+  a gap naming no fact (#126). Label overrides, age-category labels and
+  fact values print as written.
 - **R6a** [✅] A fact is typed: `date` (`value`, a UTC-midnight
   date), `date_range` (`from`, `to`, the end not before the start),
   `time` (`value` "H:MM", 24-hour), `amount` (`value`, a whole number),
   `name` (`value`, text or `{language: text}` with English) or `choices`
   (`value`, a list of the library's choice ids). Any other shape → 422.
-- **R7** [✅] An admin reads the clause library: each clause's kind,
-  its gaps and their fact types, and its text (and heading, for a rule) in
-  every language, with the library's choices. Facts fill a clause (R9a) in
-  each language:
+- **R7** [✅] An admin reads the clauses, `GET /v1/applications/clauses`:
+  the library's languages and choices, and a list of the built-in clauses
+  (`source: "builtin"`, `key`, their kind, gaps and the gaps' fact types,
+  and text and heading, for a rule, in every language), then the club's
+  texts (R7a; `source: "club"`, `id`, `name`), each text as written, gaps
+  and all (#126). A fact fills a gap (R15a) in each language:
   a date as "19 November 2026" / "19 नोव्हेंबर 2026", a range as "1–15
   November 2026" / "1 ते 15 नोव्हेंबर 2026", a time with its part of the day
   ("6:00 am" / "सकाळी 6:00"), an amount with Indian grouping (1,50,000),
   choices joined with each language's "and", a name as typed or as given
   for the language.
+- **R7a** [✅] An admin keeps the club's library of texts under
+  `/v1/applications/library`: club-wide, offered in every template. Each
+  text has a `kind` (a kind of the built-in clauses: `header`,
+  `selection`, `declaration`, `rule`, `note`), a short `name` (1–100
+  characters) and its `text` per catalogue language, gaps allowed; a rule
+  may have a `heading`, any other kind → 422. An admin creates (201),
+  lists, reads, edits (the fields sent replace the stored ones, null clears
+  the heading; a result that is not a valid text → 422 and nothing changes)
+  and deletes (204) them; an unknown one → 404
+  `APPLICATION_LIBRARY_TEXT_NOT_FOUND`. Deleting a text changes no
+  template. A coach or member → 403, anonymous → 401 (#126).
 - **R8** [✅] An admin reads the label catalogue, every label in
   every catalogue language. A template's `labelOverrides` replace a label
   on its form; an id the catalogue does not have → 422.
@@ -83,15 +103,19 @@ signed-in user whose account is `registered`, `pending` or `active`
   naming each text and the print languages it lacks (`missing: [{field,
   languages}]`; a text missing altogether lacks every print language); it
   stays a draft.
-- **R9a** [✅] An admin fills one library clause with `POST
-  /v1/applications/clauses/fill` (`{clause, facts: {gap: fact}}`): the
-  answer is `{clause, heading, text}`, the clause's text (and heading, for a
-  rule) in every library language with its gaps filled as R7 prints them,
-  for the editor to insert as custom text. It reads and changes no
-  template. A clause the library does not have, a gap without a fact, a
-  fact for a gap the clause does not have, or a fact of the wrong type for
-  its gap → 422 `APPLICATION_INVALID_REFERENCE` naming it. A coach or
-  member → 403 (#107).
+- **R9a** [X] `POST /v1/applications/clauses/fill`, which filled one
+  library clause for the editor (#107), is removed → 404: the editor
+  pastes a text as written and the form fills its gaps (#126).
+- **R9b** [✅] Save refuses a template with a gap naming none of its
+  facts, in any text of R6 and any language, → 422
+  `APPLICATION_UNKNOWN_FACT` with `details.gaps`, a list of `{place,
+  language, gap}` in the order printed (places: `organisation`, `title`,
+  `subtitle`, `header[i]` — `header[i][j]` for line `j` of a header item
+  that is a list of lines — `selections[i]`, `declaration`, `form_footer`,
+  `terms[i].heading`, `terms[i].body`, `terms_notes[i].text`,
+  `terms_notes[i].attribution`; within a place the print languages first,
+  then the text's others; a gap repeated in one text once); it stays a
+  draft. It is checked after R9's languages and before the fit (#126).
 - **R12** [✅] An admin moves a template: save (draft → saved),
   publish (saved → published), unpublish (published → saved), revert
   (saved → draft). A move from any other state → 422 `INVALID_TRANSITION`,
@@ -99,12 +123,13 @@ signed-in user whose account is `registered`, `pending` or `active`
 - **R13** [✅] Save decides the layout and stores it on the
   template (`layout`: its name and page 1's spread with and without the
   guardian block), with a frozen copy of the club's profile options it was
-  measured with; revert drops both.
+  measured with, and of the library's formats and choices its facts were
+  printed with (#126); revert drops them.
 - **R14** [✅] A saved or published template is drawn only from its
-  stored layout and its frozen profile options, and is never measured
-  again: a later change to the profile options (positions), the label
-  catalogue or the clause library changes none of its forms (#96, #97,
-  #107). To pick up such a change the admin unpublishes, reverts, saves and
+  stored layout, its frozen profile options and its frozen fact formats,
+  and is never measured again: a later change to the profile options
+  (positions), the label catalogue or the clause library (its clauses,
+  formats and choices) changes none of its forms (#96, #97, #107, #126). To pick up such a change the admin unpublishes, reverts, saves and
   publishes again. The fonts ship with the server; the fixtures' measured
   layouts are pinned by a test, so a font change that measures differently
   is caught before release. A draft's preview is measured on the spot
@@ -152,6 +177,12 @@ signed-in user whose account is `registered`, `pending` or `active`
   and every club language listed. A club position is named in each
   print language its label has, and in English alone when it lacks the
   other one; save is never refused for this.
+- **R15a** [✅] The member's form, an admin's member form and the
+  preview fill every gap naming a fact from the template's facts, in the
+  text's own language as R7 prints them; a gap naming no fact (possible on
+  a draft's preview only) prints as written. The layout decided on save
+  (R16) is measured on the filled texts. Changing a fact changes every
+  text using it on the next form drawn (#126).
 - **R16** [✅] The layout is the first of "one page", "one page,
   tighter spacing" and "signing part on page 2" whose page 1 fits, page 1
   then spread to fill the page.

@@ -1,7 +1,7 @@
 """Shared setup for the application tests (#93, applications R1–R21).
 
 The template is fictional and club-neutral ("Example Club", "City Rink"),
-its texts as the editor leaves them once library clauses are filled in.
+its texts as typed; ``tests/test_application_fact_gaps.py`` adds gaps.
 """
 
 import io
@@ -40,9 +40,8 @@ def auth(token: str) -> dict[str, str]:
 def template_body() -> dict[str, Any]:
     """A complete English + Marathi template, as an admin would send it.
 
-    Every printed text is custom text: the clause library only fills a
-    clause for the editor to insert (applications R6, R9a). The facts are
-    the editor's aid and are never printed.
+    Every printed text is custom text, here without gaps (applications R6),
+    so its facts print nowhere until a test adds a gap naming one.
     """
     return {
         "languages": ["en", "mr"],

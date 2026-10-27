@@ -1567,9 +1567,34 @@ class ApplicationIncompleteException(Exception):
         super().__init__(f"Texts missing a print language: {named}")
 
 
+class ApplicationUnknownFactException(Exception):
+    """Raised when a save finds ``{gap}``s naming no fact of the template (#126).
+
+    ``gaps`` holds ``{"place": <place>, "language": <code>, "gap": <name>}``
+    per gap, in the order the form prints them.
+    """
+
+    gaps: list[dict[str, str]]
+
+    def __init__(self, gaps: list[dict[str, str]]):
+        self.gaps = gaps
+        named = ", ".join(f"{g['place']} ({g['language']}): {g['gap']}" for g in gaps)
+        super().__init__(f"Gaps naming no fact of the template: {named}")
+
+
+class ApplicationLibraryTextNotFoundException(Exception):
+    """Raised when a club library text does not exist (#126)."""
+
+    text_id: int
+
+    def __init__(self, text_id: int):
+        self.text_id = text_id
+        super().__init__(f"Library text {text_id} not found")
+
+
 class ApplicationReferenceException(Exception):
-    """Raised when a text names an unknown clause, a missing fact or a fact of
-    the wrong type, or the template is otherwise unprintable (#93)."""
+    """Raised when a fact cannot be printed: a choice the library does not
+    have (#93, #126)."""
 
     reason: str
 
