@@ -6,6 +6,8 @@ published templates and downloads their own form; without a document none
 is offered. The form is refused when no age category matches the member.
 """
 
+from datetime import date
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +31,7 @@ from .application import PUBLISHED, ApplicationService
 from .application_catalogue import JsonDict
 from .application_document import member_document, options_document, template_document
 from .application_form import decide_layout, draw, is_current
-from .application_rules import preview_member
+from .application_rules import fitting_categories, preview_member
 from .evaluation_pdf_logo import club_logo
 from .profile_options import ProfileOptionsService
 from .user import IDENTITY_DOCUMENT_TAG, UserService
@@ -77,16 +79,35 @@ class ApplicationDownloadService:
             raise IdentityDocumentRequiredException(caller.username)
         return application
 
-    async def own_form(self, caller: User, application_id: int) -> bytes:
-        """The caller's own form of a published template (R10, R11)."""
-        application = await self.get_for(caller, application_id)
-        return await self._form(application, caller)
+    @staticmethod
+    def fitting_for(caller: User, application: Application) -> list[int] | None:
+        """The age categories a member fits, for their read (R11a); an
+        admin's read carries none."""
+        if is_admin(caller):
+            return None
+        member = member_document(caller)
+        born = member["date_of_birth"]
+        return fitting_categories(
+            template_document(application)["age_categories"],
+            date.fromisoformat(born) if born else None,
+            member["gender"],
+        )
 
-    async def member_form(self, application_id: int, username: str) -> bytes:
+    async def own_form(
+        self, caller: User, application_id: int, category: int | None = None
+    ) -> bytes:
+        """The caller's own form of a published template, ticking
+        ``category`` (R10, R11, R11a)."""
+        application = await self.get_for(caller, application_id)
+        return await self._form(application, caller, category)
+
+    async def member_form(
+        self, application_id: int, username: str, category: int | None = None
+    ) -> bytes:
         """An admin's download of a member's form (R20)."""
         application = await self._applications.get_or_raise(application_id)
         member = await UserService(self.db).get_user_or_raise(username)
-        return await self._form(application, member)
+        return await self._form(application, member, category)
 
     async def preview(self, application_id: int) -> bytes:
         """The demo member's form, in any state, watermarked (R19)."""
@@ -108,13 +129,15 @@ class ApplicationDownloadService:
     async def _options(self) -> JsonDict:
         return options_document(await ProfileOptionsService(self.db).read())
 
-    async def _form(self, application: Application, member: User) -> bytes:
+    async def _form(
+        self, application: Application, member: User, category: int | None
+    ) -> bytes:
         if application.status != PUBLISHED:
             raise ApplicationNotPublishedException(application.id)
         options = await self._options()
         return draw(
             template_document(application),
-            member_document(member),
+            {**member_document(member), "chosen_category": category},
             options,
             await club_logo(self.db),
             day_to_date(club_today()),

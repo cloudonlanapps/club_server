@@ -72,8 +72,10 @@ def _empty(field: str) -> Any:
     return None
 
 
-def application_response(application: Application) -> ApplicationResponse:
-    """A template as returned."""
+def application_response(
+    application: Application, fitting_categories: list[int] | None = None
+) -> ApplicationResponse:
+    """A template as returned; a member's read adds the categories they fit."""
     content: dict[str, Any] = {
         field: getattr(application, field) for field in CONTENT_FIELDS
     }
@@ -93,6 +95,7 @@ def application_response(application: Application) -> ApplicationResponse:
             "id": application.id,
             "status": status,
             "layout": layout,
+            "fitting_categories": fitting_categories,
             "created_by": application.created_by,
             "created_at_utc": application.created_at,
             "updated_at_utc": application.updated_at,

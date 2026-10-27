@@ -16,7 +16,10 @@ from datetime import date
 
 from fpdf import FPDF
 
-from ..exceptions import ApplicationNotEligibleException, ApplicationReferenceException
+from ..exceptions import (
+    ApplicationCategoryNotFittingException,
+    ApplicationReferenceException,
+)
 from . import application_pdf_blocks as blocks
 from .application_catalogue import JsonDict
 from .application_pdf_canvas import ApplicationPdfCanvas
@@ -46,7 +49,7 @@ from .application_pdf_layout import (
     WHITE,
     Layout,
 )
-from .application_rules import is_minor, matching_category
+from .application_rules import choose_category, is_minor
 
 MAX_LANGUAGES = 2
 LOGO = 58.0
@@ -208,14 +211,17 @@ class ApplicationFormBuilder:
     # Eligibility ------------------------------------------------------------
 
     def age_category(self) -> int | None:
-        """The member's age category; refused when none matches (R11)."""
+        """The age category ticked: the one the member fits, or the one they
+        chose among several (R11, R11a)."""
         cats: list[JsonDict] = self.t.get("age_categories") or []
-        if not cats or self.worst:
+        chosen: int | None = self.m.get("chosen_category")
+        if self.worst:
             return None
-        found = matching_category(cats, self.dob(), self.m.get("gender"))
-        if found is None:
-            raise ApplicationNotEligibleException()
-        return found
+        if not cats:
+            if chosen is not None:  # a template without categories has none to choose
+                raise ApplicationCategoryNotFittingException(chosen, [])
+            return None
+        return choose_category(cats, self.dob(), self.m.get("gender"), chosen)
 
     def dob(self) -> date | None:
         """The member's date of birth."""

@@ -84,14 +84,16 @@ async def get_application(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     current_user: Annotated[User, Depends(get_authenticated_user)],
 ) -> ApplicationResponse:
-    """One template, as the caller may see it (R10)."""
+    """One template, as the caller may see it (R10); a member's read lists
+    the age categories they fit (R11a)."""
+    service = ApplicationDownloadService(db)
     try:
-        application = await ApplicationDownloadService(db).get_for(
-            current_user, application_id
-        )
+        application = await service.get_for(current_user, application_id)
     except err.DOMAIN_ERRORS as exc:
         raise err.to_http(exc)
-    return application_response(application)
+    return application_response(
+        application, service.fitting_for(current_user, application)
+    )
 
 
 @router.post(

@@ -1514,6 +1514,31 @@ class ApplicationNotEligibleException(Exception):
         super().__init__("not eligible for this application")
 
 
+class ApplicationCategoryRequiredException(Exception):
+    """Raised when a member fits several age categories and chose none (#108)."""
+
+    categories: list[int]
+
+    def __init__(self, categories: list[int]):
+        self.categories = categories
+        super().__init__(
+            "choose an age category: the member fits categories "
+            + ", ".join(str(i) for i in categories)
+        )
+
+
+class ApplicationCategoryNotFittingException(Exception):
+    """Raised when the chosen age category is not one the member fits (#108)."""
+
+    category: int
+    categories: list[int]
+
+    def __init__(self, category: int, categories: list[int]):
+        self.category = category
+        self.categories = categories
+        super().__init__(f"the member does not fit age category {category}")
+
+
 class ApplicationTransitionException(Exception):
     """Raised when a state move does not start from its one permitted state (#93)."""
 
