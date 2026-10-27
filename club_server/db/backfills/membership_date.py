@@ -7,9 +7,10 @@ earliest one, and everyone else stays blank: bootstrapped admins, older
 imports, members approved without a review request, users not yet
 approved. A date already set is never touched.
 
-The club's time zone is read from ``CLUB_TIMEZONE`` rather than
-``Settings`` (see ``age_eligibility``), so alembic needs no more of the
-environment than it must.
+The club's time zone is read from ``CLUB_TIMEZONE`` or the
+``club_timezone`` secrets file rather than through ``Settings`` (see
+``age_eligibility``), so alembic needs no more of the environment than it
+must.
 """
 
 from sqlalchemy import text
