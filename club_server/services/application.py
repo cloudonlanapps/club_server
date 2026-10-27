@@ -19,6 +19,7 @@ from ..exceptions import (
     InvalidStateException,
 )
 from ..schemas.application import (
+    ENGLISH,
     ApplicationContent,
     ApplicationLayout,
     ApplicationResponse,
@@ -61,6 +62,9 @@ def _stored(value: Any) -> Any:
 
 
 def _empty(field: str) -> Any:
+    """What null stores: an empty list or map, English for the languages."""
+    if field == "languages":
+        return [ENGLISH]
     if field in LIST_FIELDS:
         return []
     if field in DICT_FIELDS:
@@ -165,8 +169,6 @@ class ApplicationService:
             )
         for field in changes.model_fields_set:
             value = getattr(changes, field)
-            if value is None and field == "languages":
-                continue
             setattr(
                 application, field, _empty(field) if value is None else _stored(value)
             )

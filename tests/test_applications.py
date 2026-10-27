@@ -186,6 +186,46 @@ async def test_should_replace_sent_fields_when_admin_edits_a_draft(
 
 @pytest.mark.requirement("applications:R3")
 @pytest.mark.asyncio
+async def test_should_reset_languages_to_english_when_edit_sends_null(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    created = await create_application(client, admin)
+    assert created["languages"] == ["en", "mr"]
+
+    response = await client.patch(
+        f"{APPLICATIONS}/{created['id']}",
+        json={"languages": None},
+        headers=auth(admin),
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["languages"] == ["en"]
+    read = (await get_application(client, admin, created["id"])).json()
+    assert read["languages"] == ["en"]
+
+
+@pytest.mark.requirement("applications:R3")
+@pytest.mark.asyncio
+async def test_should_keep_languages_when_edit_leaves_them_out(
+    client: AsyncClient, db_session: AsyncSession
+):
+    admin = await create_admin_user(db_session)
+    created = await create_application(client, admin)
+
+    response = await client.patch(
+        f"{APPLICATIONS}/{created['id']}",
+        json={"title": {"en": "Camp", "mr": "शिबिर"}},
+        headers=auth(admin),
+    )
+
+    assert response.status_code == 200, response.text
+    read = (await get_application(client, admin, created["id"])).json()
+    assert read["languages"] == ["en", "mr"]
+
+
+@pytest.mark.requirement("applications:R3")
+@pytest.mark.asyncio
 @pytest.mark.parametrize("state", ["saved", "published"])
 async def test_should_refuse_an_edit_when_template_is_not_a_draft(
     client: AsyncClient, db_session: AsyncSession, state: str

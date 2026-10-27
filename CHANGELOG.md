@@ -20,6 +20,10 @@
 - Add `POST /v1/applications/{id}/duplicate` (admin; a new draft copied from any template), `GET /v1/applications/labels` and `GET /v1/applications/clauses` (admin; the label catalogue and the clause library in English, Marathi and Hindi) (#93).
 - Add the PDFs (`application/pdf`, `application-<id>-<username>.pdf`): `GET /v1/applications/{id}/form` (the caller's own form of a published template; not offered → 404 `APPLICATION_NOT_FOUND`, no identity document → 422 `IDENTITY_DOCUMENT_REQUIRED`, no age category matching date of birth and gender → 422 `APPLICATION_NOT_ELIGIBLE`), `GET /v1/applications/{id}/form/{username}` (admin; not published → 422 `APPLICATION_NOT_PUBLISHED`, unknown user → 404 `USER_NOT_FOUND`) and `GET /v1/applications/{id}/preview` (admin, any state; the demo member `demo.player`, watermarked) (#93).
 
+### Bug Fixes
+
+- `PATCH /v1/applications/{id}` with `languages: null` resets the print languages to `["en"]`; it was ignored (#109).
+
 ## 1.2.0 (2026-10-26)
 
 Changes since `IHM_RELEASE_0_5`, including 1.0.0 (`RELEASE_VERSION_1_0_0`),
