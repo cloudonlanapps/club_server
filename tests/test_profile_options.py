@@ -208,6 +208,35 @@ async def test_should_refuse_profile_options_when_the_document_is_invalid(
     assert await read_options(client, admin) == EMPTY
 
 
+@pytest.mark.requirement("users:R69b")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "label",
+    [
+        {"hi": "फॉरवर्ड"},  # no English
+        {"en": "Forward", "english": "Forward"},  # not a catalogue language
+    ],
+)
+async def test_should_refuse_a_position_label_when_english_is_missing_or_a_key_is_unknown(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    extended_profile_enabled: None,
+    label: dict[str, str],
+):
+    admin = await create_admin_user(db_session)
+    await db_session.commit()
+
+    response = await patch_options(
+        client,
+        admin,
+        {"positions": [{"value": "fwd", "label": label}], "languages": []},
+    )
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "INVALID_PREFERENCE_VALUE"
+    assert await read_options(client, admin) == EMPTY
+
+
 @pytest.mark.requirement("users:R69c")
 @pytest.mark.asyncio
 async def test_should_refuse_profile_options_write_when_extended_profile_is_off(
