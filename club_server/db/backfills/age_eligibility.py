@@ -9,14 +9,16 @@ the start day for a camp or one-off, the next live occurrence for a
 programme (today when it has none).
 
 Runs between adding the age columns and dropping the date columns. The
-club's time zone is read from ``CLUB_TIMEZONE`` rather than ``Settings`` so
-alembic needs no more of the environment than it must. A programme that
+club's time zone is read from ``CLUB_TIMEZONE``, or the ``club_timezone``
+secrets file, rather than through ``Settings`` so alembic needs no more of
+the environment than it must. A programme that
 carries a bound needs its schedule expanded, which loads the services
 package and with it the server's settings; nothing else does.
 """
 
 import logging
 import os
+from pathlib import Path
 from types import SimpleNamespace
 
 from sqlalchemy import text
@@ -30,10 +32,26 @@ logger = logging.getLogger(__name__)
 
 PROGRAMME_TYPE = "programme"
 
+# Where Docker mounts secrets, one file per setting (``config._SECRETS_DIR``).
+SECRETS_DIR = Path("/run/secrets")
+TIMEZONE_SECRET = "club_timezone"
+
 
 def club_timezone_from_env() -> str:
-    """The club's time zone as the deployment names it, or the default."""
-    return os.environ.get("CLUB_TIMEZONE", "").strip() or DEFAULT_CLUB_TIMEZONE
+    """The club's time zone as the deployment names it, or the default.
+
+    The same order as ``Settings`` (#102): the ``CLUB_TIMEZONE`` environment
+    variable, then the ``club_timezone`` secrets file, each skipped when
+    blank.
+    """
+    from_env = os.environ.get("CLUB_TIMEZONE", "").strip()
+    if from_env:
+        return from_env
+    try:
+        from_file = (SECRETS_DIR / TIMEZONE_SECRET).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        from_file = ""
+    return from_file.strip() or DEFAULT_CLUB_TIMEZONE
 
 
 def _band(

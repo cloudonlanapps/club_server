@@ -7,6 +7,7 @@ request.
 """
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
@@ -14,6 +15,8 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from club_server.club_calendar import club_day, club_today, date_to_day
+from club_server.db.backfills import age_eligibility
+from club_server.db.backfills.age_eligibility import club_timezone_from_env
 from club_server.db.backfills.membership_date import fill_membership_dates
 from club_server.db.models.user import User, UserStatus
 from club_server.db.models.user_review_request import UserReviewRequest
@@ -315,3 +318,68 @@ async def test_should_keep_a_membership_date_the_backfill_finds_already_set(
 
     assert filled == 0
     assert (await membership_dates(db_session))["set"] == MIDNIGHT_2024_06_01
+
+
+# The time zone the backfills use (#102): the environment first, then the
+# secrets file, as ``Settings`` reads it; the default when neither is set.
+
+# 2026-03-01 20:30 UTC: still 1 March in New York, 2 March in Asia/Kolkata.
+EVENING_2030_UTC = LATE_EVENING_UTC + 30 * 60_000
+
+
+def secrets_with_timezone(
+    monkeypatch: pytest.MonkeyPatch, directory: Path, zone: str | None
+) -> None:
+    """Point the backfill at ``directory`` as its secrets dir, holding
+    ``club_timezone`` when ``zone`` is given."""
+    if zone is not None:
+        _ = (directory / "club_timezone").write_text(f"{zone}\n", encoding="utf-8")
+    monkeypatch.setattr(age_eligibility, "SECRETS_DIR", directory)
+
+
+@pytest.mark.requirement("users:R68b")
+@pytest.mark.asyncio
+async def test_should_backfill_in_the_secrets_file_zone_when_environment_has_none(
+    db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.delenv("CLUB_TIMEZONE", raising=False)
+    secrets_with_timezone(monkeypatch, tmp_path, "America/New_York")
+    _ = await create_admin_user(db_session)
+    _ = await create_member_user(db_session, "late")
+    db_session.add(review_row("late", "approved", EVENING_2030_UTC))
+    await db_session.commit()
+
+    filled = await run_backfill(db_session)
+
+    assert filled == 1
+    assert (await membership_dates(db_session))["late"] == date_to_day(date(2026, 3, 1))
+
+
+@pytest.mark.requirement("users:R68b")
+def test_should_prefer_the_environment_zone_when_both_are_set(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setenv("CLUB_TIMEZONE", "Europe/London")
+    secrets_with_timezone(monkeypatch, tmp_path, "America/New_York")
+
+    assert club_timezone_from_env() == "Europe/London"
+
+
+@pytest.mark.requirement("users:R68b")
+def test_should_read_the_secrets_file_zone_when_environment_is_blank(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setenv("CLUB_TIMEZONE", "  ")
+    secrets_with_timezone(monkeypatch, tmp_path, "America/New_York")
+
+    assert club_timezone_from_env() == "America/New_York"
+
+
+@pytest.mark.requirement("users:R68b")
+def test_should_use_the_default_zone_when_neither_is_set(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.delenv("CLUB_TIMEZONE", raising=False)
+    secrets_with_timezone(monkeypatch, tmp_path, None)
+
+    assert club_timezone_from_env() == "Asia/Kolkata"
