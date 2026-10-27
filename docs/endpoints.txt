@@ -1,4 +1,4 @@
-Endpoints (267)
+Endpoints (268)
 ---------------
 
   #  Path
@@ -15,257 +15,258 @@ Endpoints (267)
  11. GET /applications
  12. POST /applications
  13. GET /applications/clauses
- 14. GET /applications/labels
- 15. DELETE /applications/{application_id}
- 16. GET /applications/{application_id}
- 17. PATCH /applications/{application_id}
- 18. POST /applications/{application_id}/duplicate
- 19. GET /applications/{application_id}/form
- 20. GET /applications/{application_id}/form/{username}
- 21. GET /applications/{application_id}/preview
- 22. POST /applications/{application_id}/publish
- 23. POST /applications/{application_id}/revert
- 24. POST /applications/{application_id}/save
- 25. POST /applications/{application_id}/unpublish
- 26. GET /audit_log
- 27. POST /auth/change-password
- 28. POST /auth/login
- 29. POST /auth/logout
- 30. GET /auth/me
- 31. POST /auth/refresh
- 32. POST /auth/register
- 33. POST /auth/reset-password
- 34. GET /auth/username-available
- 35. GET /broadcasts
- 36. POST /broadcasts
- 37. DELETE /broadcasts/by_id/{broadcast_id}
- 38. GET /broadcasts/by_id/{broadcast_id}
- 39. GET /broadcasts/by_id/{broadcast_id}/recipients
- 40. GET /capabilities
- 41. GET /credits/accounts
- 42. POST /credits/accounts
- 43. GET /credits/accounts/{account_id}
- 44. POST /credits/accounts/{account_id}/extend
- 45. POST /credits/accounts/{account_id}/reverse
- 46. POST /credits/accounts/{account_id}/transfer
- 47. GET /credits/entries
- 48. GET /evaluations
- 49. POST /evaluations
- 50. DELETE /evaluations/by_id/{evaluation_id}
- 51. GET /evaluations/by_id/{evaluation_id}
- 52. PATCH /evaluations/by_id/{evaluation_id}
- 53. DELETE /evaluations/by_id/{evaluation_id}/answers/{item_id}
- 54. PUT /evaluations/by_id/{evaluation_id}/answers/{item_id}
- 55. POST /evaluations/by_id/{evaluation_id}/evidence/{item_id}
- 56. DELETE /evaluations/by_id/{evaluation_id}/hard
- 57. GET /evaluations/by_id/{evaluation_id}/media
- 58. POST /evaluations/by_id/{evaluation_id}/media
- 59. DELETE /evaluations/by_id/{evaluation_id}/media/{tag}
- 60. GET /evaluations/by_id/{evaluation_id}/media/{tag}
- 61. DELETE /evaluations/by_id/{evaluation_id}/media/{tag}/{media_uuid}
- 62. GET /evaluations/by_id/{evaluation_id}/media/{tag}/{media_uuid}
- 63. PATCH /evaluations/by_id/{evaluation_id}/media/{tag}/{media_uuid}
- 64. GET /evaluations/by_id/{evaluation_id}/pdf
- 65. POST /evaluations/by_id/{evaluation_id}/publish
- 66. POST /evaluations/by_id/{evaluation_id}/restore
- 67. POST /evaluations/by_id/{evaluation_id}/revert
- 68. POST /evaluations/by_id/{evaluation_id}/save
- 69. POST /evaluations/by_id/{evaluation_id}/transfer
- 70. POST /evaluations/by_id/{evaluation_id}/unpublish
- 71. GET /evaluations/deleted
- 72. GET /evaluations/templates
- 73. POST /evaluations/templates
- 74. DELETE /evaluations/templates/by_id/{template_id}
- 75. GET /evaluations/templates/by_id/{template_id}
- 76. PATCH /evaluations/templates/by_id/{template_id}
- 77. DELETE /evaluations/templates/by_id/{template_id}/hard
- 78. POST /evaluations/templates/by_id/{template_id}/items
- 79. DELETE /evaluations/templates/by_id/{template_id}/items/{item_id}
- 80. PUT /evaluations/templates/by_id/{template_id}/items/{item_id}
- 81. POST /evaluations/templates/by_id/{template_id}/restore
- 82. GET /evaluations/templates/deleted
- 83. GET /evaluations/templates/items
- 84. GET /events
- 85. POST /events
- 86. DELETE /events/by_id/{event_id}
- 87. GET /events/by_id/{event_id}
- 88. PATCH /events/by_id/{event_id}
- 89. POST /events/by_id/{event_id}/cancel
- 90. POST /events/by_id/{event_id}/check-user-conflicts
- 91. PATCH /events/by_id/{event_id}/correction
- 92. GET /events/by_id/{event_id}/credits
- 93. POST /events/by_id/{event_id}/drop
- 94. GET /events/by_id/{event_id}/eligible
- 95. GET /events/by_id/{event_id}/enrollments
- 96. POST /events/by_id/{event_id}/enrollments/approve
- 97. POST /events/by_id/{event_id}/enrollments/approve-withdraw
- 98. POST /events/by_id/{event_id}/enrollments/assign
- 99. POST /events/by_id/{event_id}/enrollments/assign-trial
-100. POST /events/by_id/{event_id}/enrollments/invite
-101. POST /events/by_id/{event_id}/enrollments/reject
-102. POST /events/by_id/{event_id}/enrollments/reject-withdraw
-103. POST /events/by_id/{event_id}/enrollments/remove
-104. POST /events/by_id/{event_id}/extend
-105. POST /events/by_id/{event_id}/extend-indefinitely
-106. PATCH /events/by_id/{event_id}/future
-107. DELETE /events/by_id/{event_id}/hard
-108. DELETE /events/by_id/{event_id}/marketing
-109. GET /events/by_id/{event_id}/marketing
-110. PUT /events/by_id/{event_id}/marketing
-111. GET /events/by_id/{event_id}/media
-112. POST /events/by_id/{event_id}/media
-113. DELETE /events/by_id/{event_id}/media/{tag}
-114. GET /events/by_id/{event_id}/media/{tag}
-115. DELETE /events/by_id/{event_id}/media/{tag}/{media_uuid}
-116. GET /events/by_id/{event_id}/media/{tag}/{media_uuid}
-117. PATCH /events/by_id/{event_id}/media/{tag}/{media_uuid}
-118. GET /events/by_id/{event_id}/occurrences/{occurrence_time_utc}
-119. GET /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/attendance
-120. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/attendance
-121. DELETE /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/attendance/{membername}
-122. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/cancel
-123. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/leave/approve
-124. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/leave/reject
-125. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/reschedule
-126. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/undo-cancel
-127. POST /events/by_id/{event_id}/reinstate
-128. POST /events/by_id/{event_id}/reschedule
-129. POST /events/by_id/{event_id}/restore
-130. GET /events/by_id/{event_id}/schedules
-131. POST /events/by_id/{event_id}/terminate
-132. POST /events/by_id/{event_id}/undo-cancel
-133. POST /events/check-conflict
-134. GET /events/deleted
-135. GET /events/occurrences
-136. GET /events/occurrences/attendance
-137. GET /groups
-138. POST /groups
-139. DELETE /groups/by_id/{group_id}
-140. GET /groups/by_id/{group_id}
-141. PATCH /groups/by_id/{group_id}
-142. GET /groups/by_id/{group_id}/eligible
-143. DELETE /groups/by_id/{group_id}/hard
-144. GET /groups/by_id/{group_id}/media
-145. POST /groups/by_id/{group_id}/media
-146. DELETE /groups/by_id/{group_id}/media/{tag}
-147. GET /groups/by_id/{group_id}/media/{tag}
-148. DELETE /groups/by_id/{group_id}/media/{tag}/{media_uuid}
-149. GET /groups/by_id/{group_id}/media/{tag}/{media_uuid}
-150. PATCH /groups/by_id/{group_id}/media/{tag}/{media_uuid}
-151. GET /groups/by_id/{group_id}/members
-152. POST /groups/by_id/{group_id}/members/bulk
-153. POST /groups/by_id/{group_id}/members/byname/{membername}
-154. DELETE /groups/by_id/{group_id}/members/{membername}
-155. GET /groups/by_id/{group_id}/requests
-156. POST /groups/by_id/{group_id}/requests/{request_id}/approve
-157. POST /groups/by_id/{group_id}/requests/{request_id}/reject
-158. POST /groups/by_id/{group_id}/restore
-159. GET /groups/deleted
-160. GET /media
-161. POST /media
-162. DELETE /media/by_id/{media_id}
-163. GET /media/by_id/{media_id}
-164. PATCH /media/by_id/{media_id}
-165. DELETE /media/by_id/{media_id}/hard
-166. POST /media/by_id/{media_id}/restore
-167. GET /media/by_id/{uuid}/download
-168. HEAD /media/by_id/{uuid}/download
-169. GET /media/by_id/{uuid}/download/{filename}
-170. HEAD /media/by_id/{uuid}/download/{filename}
-171. POST /media/by_id/{uuid}/encrypt
-172. GET /media/by_id/{uuid}/links
-173. GET /media/by_uuid/{uuid}
-174. GET /media/links
-175. GET /media/myfiles
-176. GET /mycredits/by_id/{username}
-177. GET /mycredits/by_id/{username}/accounts/{account_id}
-178. GET /mycredits/by_id/{username}/entries
-179. GET /myevaluations/by_id/{username}
-180. GET /myevaluations/by_id/{username}/{evaluation_id}
-181. GET /myevaluations/by_id/{username}/{evaluation_id}/media
-182. GET /myevents/by_id/{username}
-183. GET /myevents/by_id/{username}/attendance
-184. GET /myevents/by_id/{username}/occurrences
-185. GET /myevents/by_id/{username}/{event_id}
-186. GET /myevents/by_id/{username}/{event_id}/enrollments
-187. POST /myevents/by_id/{username}/{event_id}/enrollments/accept
-188. POST /myevents/by_id/{username}/{event_id}/enrollments/cancel-withdraw
-189. POST /myevents/by_id/{username}/{event_id}/enrollments/decline
-190. POST /myevents/by_id/{username}/{event_id}/enrollments/request
-191. POST /myevents/by_id/{username}/{event_id}/enrollments/withdraw
-192. GET /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}
-193. GET /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}/attendance
-194. POST /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}/leave/cancel
-195. POST /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}/leave/request
-196. GET /myevents/by_id/{username}/{event_id}/schedules
-197. GET /mygroups/by_id/{username}
-198. GET /mygroups/by_id/{username}/eligible
-199. GET /mygroups/by_id/{username}/group/{group_id}
-200. POST /mygroups/by_id/{username}/join/{group_id}
-201. GET /mygroups/by_id/{username}/requests
-202. DELETE /mygroups/by_id/{username}/requests/{request_id}
-203. GET /notifications
-204. POST /notifications
-205. DELETE /notifications/by_id/{notification_id}
-206. POST /notifications/by_id/{notification_id}/read
-207. GET /notifications/pending-actions
-208. GET /notifications/preferences
-209. PATCH /notifications/preferences
-210. POST /notifications/read-all
-211. GET /notifications/unread-count
-212. GET /public/club-info
-213. GET /public/events
-214. GET /public/events/marketing
-215. GET /public/events/{public_id}
-216. GET /public/events/{public_id}/marketing
-217. POST /public/inquiries
-218. GET /public/inquiries/token
-219. GET /public/profile/by_id/{public_id}
-220. GET /public/staff
-221. GET /public/venues
-222. GET /public/venues/{public_id}
-223. GET /system/preferences/profile_options
-224. GET /users
-225. POST /users
-226. DELETE /users/by_id/{username}
-227. GET /users/by_id/{username}
-228. PATCH /users/by_id/{username}
-229. POST /users/by_id/{username}/approve
-230. POST /users/by_id/{username}/block
-231. GET /users/by_id/{username}/groups
-232. DELETE /users/by_id/{username}/hard
-233. POST /users/by_id/{username}/mark-left
-234. GET /users/by_id/{username}/media
-235. POST /users/by_id/{username}/media
-236. DELETE /users/by_id/{username}/media/{tag}
-237. GET /users/by_id/{username}/media/{tag}
-238. DELETE /users/by_id/{username}/media/{tag}/{media_uuid}
-239. GET /users/by_id/{username}/media/{tag}/{media_uuid}
-240. PATCH /users/by_id/{username}/media/{tag}/{media_uuid}
-241. GET /users/by_id/{username}/private
-242. POST /users/by_id/{username}/reactivate
-243. PATCH /users/by_id/{username}/reapply
-244. POST /users/by_id/{username}/reconsider
-245. POST /users/by_id/{username}/restore
-246. POST /users/by_id/{username}/roles
-247. DELETE /users/by_id/{username}/roles/{role}
-248. POST /users/by_id/{username}/transfer-superadmin
-249. POST /users/by_id/{username}/unblock
-250. GET /users/count
-251. GET /users/deleted
-252. POST /users/me/submit-for-review
-253. GET /venues
-254. POST /venues
-255. DELETE /venues/by_id/{venue_id}
-256. GET /venues/by_id/{venue_id}
-257. PATCH /venues/by_id/{venue_id}
-258. DELETE /venues/by_id/{venue_id}/hard
-259. GET /venues/by_id/{venue_id}/media
-260. POST /venues/by_id/{venue_id}/media
-261. DELETE /venues/by_id/{venue_id}/media/{tag}
-262. GET /venues/by_id/{venue_id}/media/{tag}
-263. DELETE /venues/by_id/{venue_id}/media/{tag}/{media_uuid}
-264. GET /venues/by_id/{venue_id}/media/{tag}/{media_uuid}
-265. PATCH /venues/by_id/{venue_id}/media/{tag}/{media_uuid}
-266. POST /venues/by_id/{venue_id}/restore
-267. GET /venues/deleted
+ 14. POST /applications/clauses/fill
+ 15. GET /applications/labels
+ 16. DELETE /applications/{application_id}
+ 17. GET /applications/{application_id}
+ 18. PATCH /applications/{application_id}
+ 19. POST /applications/{application_id}/duplicate
+ 20. GET /applications/{application_id}/form
+ 21. GET /applications/{application_id}/form/{username}
+ 22. GET /applications/{application_id}/preview
+ 23. POST /applications/{application_id}/publish
+ 24. POST /applications/{application_id}/revert
+ 25. POST /applications/{application_id}/save
+ 26. POST /applications/{application_id}/unpublish
+ 27. GET /audit_log
+ 28. POST /auth/change-password
+ 29. POST /auth/login
+ 30. POST /auth/logout
+ 31. GET /auth/me
+ 32. POST /auth/refresh
+ 33. POST /auth/register
+ 34. POST /auth/reset-password
+ 35. GET /auth/username-available
+ 36. GET /broadcasts
+ 37. POST /broadcasts
+ 38. DELETE /broadcasts/by_id/{broadcast_id}
+ 39. GET /broadcasts/by_id/{broadcast_id}
+ 40. GET /broadcasts/by_id/{broadcast_id}/recipients
+ 41. GET /capabilities
+ 42. GET /credits/accounts
+ 43. POST /credits/accounts
+ 44. GET /credits/accounts/{account_id}
+ 45. POST /credits/accounts/{account_id}/extend
+ 46. POST /credits/accounts/{account_id}/reverse
+ 47. POST /credits/accounts/{account_id}/transfer
+ 48. GET /credits/entries
+ 49. GET /evaluations
+ 50. POST /evaluations
+ 51. DELETE /evaluations/by_id/{evaluation_id}
+ 52. GET /evaluations/by_id/{evaluation_id}
+ 53. PATCH /evaluations/by_id/{evaluation_id}
+ 54. DELETE /evaluations/by_id/{evaluation_id}/answers/{item_id}
+ 55. PUT /evaluations/by_id/{evaluation_id}/answers/{item_id}
+ 56. POST /evaluations/by_id/{evaluation_id}/evidence/{item_id}
+ 57. DELETE /evaluations/by_id/{evaluation_id}/hard
+ 58. GET /evaluations/by_id/{evaluation_id}/media
+ 59. POST /evaluations/by_id/{evaluation_id}/media
+ 60. DELETE /evaluations/by_id/{evaluation_id}/media/{tag}
+ 61. GET /evaluations/by_id/{evaluation_id}/media/{tag}
+ 62. DELETE /evaluations/by_id/{evaluation_id}/media/{tag}/{media_uuid}
+ 63. GET /evaluations/by_id/{evaluation_id}/media/{tag}/{media_uuid}
+ 64. PATCH /evaluations/by_id/{evaluation_id}/media/{tag}/{media_uuid}
+ 65. GET /evaluations/by_id/{evaluation_id}/pdf
+ 66. POST /evaluations/by_id/{evaluation_id}/publish
+ 67. POST /evaluations/by_id/{evaluation_id}/restore
+ 68. POST /evaluations/by_id/{evaluation_id}/revert
+ 69. POST /evaluations/by_id/{evaluation_id}/save
+ 70. POST /evaluations/by_id/{evaluation_id}/transfer
+ 71. POST /evaluations/by_id/{evaluation_id}/unpublish
+ 72. GET /evaluations/deleted
+ 73. GET /evaluations/templates
+ 74. POST /evaluations/templates
+ 75. DELETE /evaluations/templates/by_id/{template_id}
+ 76. GET /evaluations/templates/by_id/{template_id}
+ 77. PATCH /evaluations/templates/by_id/{template_id}
+ 78. DELETE /evaluations/templates/by_id/{template_id}/hard
+ 79. POST /evaluations/templates/by_id/{template_id}/items
+ 80. DELETE /evaluations/templates/by_id/{template_id}/items/{item_id}
+ 81. PUT /evaluations/templates/by_id/{template_id}/items/{item_id}
+ 82. POST /evaluations/templates/by_id/{template_id}/restore
+ 83. GET /evaluations/templates/deleted
+ 84. GET /evaluations/templates/items
+ 85. GET /events
+ 86. POST /events
+ 87. DELETE /events/by_id/{event_id}
+ 88. GET /events/by_id/{event_id}
+ 89. PATCH /events/by_id/{event_id}
+ 90. POST /events/by_id/{event_id}/cancel
+ 91. POST /events/by_id/{event_id}/check-user-conflicts
+ 92. PATCH /events/by_id/{event_id}/correction
+ 93. GET /events/by_id/{event_id}/credits
+ 94. POST /events/by_id/{event_id}/drop
+ 95. GET /events/by_id/{event_id}/eligible
+ 96. GET /events/by_id/{event_id}/enrollments
+ 97. POST /events/by_id/{event_id}/enrollments/approve
+ 98. POST /events/by_id/{event_id}/enrollments/approve-withdraw
+ 99. POST /events/by_id/{event_id}/enrollments/assign
+100. POST /events/by_id/{event_id}/enrollments/assign-trial
+101. POST /events/by_id/{event_id}/enrollments/invite
+102. POST /events/by_id/{event_id}/enrollments/reject
+103. POST /events/by_id/{event_id}/enrollments/reject-withdraw
+104. POST /events/by_id/{event_id}/enrollments/remove
+105. POST /events/by_id/{event_id}/extend
+106. POST /events/by_id/{event_id}/extend-indefinitely
+107. PATCH /events/by_id/{event_id}/future
+108. DELETE /events/by_id/{event_id}/hard
+109. DELETE /events/by_id/{event_id}/marketing
+110. GET /events/by_id/{event_id}/marketing
+111. PUT /events/by_id/{event_id}/marketing
+112. GET /events/by_id/{event_id}/media
+113. POST /events/by_id/{event_id}/media
+114. DELETE /events/by_id/{event_id}/media/{tag}
+115. GET /events/by_id/{event_id}/media/{tag}
+116. DELETE /events/by_id/{event_id}/media/{tag}/{media_uuid}
+117. GET /events/by_id/{event_id}/media/{tag}/{media_uuid}
+118. PATCH /events/by_id/{event_id}/media/{tag}/{media_uuid}
+119. GET /events/by_id/{event_id}/occurrences/{occurrence_time_utc}
+120. GET /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/attendance
+121. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/attendance
+122. DELETE /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/attendance/{membername}
+123. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/cancel
+124. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/leave/approve
+125. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/leave/reject
+126. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/reschedule
+127. POST /events/by_id/{event_id}/occurrences/{occurrence_time_utc}/undo-cancel
+128. POST /events/by_id/{event_id}/reinstate
+129. POST /events/by_id/{event_id}/reschedule
+130. POST /events/by_id/{event_id}/restore
+131. GET /events/by_id/{event_id}/schedules
+132. POST /events/by_id/{event_id}/terminate
+133. POST /events/by_id/{event_id}/undo-cancel
+134. POST /events/check-conflict
+135. GET /events/deleted
+136. GET /events/occurrences
+137. GET /events/occurrences/attendance
+138. GET /groups
+139. POST /groups
+140. DELETE /groups/by_id/{group_id}
+141. GET /groups/by_id/{group_id}
+142. PATCH /groups/by_id/{group_id}
+143. GET /groups/by_id/{group_id}/eligible
+144. DELETE /groups/by_id/{group_id}/hard
+145. GET /groups/by_id/{group_id}/media
+146. POST /groups/by_id/{group_id}/media
+147. DELETE /groups/by_id/{group_id}/media/{tag}
+148. GET /groups/by_id/{group_id}/media/{tag}
+149. DELETE /groups/by_id/{group_id}/media/{tag}/{media_uuid}
+150. GET /groups/by_id/{group_id}/media/{tag}/{media_uuid}
+151. PATCH /groups/by_id/{group_id}/media/{tag}/{media_uuid}
+152. GET /groups/by_id/{group_id}/members
+153. POST /groups/by_id/{group_id}/members/bulk
+154. POST /groups/by_id/{group_id}/members/byname/{membername}
+155. DELETE /groups/by_id/{group_id}/members/{membername}
+156. GET /groups/by_id/{group_id}/requests
+157. POST /groups/by_id/{group_id}/requests/{request_id}/approve
+158. POST /groups/by_id/{group_id}/requests/{request_id}/reject
+159. POST /groups/by_id/{group_id}/restore
+160. GET /groups/deleted
+161. GET /media
+162. POST /media
+163. DELETE /media/by_id/{media_id}
+164. GET /media/by_id/{media_id}
+165. PATCH /media/by_id/{media_id}
+166. DELETE /media/by_id/{media_id}/hard
+167. POST /media/by_id/{media_id}/restore
+168. GET /media/by_id/{uuid}/download
+169. HEAD /media/by_id/{uuid}/download
+170. GET /media/by_id/{uuid}/download/{filename}
+171. HEAD /media/by_id/{uuid}/download/{filename}
+172. POST /media/by_id/{uuid}/encrypt
+173. GET /media/by_id/{uuid}/links
+174. GET /media/by_uuid/{uuid}
+175. GET /media/links
+176. GET /media/myfiles
+177. GET /mycredits/by_id/{username}
+178. GET /mycredits/by_id/{username}/accounts/{account_id}
+179. GET /mycredits/by_id/{username}/entries
+180. GET /myevaluations/by_id/{username}
+181. GET /myevaluations/by_id/{username}/{evaluation_id}
+182. GET /myevaluations/by_id/{username}/{evaluation_id}/media
+183. GET /myevents/by_id/{username}
+184. GET /myevents/by_id/{username}/attendance
+185. GET /myevents/by_id/{username}/occurrences
+186. GET /myevents/by_id/{username}/{event_id}
+187. GET /myevents/by_id/{username}/{event_id}/enrollments
+188. POST /myevents/by_id/{username}/{event_id}/enrollments/accept
+189. POST /myevents/by_id/{username}/{event_id}/enrollments/cancel-withdraw
+190. POST /myevents/by_id/{username}/{event_id}/enrollments/decline
+191. POST /myevents/by_id/{username}/{event_id}/enrollments/request
+192. POST /myevents/by_id/{username}/{event_id}/enrollments/withdraw
+193. GET /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}
+194. GET /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}/attendance
+195. POST /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}/leave/cancel
+196. POST /myevents/by_id/{username}/{event_id}/occurrences/{occurrence_time_utc}/leave/request
+197. GET /myevents/by_id/{username}/{event_id}/schedules
+198. GET /mygroups/by_id/{username}
+199. GET /mygroups/by_id/{username}/eligible
+200. GET /mygroups/by_id/{username}/group/{group_id}
+201. POST /mygroups/by_id/{username}/join/{group_id}
+202. GET /mygroups/by_id/{username}/requests
+203. DELETE /mygroups/by_id/{username}/requests/{request_id}
+204. GET /notifications
+205. POST /notifications
+206. DELETE /notifications/by_id/{notification_id}
+207. POST /notifications/by_id/{notification_id}/read
+208. GET /notifications/pending-actions
+209. GET /notifications/preferences
+210. PATCH /notifications/preferences
+211. POST /notifications/read-all
+212. GET /notifications/unread-count
+213. GET /public/club-info
+214. GET /public/events
+215. GET /public/events/marketing
+216. GET /public/events/{public_id}
+217. GET /public/events/{public_id}/marketing
+218. POST /public/inquiries
+219. GET /public/inquiries/token
+220. GET /public/profile/by_id/{public_id}
+221. GET /public/staff
+222. GET /public/venues
+223. GET /public/venues/{public_id}
+224. GET /system/preferences/profile_options
+225. GET /users
+226. POST /users
+227. DELETE /users/by_id/{username}
+228. GET /users/by_id/{username}
+229. PATCH /users/by_id/{username}
+230. POST /users/by_id/{username}/approve
+231. POST /users/by_id/{username}/block
+232. GET /users/by_id/{username}/groups
+233. DELETE /users/by_id/{username}/hard
+234. POST /users/by_id/{username}/mark-left
+235. GET /users/by_id/{username}/media
+236. POST /users/by_id/{username}/media
+237. DELETE /users/by_id/{username}/media/{tag}
+238. GET /users/by_id/{username}/media/{tag}
+239. DELETE /users/by_id/{username}/media/{tag}/{media_uuid}
+240. GET /users/by_id/{username}/media/{tag}/{media_uuid}
+241. PATCH /users/by_id/{username}/media/{tag}/{media_uuid}
+242. GET /users/by_id/{username}/private
+243. POST /users/by_id/{username}/reactivate
+244. PATCH /users/by_id/{username}/reapply
+245. POST /users/by_id/{username}/reconsider
+246. POST /users/by_id/{username}/restore
+247. POST /users/by_id/{username}/roles
+248. DELETE /users/by_id/{username}/roles/{role}
+249. POST /users/by_id/{username}/transfer-superadmin
+250. POST /users/by_id/{username}/unblock
+251. GET /users/count
+252. GET /users/deleted
+253. POST /users/me/submit-for-review
+254. GET /venues
+255. POST /venues
+256. DELETE /venues/by_id/{venue_id}
+257. GET /venues/by_id/{venue_id}
+258. PATCH /venues/by_id/{venue_id}
+259. DELETE /venues/by_id/{venue_id}/hard
+260. GET /venues/by_id/{venue_id}/media
+261. POST /venues/by_id/{venue_id}/media
+262. DELETE /venues/by_id/{venue_id}/media/{tag}
+263. GET /venues/by_id/{venue_id}/media/{tag}
+264. DELETE /venues/by_id/{venue_id}/media/{tag}/{media_uuid}
+265. GET /venues/by_id/{venue_id}/media/{tag}/{media_uuid}
+266. PATCH /venues/by_id/{venue_id}/media/{tag}/{media_uuid}
+267. POST /venues/by_id/{venue_id}/restore
+268. GET /venues/deleted

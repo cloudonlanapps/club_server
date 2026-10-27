@@ -1,28 +1,23 @@
 """Deciding an application's layout and drawing its forms (#93, R14–R20).
 
-``decide_layout`` runs on save: it resolves the template, refuses it when a
-text lacks a print language or a reference is broken, measures it for the
-worst-case member and returns the layout to store. ``draw`` produces one
-member's PDF (or the preview's) with the stored layout, measuring again
-first when the catalogue, the clause library or the fonts have changed
-since it was stored.
+``decide_layout`` runs on save: it refuses the template when a text lacks a
+print language, measures it for the worst-case member and returns the
+layout to store. ``draw`` produces one member's PDF (or the preview's) with
+the stored layout, measuring again first when the label catalogue or the
+fonts have changed since it was stored. The texts are the template's own
+custom text; nothing is read from the clause library (#107).
 """
 
 from datetime import date
 
 from ..exceptions import ApplicationDoesNotFitException, ApplicationIncompleteException
-from .application_catalogue import JsonDict, fingerprint, labels, library
+from .application_catalogue import JsonDict, fingerprint, labels
 from .application_pdf_builder import ApplicationFormBuilder
 from .application_pdf_fit import check, choose_layout
 from .application_pdf_layout import BOTTOM, LAYOUTS, layout_named
-from .application_text import incomplete, lacking, resolve
+from .application_text import incomplete, lacking, printable
 
 FINGERPRINT = "fingerprint"
-
-
-def resolved(template: JsonDict) -> JsonDict:
-    """The template with its references resolved; raises on a broken one."""
-    return resolve(template, library())
 
 
 def missing_texts(template: JsonDict) -> list[JsonDict]:
@@ -39,7 +34,7 @@ def missing_texts(template: JsonDict) -> list[JsonDict]:
 
 def decide_layout(template: JsonDict, options: JsonDict, today: date) -> JsonDict:
     """The layout to store on save (R13, R16, R17)."""
-    document = resolved(template)
+    document = printable(template)
     missing = missing_texts(document)
     if missing:
         raise ApplicationIncompleteException(missing)
@@ -67,7 +62,7 @@ def draw(
     With a stored layout the form is drawn once; without one (a draft's
     preview) it is measured for this member first (R19).
     """
-    document = resolved(template)
+    document = printable(template)
     all_labels = labels()
     layout = layout_named(stored["name"]) if stored else None
     if stored and layout:

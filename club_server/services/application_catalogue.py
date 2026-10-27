@@ -6,8 +6,10 @@ declaration, rules, selections and notes from, each in English, Marathi and
 Hindi. Keys starting with ``_`` are notes for reviewers: they are dropped
 when the files are read and never printed or served.
 
-The fingerprint changes whenever either file or a PDF font changes; a stored
-layout carrying an older one is measured again (applications R14).
+The fingerprint changes whenever the label catalogue or a PDF font changes;
+a stored layout carrying an older one is measured again (applications R14).
+The clause library is not part of it: a template holds only custom text, so
+no change to the library can change a form (#107).
 """
 
 import hashlib
@@ -63,12 +65,8 @@ def catalogue_languages() -> list[str]:
 
 @cache
 def fingerprint() -> str:
-    """A hash of the catalogue, the library and the PDF fonts."""
+    """A hash of the label catalogue and the PDF fonts."""
     digest = hashlib.sha256()
-    for path in (
-        LABELS_FILE,
-        CLAUSES_FILE,
-        *(FONT_DIR / file for _, _, file in FONT_FILES),
-    ):
+    for path in (LABELS_FILE, *(FONT_DIR / file for _, _, file in FONT_FILES)):
         digest.update(path.read_bytes())
     return digest.hexdigest()

@@ -1,16 +1,15 @@
 """Application template schemas (#93, `docs/applications_requirements.md`).
 
-Top-level fields are camelCase as everywhere in the API; the printed texts
-keep the shapes the form is built from:
-
-- a custom text: ``{"en": "...", "mr": "..."}`` (language code → text);
-- a library clause: ``{"clause": "rule.matches", "args": {"dates": "matches"}}``,
-  each gap naming one of the template's facts;
-- a fact on its own: ``{"fact": "venue"}``;
-- a header item may also be a list of these, printed one per line.
+Top-level fields are camelCase as everywhere in the API. Every printed
+text is custom text, ``{"en": "...", "mr": "..."}`` (language code → text);
+a header item may also be a list of them, printed one per line. The clause
+library fills one clause at a time for the editor to insert as custom text
+(``POST /v1/applications/clauses/fill``, #107); a template keeps no link to
+it.
 
 Facts are ``{name: {"type": ..., "value" | "from" + "to": ...}}``; a date is a
-UTC-midnight millisecond timestamp, as dates of birth are.
+UTC-midnight millisecond timestamp, as dates of birth are. A template keeps
+them only as the editor's aid: they are never printed.
 """
 
 import re
@@ -72,22 +71,7 @@ class TemplatePart(CamelCaseModel):
         return {k: v for k, v in dumped.items() if v is not None}
 
 
-class ClauseRef(TemplatePart):
-    """A library clause; ``args`` names the fact for each of its gaps."""
-
-    clause: NonEmpty
-    args: dict[NonEmpty, NonEmpty] | None = None
-
-
-class FactRef(TemplatePart):
-    """One of the template's facts, printed on its own."""
-
-    fact: NonEmpty
-
-
-PrintedText = Annotated[
-    ClauseRef | FactRef | LanguageText, Field(union_mode="left_to_right")
-]
+PrintedText = LanguageText
 HeaderItem = Annotated[
     PrintedText | list[PrintedText], Field(union_mode="left_to_right")
 ]
@@ -107,8 +91,8 @@ class TermsNote(TemplatePart):
     attribution: PrintedText | None = None
 
 
-Term = Annotated[ClauseRef | CustomTerm, Field(union_mode="left_to_right")]
-TermsNoteEntry = Annotated[ClauseRef | TermsNote, Field(union_mode="left_to_right")]
+Term = CustomTerm
+TermsNoteEntry = TermsNote
 
 
 class AgeCategory(TemplatePart):
@@ -295,3 +279,18 @@ class ApplicationClausesResponse(CamelCaseModel):
     languages: list[str]
     choices: dict[str, dict[str, str]]
     clauses: dict[str, ApplicationClause]
+
+
+class ApplicationClauseFill(CamelCaseModel):
+    """One library clause to fill: its id and a fact for each of its gaps."""
+
+    clause: NonEmpty
+    facts: dict[NonEmpty, Fact] = Field(default_factory=dict)
+
+
+class ApplicationClauseFilled(CamelCaseModel):
+    """A filled clause, in every library language, to insert as custom text."""
+
+    clause: str
+    heading: dict[str, str] | None = None
+    text: dict[str, str]

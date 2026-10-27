@@ -14,7 +14,7 @@ from club_server.exceptions import (
     ApplicationDoesNotFitException,
     ApplicationNotEligibleException,
 )
-from club_server.services.application_catalogue import labels, library
+from club_server.services.application_catalogue import labels
 from club_server.services.application_form import draw
 from club_server.services.application_pdf_builder import ApplicationFormBuilder
 from club_server.services.application_pdf_fit import WORST_CASE_MEMBER, check
@@ -33,7 +33,7 @@ from club_server.services.application_rules import (
     matching_category,
     preview_member,
 )
-from club_server.services.application_text import resolve
+from club_server.services.application_text import printable
 
 from .application_helpers import page_count, page_texts, pdf_text
 
@@ -61,13 +61,17 @@ SELECTION = {
 
 
 def document(selections: int = 0, categories: int = 2, **extra: Any) -> dict[str, Any]:
-    """A small resolved English + Marathi template."""
+    """A small English + Marathi template, ready to print."""
     doc: dict[str, Any] = {
         "languages": ["en", "mr"],
         "facts": {},
         "organisation": {"en": "EXAMPLE CLUB", "mr": "उदाहरण क्लब"},
         "title": {"en": "Trial", "mr": "चाचणी"},
-        "declaration": {"clause": "declaration.trial"},
+        "declaration": {
+            "en": "I hereby declare that the information provided above is true "
+            "and correct.",
+            "mr": "मी याची खात्री देतो/देते की वरील सर्व माहिती अचूक व खरी आहे.",
+        },
         "age_categories": [
             {
                 "label": {"en": f"Group {i}", "mr": f"गट {i}"},
@@ -78,7 +82,7 @@ def document(selections: int = 0, categories: int = 2, **extra: Any) -> dict[str
         "selections": [SELECTION] * selections,
     }
     doc.update(extra)
-    return resolve(doc, library())
+    return printable(doc)
 
 
 @pytest.mark.requirement("applications:R11")

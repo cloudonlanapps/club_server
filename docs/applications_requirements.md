@@ -10,7 +10,8 @@ The design is `club_client/docs/applications_design.md` §2. The PDF — its
 blocks, sizes, spacings and the fitting of page 1 — was settled in a
 standalone prototype and is ported as it was. The label catalogue (the
 form's fixed wording) and the clause library (sentences with gaps for a
-template's facts) ship with the server in English, Marathi and Hindi.
+template's facts) ship with the server in English, Marathi and Hindi. The
+library fills a clause for the editor; a template stores only the text.
 
 Each rule's test names it with `@pytest.mark.requirement("applications:Rn")`,
 and `tests/test_requirement_coverage.py` checks every marked rule has one.
@@ -46,9 +47,11 @@ signed-in user whose account is `registered`, `pending` or `active`
   unchanged.
 - **R6** [✅] A template prints in `languages`: `["en"]` or `["en",
   <one other>]`, the other a language of the label catalogue → otherwise
-  422. Every printed text is a custom text (`{language: text}`), a library
-  clause (`{"clause": id, "args": {gap: fact}}`) or a fact on its own
-  (`{"fact": name}`); a header item may be a list of these, one per line.
+  422. Every printed text is custom text (`{language: text}`); a header
+  item may be a list of them, one per line. A library clause (`{"clause":
+  …}`) or a fact (`{"fact": …}`) in any printed text, a rule or a note →
+  422 (#107). A template's facts are kept as the editor's aid: save and
+  print never read them, nor the clause library.
 - **R6a** [✅] A fact is typed: `date` (`value`, a UTC-midnight
   date), `date_range` (`from`, `to`, the end not before the start),
   `time` (`value` "H:MM", 24-hour), `amount` (`value`, a whole number),
@@ -56,7 +59,8 @@ signed-in user whose account is `registered`, `pending` or `active`
   (`value`, a list of the library's choice ids). Any other shape → 422.
 - **R7** [✅] An admin reads the clause library: each clause's kind,
   its gaps and their fact types, and its text (and heading, for a rule) in
-  every language, with the library's choices. Facts print in each language:
+  every language, with the library's choices. Facts fill a clause (R9a) in
+  each language:
   a date as "19 November 2026" / "19 नोव्हेंबर 2026", a range as "1–15
   November 2026" / "1 ते 15 नोव्हेंबर 2026", a time with its part of the day
   ("6:00 am" / "सकाळी 6:00"), an amount with Indian grouping (1,50,000),
@@ -79,10 +83,15 @@ signed-in user whose account is `registered`, `pending` or `active`
   naming each text and the print languages it lacks (`missing: [{field,
   languages}]`; a text missing altogether lacks every print language); it
   stays a draft.
-- **R9a** [✅] Save refuses a text naming a clause the library does
-  not have, a clause whose gaps are not all given facts, a fact the
-  template does not have, or a fact of the wrong type for its gap → 422
-  `APPLICATION_INVALID_REFERENCE` naming it; it stays a draft.
+- **R9a** [✅] An admin fills one library clause with `POST
+  /v1/applications/clauses/fill` (`{clause, facts: {gap: fact}}`): the
+  answer is `{clause, heading, text}`, the clause's text (and heading, for a
+  rule) in every library language with its gaps filled as R7 prints them,
+  for the editor to insert as custom text. It reads and changes no
+  template. A clause the library does not have, a gap without a fact, a
+  fact for a gap the clause does not have, or a fact of the wrong type for
+  its gap → 422 `APPLICATION_INVALID_REFERENCE` naming it. A coach or
+  member → 403 (#107).
 - **R12** [✅] An admin moves a template: save (draft → saved),
   publish (saved → published), unpublish (published → saved), revert
   (saved → draft). A move from any other state → 422 `INVALID_TRANSITION`,
@@ -90,9 +99,10 @@ signed-in user whose account is `registered`, `pending` or `active`
 - **R13** [✅] Save decides the layout and stores it on the
   template (`layout`: its name and page 1's spread with and without the
   guardian block); revert drops it.
-- **R14** [✅] A stored layout records the label catalogue, clause
-  library and fonts it was measured with; a download that finds them
-  changed measures the template again and stores the new layout.
+- **R14** [✅] A stored layout records the label catalogue and fonts
+  it was measured with; a download that finds them changed measures the
+  template again and stores the new layout. A change to the clause library
+  changes no saved or published form (#107).
 
 ## Who sees what
 

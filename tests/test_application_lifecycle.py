@@ -1,13 +1,19 @@
 """Saving and moving application templates (#93, R9, R9a, R12–R14, R17)."""
 
-from typing import Any
+import json
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from club_server.db.models.application import Application
-from club_server.services.application_catalogue import fingerprint
+from club_server.services import application_catalogue
+from club_server.services.application_catalogue import (
+    CLAUSES_FILE,
+    fingerprint,
+    library,
+)
 
 from .application_helpers import (
     APPLICATIONS,
@@ -16,6 +22,7 @@ from .application_helpers import (
     create_application,
     get_application,
     move,
+    pdf_text,
     published_application,
     template_body,
 )
@@ -278,7 +285,7 @@ async def test_should_save_an_english_only_template_when_its_texts_are_english(
         admin,
         {
             "title": {"en": "Season registration"},
-            "declaration": {"clause": "declaration.camp"},
+            "declaration": {"en": "I agree to the rules of the camp."},
             "formFooter": {"en": "Play fair."},
             "header": [{"en": "City Rink"}],
         },
@@ -288,59 +295,6 @@ async def test_should_save_an_english_only_template_when_its_texts_are_english(
 
     assert response.status_code == 200, response.text
     assert await status_of(client, admin, created["id"]) == "saved"
-
-
-@pytest.mark.requirement("applications:R9a")
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("change", "reason"),
-    [
-        (
-            {"declaration": {"clause": "declaration.unknown"}},
-            "no clause 'declaration.unknown'",
-        ),
-        ({"subtitle": {"fact": "season"}}, "no fact named 'season'"),
-        (
-            {"selections": [{"clause": "selection.attend_training_camp"}]},
-            "needs facts for dates",
-        ),
-        (
-            {
-                "selections": [
-                    {
-                        "clause": "selection.attend_training_camp",
-                        "args": {"dates": "phone"},
-                    }
-                ]
-            },
-            "fact 'phone' is a name, the clause needs a date_range",
-        ),
-        (
-            {
-                "facts": {"k": {"type": "choices", "value": ["skis"]}},
-                "subtitle": {"fact": "k"},
-            },
-            "no choice 'skis'",
-        ),
-    ],
-)
-async def test_should_refuse_save_when_a_reference_is_broken(
-    client: AsyncClient, db_session: AsyncSession, change: dict[str, Any], reason: str
-):
-    admin = await create_admin_user(db_session)
-    body = template_body()
-    if "facts" in change:
-        body["facts"].update(change.pop("facts"))
-    body.update(change)
-    created = await create_application(client, admin, body)
-    await db_session.commit()
-
-    response = await move(client, admin, created["id"], "save")
-
-    assert response.status_code == 422, response.text
-    assert response.json()["detail"]["code"] == "APPLICATION_INVALID_REFERENCE"
-    assert reason in response.json()["detail"]["message"]
-    assert await status_of(client, admin, created["id"]) == "draft"
 
 
 # R17 ----------------------------------------------------------------------
@@ -400,3 +354,42 @@ async def test_should_measure_again_when_the_stored_layout_is_out_of_date(
     row = await db_session.get(Application, published["id"])
     assert row is not None and row.layout is not None
     assert row.layout["fingerprint"] == fingerprint()
+
+
+@pytest.mark.requirement("applications:R14")
+@pytest.mark.asyncio
+async def test_should_keep_the_form_when_the_clause_library_changes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    admin = await create_admin_user(db_session)
+    _ = await create_applicant(db_session, "ravi")
+    published = await published_application(client, admin)
+    before = await client.get(
+        f"{APPLICATIONS}/{published['id']}/form/ravi", headers=auth(admin)
+    )
+    assert before.status_code == 200, before.text
+    reworded = json.loads(CLAUSES_FILE.read_text(encoding="utf-8"))
+    reworded["clauses"]["rule.matches"]["text"]["en"] = "Matches: {dates}, {venue}."
+    changed = tmp_path / "clauses.json"
+    _ = changed.write_text(json.dumps(reworded), encoding="utf-8")
+    monkeypatch.setattr(application_catalogue, "CLAUSES_FILE", changed)
+    library.cache_clear()
+    fingerprint.cache_clear()
+    try:
+        after = await client.get(
+            f"{APPLICATIONS}/{published['id']}/form/ravi", headers=auth(admin)
+        )
+        read = (await get_application(client, admin, published["id"])).json()
+    finally:
+        monkeypatch.undo()
+        library.cache_clear()
+        fingerprint.cache_clear()
+
+    assert after.status_code == 200, after.text
+    assert pdf_text(after.content) == pdf_text(before.content)
+    assert "Tournament matches will take place" in pdf_text(after.content)
+    assert read["layout"] == published["layout"]
+    assert read["terms"] == published["terms"]
