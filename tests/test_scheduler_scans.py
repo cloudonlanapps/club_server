@@ -223,6 +223,64 @@ async def test_pending_mark_fires_for_ended_event_without_attendance(
         assert data["occurrenceTimeUtc"] == start
 
 
+@pytest.mark.requirement("notifications:R92")
+@pytest.mark.asyncio
+async def test_pending_mark_silent_when_nobody_is_enrolled(
+    db_session: AsyncSession,
+):
+    """#148: a session no one is enrolled in has no register to forget."""
+    _ = await create_admin_user(db_session)
+    now = future_ms(0)
+    start = now - 3 * 60 * 60 * 1000
+    end = now - 2 * 60 * 60 * 1000
+    _ = await _make_event(db_session, start=start, end=end, title="Open")
+    await db_session.commit()
+
+    sent = await scan_pending_marks(db_session, now)
+    await db_session.commit()
+
+    assert sent == 0
+    rows = await _notifications_for(
+        db_session, "admin", "attendance.pending_mark_reminder"
+    )
+    assert rows == []
+
+
+@pytest.mark.requirement("notifications:R92")
+@pytest.mark.asyncio
+async def test_pending_mark_silent_when_the_only_enrollment_began_after_it(
+    db_session: AsyncSession,
+):
+    """#148: a member who enrolled after the session was not expected at it."""
+    _ = await create_admin_user(db_session)
+    _ = await create_member_user(db_session, "amy")
+    now = future_ms(0)
+    start = now - 3 * 60 * 60 * 1000
+    end = now - 2 * 60 * 60 * 1000
+    event = await _make_event(db_session, start=start, end=end, title="Joined later")
+    db_session.add(
+        Enrollment(
+            event_id=event.id,
+            membername="amy",
+            status=EnrollmentStatus.assigned.value,
+            is_trial=0,
+            created_at=now - 60_000,
+            updated_at=now - 60_000,
+            enrolled_at=now - 60_000,
+        )
+    )
+    await db_session.commit()
+
+    sent = await scan_pending_marks(db_session, now)
+    await db_session.commit()
+
+    assert sent == 0
+    rows = await _notifications_for(
+        db_session, "admin", "attendance.pending_mark_reminder"
+    )
+    assert rows == []
+
+
 @pytest.mark.requirement("notifications:R93")
 @pytest.mark.asyncio
 async def test_pending_mark_silent_when_attendance_exists(

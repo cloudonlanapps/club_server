@@ -333,7 +333,9 @@ The matching notice about an enrolled programme member,
   with `attendance.correction_response`, carrying the outcome.
 - **R92** [✅] Every hour the scheduler reminds staff of each occurrence
   that ended in the last seven days with no attendance recorded, with
-  `attendance.pending_mark_reminder`, once per occurrence.
+  `attendance.pending_mark_reminder`, once per occurrence. An occurrence
+  no enrollment covers (nobody expected at it, attendance R38a) has no
+  register to forget and gets no reminder (club_server#148).
 - **R93** [X] An occurrence with any attendance recorded, or that was
   cancelled, produces no pending-mark reminder.
 - **R93a** [X] A pending-mark reminder already sent for an occurrence is
