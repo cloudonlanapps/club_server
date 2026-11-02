@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1 (2026-11-02)
+
+### Attendance
+
+- Add `attendanceExpected` and `attendanceMarked` (integers) to each occurrence in `GET /v1/events/occurrences`: the members whose enrollment covers the occurrence, and how many of them have a recorded status (present, absent, late or on leave; a pending leave request is not marked). Other occurrence responses carry both as null (#142).
+- In `GET /v1/events/occurrences`, a past occurrence counts every member with a recorded status (present, absent, late or on leave) in `attendanceExpected` and `attendanceMarked`, even one whose enrollment does not cover it: a super-admin may mark a member who enrolled after the session, and the register shows that mark. Upcoming occurrences still count only the members whose enrollment covers them (#146).
+- No `attendance.pending_mark_reminder` is sent for an ended occurrence that no enrollment covers: a session nobody was enrolled in has no register to forget (#148).
+
 ## 1.3.0 (2026-10-28)
 
 ### Extended profile
@@ -35,7 +43,6 @@
 
 ### Attendance
 
-- Add `attendanceExpected` and `attendanceMarked` (integers) to each occurrence in `GET /v1/events/occurrences`: the members whose enrollment covers the occurrence, and how many of them have a recorded status (present, absent, late or on leave; a pending leave request is not marked). Other occurrence responses carry both as null (#142).
 
 ### Bug Fixes
 
