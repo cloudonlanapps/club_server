@@ -53,6 +53,10 @@ class OccurrenceResponse(CamelCaseModel):
     is_rescheduled: bool
     cancel_reason: str | None
     attendance_status: str | None = None
+    # Staff occurrence list only (attendance R38a, #142): the members whose
+    # enrollment covers the occurrence, and how many of them are marked.
+    attendance_expected: int | None = None
+    attendance_marked: int | None = None
     # Optimistic locking (#430, lifecycle L23): 1 until the occurrence is
     # first changed; who changed it last, and when, once it has been.
     version: int

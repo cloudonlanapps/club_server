@@ -47,6 +47,7 @@ from ..utils import get_display_name, now_utc_ms
 from .conflict_gates import ScheduleTarget
 from .event_types import EventVerb, offers
 from .lifecycle import occurrence_is_cancelled
+from .occurrence_attendance_counts import add_attendance_counts
 from .occurrence_reminders import delete_occurrence_reminders
 from .schedule_clash import gate_schedule_write
 from .occurrence_version import (
@@ -150,7 +151,9 @@ class OccurrenceService:
                 occurrences.append(
                     await self.build_occurrence_data(event, slot, override)
                 )
-        return _page(occurrences, offset, limit)
+        page = _page(occurrences, offset, limit)
+        await add_attendance_counts(self.db, page, now_utc_ms())
+        return page
 
     async def list_user_occurrences(
         self,

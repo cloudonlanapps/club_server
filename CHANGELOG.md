@@ -33,6 +33,10 @@
 - Add `PATCH /v1/applications/labels/{key}` (admin): `{"text": {lang: text}}` with English replaces a label's texts in the club's languages (one left out is left blank) and answers `{key, text}`; unknown key → 404 `APPLICATION_LABEL_NOT_FOUND` (new code). The labels are the club's, seeded once from the catalogue. Save refuses a template with a label (one it does not override) lacking a print language → 422 `APPLICATION_INCOMPLETE` with `labels.<key>` entries in `missing`; a saved template keeps the labels it was measured with (#133).
 - A fact prints as English does in a club language the library has no formats for (#133).
 
+### Attendance
+
+- Add `attendanceExpected` and `attendanceMarked` (integers) to each occurrence in `GET /v1/events/occurrences`: the members whose enrollment covers the occurrence, and how many of them have a recorded status (present, absent, late or on leave; a pending leave request is not marked). Other occurrence responses carry both as null (#142).
+
 ### Bug Fixes
 
 - `PATCH /v1/applications/{id}` with `languages: null` resets the print languages to `["en"]`; it was ignored (#109).
