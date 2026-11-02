@@ -330,7 +330,10 @@ Convention:
   (`GET /events/occurrences`) carries `attendanceExpected`, the members
   whose enrollment covers it (R20), and `attendanceMarked`, how many of
   them have a recorded status: present, absent, late or on leave. A
-  pending leave request (`onLeaveRequested`) is not marked. The counts
+  pending leave request (`onLeaveRequested`) is not marked. In a past
+  session a member with a recorded status also counts, as expected and
+  as marked, when their enrollment does not cover it: a super-admin may
+  mark a member who enrolled after the session (club_server#146). The counts
   for the whole range come from a fixed number of queries. Other
   occurrence responses leave both `null` (club_server#142).
 

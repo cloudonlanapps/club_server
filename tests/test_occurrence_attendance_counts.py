@@ -22,10 +22,12 @@ from .enrollment_rejoin_helpers import remove
 from .helpers import create_admin_user, create_coach_user, create_member_user
 from .redesign_helpers import (
     DAY_MS,
+    HOUR_MS,
     MINUTE_MS,
     assign,
     at,
     auth,
+    backdate_enrollment,
     create_programme,
     create_venue,
     list_occurrences,
@@ -197,6 +199,35 @@ async def test_should_leave_out_a_member_when_their_enrollment_does_not_cover_it
     assert removed.status_code == 204, removed.text
 
     assert _counts(await _occurrence(client, admin, event_id, start)) == (1, 0)
+
+
+@pytest.mark.asyncio
+async def test_should_count_members_marked_in_a_past_session_they_enrolled_after(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """#146: the register shows both marked, so the counts say so too."""
+    start = at(days=-2)
+    admin, _, event_id = await _programme(client, db_session, start=start)
+    for member, status in (("alice", "present"), ("bob", "absent")):
+        marked = await mark(client, admin, event_id, start, member, status)
+        assert marked.status_code == 200, marked.text
+
+    assert _counts(await _occurrence(client, admin, event_id, start)) == (2, 2)
+
+
+@pytest.mark.asyncio
+async def test_should_count_a_covered_unmarked_member_beside_a_marked_later_one(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """#146: bob, enrolled before the past session and unmarked, is still
+    expected; alice, enrolled after it and marked, counts as marked."""
+    start = at(days=-2)
+    admin, _, event_id = await _programme(client, db_session, start=start)
+    await backdate_enrollment(db_session, event_id, "bob", start - HOUR_MS)
+    marked = await mark(client, admin, event_id, start, "alice")
+    assert marked.status_code == 200, marked.text
+
+    assert _counts(await _occurrence(client, admin, event_id, start)) == (2, 1)
 
 
 @pytest_asyncio.fixture
