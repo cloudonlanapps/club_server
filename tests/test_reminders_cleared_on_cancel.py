@@ -26,6 +26,7 @@ from .redesign_helpers import (
     assign,
     at,
     auth,
+    backdate_enrollment,
     cancel_occurrence,
     cancel_series,
     create_camp,
@@ -41,6 +42,22 @@ from .redesign_helpers import (
 
 UPCOMING = "event.upcoming_reminder"
 PENDING_MARK = "attendance.pending_mark_reminder"
+
+
+async def _enrol_before(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    token: str,
+    event_id: int,
+    first: int,
+) -> None:
+    """Enrol a member from before ``first``: a session nobody is enrolled
+    in gets no pending-mark reminder (#148)."""
+    _ = await create_member_user(db_session, "marked_member")
+    await db_session.commit()
+    assigned = await assign(client, token, event_id, "marked_member")
+    assert assigned.status_code == 204, assigned.text
+    await backdate_enrollment(db_session, event_id, "marked_member", first - HOUR_MS)
 
 
 async def _reminded(
@@ -153,6 +170,7 @@ async def test_should_delete_pending_mark_reminder_when_super_admin_cancels_past
     earlier = at(days=-1, hours=-3)
     later = earlier + DAY_MS
     await _move_to(db_session, programme["id"], earlier)
+    await _enrol_before(client, db_session, super_admin, programme["id"], earlier)
     assert await scan_pending_marks(db_session, now_ms()) > 0
     await db_session.commit()
     assert await _reminded(
@@ -183,6 +201,7 @@ async def test_should_resend_pending_mark_reminder_when_cancelled_session_restor
     earlier = at(days=-1, hours=-3)
     later = earlier + DAY_MS
     await _move_to(db_session, programme["id"], earlier)
+    await _enrol_before(client, db_session, super_admin, programme["id"], earlier)
     _ = await scan_pending_marks(db_session, now_ms())
     await db_session.commit()
     assert (

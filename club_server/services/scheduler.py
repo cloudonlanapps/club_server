@@ -43,6 +43,7 @@ from ..db.models.user import User, UserStatus
 from ..schemas.common import UserRoles
 from ..utils import ceil_to_utc_day
 from .absence_streak import scan_absence_streaks
+from .eligibility import enrollment_covers_occurrence
 from .group_eligibility_scan import scan_group_eligibility
 from .credit_sweep import sweep_credit_settlements
 from .enrollment_eligibility_scan import scan_enrollment_eligibility
@@ -223,7 +224,24 @@ async def scan_pending_marks(session: AsyncSession, now: int) -> int:
             for slot in await _live_slots(session, event, window_start - longest, now)
             if window_start <= slot.end < now
         ]
+        if not slots:
+            continue
+        enrollments = (
+            (
+                await session.execute(
+                    select(Enrollment).where(Enrollment.event_id == event.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
         for slot in slots:
+            # Nor has a session nobody was enrolled in: no enrollment covers
+            # it, the members the staff occurrence list expects (#148, R38a).
+            if not any(
+                enrollment_covers_occurrence(e, slot.time, now) for e in enrollments
+            ):
+                continue
             attendance = await session.execute(
                 select(AttendanceRecord.id)
                 .where(
