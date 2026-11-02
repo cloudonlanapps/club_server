@@ -326,6 +326,13 @@ Convention:
   single occurrence; absence of a record is a successful empty
   response (200 / null), not 404. 404 is reserved for the leave-flow
   mutations (R19) where the row's existence is a precondition.
+- **R38a** [✅] Each occurrence in the staff occurrence list
+  (`GET /events/occurrences`) carries `attendanceExpected`, the members
+  whose enrollment covers it (R20), and `attendanceMarked`, how many of
+  them have a recorded status: present, absent, late or on leave. A
+  pending leave request (`onLeaveRequested`) is not marked. The counts
+  for the whole range come from a fixed number of queries. Other
+  occurrence responses leave both `null` (club_server#142).
 
 ---
 
