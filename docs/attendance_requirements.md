@@ -336,6 +336,12 @@ Convention:
   mark a member who enrolled after the session (club_server#146). The counts
   for the whole range come from a fixed number of queries. Other
   occurrence responses leave both `null` (club_server#142).
+- **R38b** [✅] Each occurrence in the staff occurrence list also carries
+  the requests waiting on staff: `leaveRequestsPending`, this session's
+  leave requests (`onLeaveRequested`); `enrollmentRequestsPending` and
+  `withdrawalRequestsPending`, the event's enrollments in `requested` and
+  `withdrawRequested`. They come from the same queries as R38a's counts.
+  Other occurrence responses leave them `null` (club_server#153).
 
 ---
 
