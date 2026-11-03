@@ -57,6 +57,11 @@ class OccurrenceResponse(CamelCaseModel):
     # enrollment covers the occurrence, and how many of them are marked.
     attendance_expected: int | None = None
     attendance_marked: int | None = None
+    # Staff occurrence list only (attendance R38b, #153): the requests
+    # waiting on staff, this session's leave and the event's enrollments.
+    leave_requests_pending: int | None = None
+    enrollment_requests_pending: int | None = None
+    withdrawal_requests_pending: int | None = None
     # Optimistic locking (#430, lifecycle L23): 1 until the occurrence is
     # first changed; who changed it last, and when, once it has been.
     version: int

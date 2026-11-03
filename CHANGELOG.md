@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2 (2026-11-03)
+
+### Attendance
+
+- Add `leaveRequestsPending`, `enrollmentRequestsPending` and `withdrawalRequestsPending` (integers) to each occurrence in `GET /v1/events/occurrences`: this session's leave requests awaiting a decision, and the event's enrollments in `requested` and `withdrawRequested`. They come from the same queries as `attendanceExpected` and `attendanceMarked`. Other occurrence responses carry them as null (#153).
+
 ## 1.3.1 (2026-11-02)
 
 ### Attendance
