@@ -79,8 +79,10 @@ which is documented behaviour and looks exactly like nothing being wrong.
 `VERSION` is both the release version and the deployment config-schema
 version. A release moves the major, so every environment re-asks for its
 settings once per release; between releases a settings change moves the minor.
-A release is tagged `RELEASE_VERSION_<major>_<minor>_<patch>` in club_server,
-club_client, club_sdk and club_cli, which take the same major at each release.
+A release is tagged `RELEASE_VERSION_<major>_<minor>_<patch>` in club_server
+and club_client only. club_cli is not tagged: its `VERSION` follows
+club_server's, which names the matching server. club_sdk is not tagged: the
+client pins it by commit.
 
 It is also the server's only version number. `GET /`, `openapi.json` and the
 package metadata in `pyproject.toml` all read it, so do not add a second one.
