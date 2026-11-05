@@ -29,7 +29,6 @@ from ..schemas.event import Session
 from ..utils import now_utc_ms
 from .conflict_gates import target_for_event
 from .occurrence_version import SCHEDULED_OVERRIDE_STATUS, clear_override
-from .schedule import first_slot
 from .schedule_clash import gate_schedule_write
 from .schedule_writes import (
     decode_sessions,
@@ -63,14 +62,14 @@ async def reschedule_in_place(
     now = now_utc_ms()
     schedule = event.current_schedule
 
-    # Guard 1: the series must not have started.
-    first = first_slot(event)
+    # Guard 1 (R2c): nothing may be recorded against the slots. A start in
+    # the past alone does not freeze the schedule (#155).
     attendance_count = await db.scalar(
         select(func.count())
         .select_from(AttendanceRecord)
         .where(AttendanceRecord.event_id == event.id)
     )
-    if (first is not None and now >= first) or (attendance_count or 0) > 0:
+    if (attendance_count or 0) > 0:
         raise EventAlreadyStartedException(event.id)
 
     # Guard 2: occurrence overrides must be absent or explicitly reset.
