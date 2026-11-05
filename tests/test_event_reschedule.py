@@ -114,9 +114,11 @@ async def test_reschedule_future_camp_updates_in_place(
 
 
 @pytest.mark.asyncio
-async def test_reschedule_after_start_fails(
+async def test_issue_155_reschedule_after_start_without_attendance(
     client: AsyncClient, db_session: AsyncSession
 ):
+    """Issue 155: a camp whose first occurrence has passed, with nothing
+    recorded against it, can still be moved (R2c freezes on attendance only)."""
     token = await create_admin_user(db_session)
     venue_id = await create_venue(client, token, "V1")
     event_id, _, _ = await create_camp(client, token, venue_id, start_hours=24, days=3)
@@ -128,16 +130,17 @@ async def test_reschedule_after_start_fails(
     event.end_time = future_ms(-44)
     await db_session.flush()
 
+    target = future_ms(96)
     resp = await client.post(
         f"/v1/events/by_id/{event_id}/reschedule",
         json={
             "version": await version_of(client, token, event_id),
-            "startTimeUtc": future_ms(96),
+            "startTimeUtc": target,
         },
         headers=auth(token),
     )
-    assert resp.status_code == 422
-    assert resp.json()["detail"]["code"] == "EVENT_ALREADY_STARTED"
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["startTimeUtc"] == target
 
 
 @pytest.mark.asyncio

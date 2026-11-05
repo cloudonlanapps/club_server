@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3 (2026-11-05)
+
+### Events
+
+- `POST /v1/events/by_id/{event_id}/reschedule` no longer refuses a camp because its first occurrence has passed: it is refused with 422 `EVENT_ALREADY_STARTED` only once attendance (leave included) is recorded, as camp R2c states. A camp created with a start already in the past can now be corrected. One-offs keep their 30-minute lead time (#155).
+
 ## 1.3.2 (2026-11-03)
 
 ### Attendance

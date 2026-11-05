@@ -339,12 +339,12 @@ class InvalidEventTypeException(Exception):
 
 
 class EventAlreadyStartedException(Exception):
-    """Raised when trying to reschedule an event whose series has already begun.
+    """Raised when trying to reschedule an event that has attendance recorded.
 
-    A schedule reschedule may only run before the first occurrence starts, so
-    that no occurrence override or attendance record (both keyed by the
-    RRULE-expanded occurrence time) can be orphaned by the schedule change.
-    Surfaced as HTTP 422 EVENT_ALREADY_STARTED.
+    Attendance (leave included) is keyed by the RRULE-expanded occurrence
+    time, so moving the schedule would orphan it (camp R2c). A start in the
+    past alone does not block the move (#155). The code keeps its name for
+    existing clients. Surfaced as HTTP 422 EVENT_ALREADY_STARTED.
     """
 
     event_id: int
@@ -352,8 +352,8 @@ class EventAlreadyStartedException(Exception):
     def __init__(self, event_id: int):
         self.event_id = event_id
         super().__init__(
-            f"Event {event_id} has already started; reschedule is no longer "
-            "allowed (use occurrence reschedule, or cancel and recreate)"
+            f"Event {event_id} has attendance recorded; its schedule can no "
+            "longer be moved (use occurrence reschedule, or cancel and recreate)"
         )
 
 
